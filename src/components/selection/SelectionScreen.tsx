@@ -7,6 +7,7 @@ import type { SelectionData } from "@/data/selection";
 import { prefersReducedMotion } from "@/lib/motion";
 import { buildQuery } from "@/lib/url";
 
+import { CategoryIcon } from "./categoryIcons";
 import { ContactSheet } from "./ContactSheet";
 import styles from "./SelectionScreen.module.css";
 
@@ -152,22 +153,35 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                   aria-pressed={current}
                   onClick={() => selectCategory(category.slug)}
                 >
-                  <span className={`${styles.posterFrame} halftone`}>
-                    {/*
-                      포스터는 장식이 아니라 카테고리 선택 자체이므로, 대체 텍스트는
-                      버튼 레이블이 담당하고 이미지는 배경으로 둔다.
-                    */}
-                    <img
-                      className={styles.posterImage}
-                      src={category.coverImage}
-                      alt=""
-                      loading={index === 0 ? "eager" : "lazy"}
-                      decoding="async"
-                    />
+                  <span className={styles.posterFrameWrap}>
+                    <span className={styles.posterFrame}>
+                      {/*
+                        포스터는 장식이 아니라 카테고리 선택 자체이므로, 대체 텍스트는
+                        버튼 레이블이 담당하고 이미지는 배경으로 둔다.
+                      */}
+                      <span className={`${styles.posterFrameInner} halftone`}>
+                        <img
+                          className={styles.posterImage}
+                          src={category.coverImage}
+                          alt=""
+                          loading={index === 0 ? "eager" : "lazy"}
+                          decoding="async"
+                        />
+                      </span>
+                    </span>
                   </span>
 
                   {/* 카테고리명은 이미지 바깥으로 튀어나오게 배치한다 (블루프린트 6.2). */}
                   <span className={`display ${styles.posterLabel}`}>{category.name}</span>
+
+                  {/* 블루프린트의 표창/불꽃/검 스티커: 카테고리별 아이콘을 프레임 모서리에 붙인다. */}
+                  <span className={styles.posterIcon} aria-hidden="true">
+                    <CategoryIcon
+                      positionSlug={positionSlug}
+                      categorySlug={category.slug}
+                      className={styles.posterIconGlyph}
+                    />
+                  </span>
 
                   <span className={`mono ${styles.posterMeta}`}>
                     <span className={styles.posterRole}>{category.role}</span>

@@ -1,0 +1,11 @@
+/*
+ * 필터 정의만 담은 SVG. 화면에 보이지 않아야 하지만 `display: none`으로 숨기면
+ * 일부 브라우저에서 필터 참조가 끊기므로, 크기를 0으로 두고 흐름에서 빼낸다.
+ */
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}

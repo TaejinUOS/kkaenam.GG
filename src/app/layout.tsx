@@ -3,6 +3,7 @@ import { Bagel_Fat_One, IBM_Plex_Mono } from "next/font/google";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ZineFilters } from "@/components/ZineFilters";
 
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="skip-link" href="#main">
           본문으로 건너뛰기
         </a>
+        <ZineFilters />
         <SiteHeader />
         <main id="main">{children}</main>
         <SiteFooter />

@@ -1,0 +1,338 @@
+/* 블루프린트 6.2 포지션·카테고리 선택 화면 */
+
+.screen {
+  padding-block: clamp(24px, 4vw, 48px) clamp(40px, 6vw, 80px);
+  display: grid;
+  gap: clamp(20px, 3vw, 36px);
+}
+
+/* ------------------------------------------------------------ 헤드라인 */
+
+.masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.mastheadMain {
+  display: grid;
+  gap: 10px;
+}
+
+.headline {
+  font-size: clamp(52px, 10vw, 164px);
+  color: var(--paper);
+  /* 잡지 표지처럼 글자를 잉크 위에 눌러 찍은 인상을 준다. */
+  text-shadow: 5px 5px 0 rgba(16, 16, 20, 0.9);
+}
+
+/* 목업의 바코드 티켓 */
+
+.ticket {
+  align-self: flex-end;
+  min-width: 236px;
+  padding: 8px 12px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  box-shadow: var(--shadow-cut-paper);
+  transform: rotate(-1.5deg);
+}
+
+.ticketLine {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.barcode {
+  margin-top: 6px;
+  height: 26px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 2px,
+    transparent 2px 4px,
+    var(--ink) 4px 5px,
+    transparent 5px 9px,
+    var(--ink) 9px 12px,
+    transparent 12px 14px
+  );
+}
+
+/* ----------------------------------------------------------- 포지션 탭 */
+
+.positions {
+  border-bottom: var(--line-w) solid rgba(244, 235, 221, 0.3);
+}
+
+.positionList {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* 모바일에서 탭이 헤더 선에 붙어 보이도록 아래 여백을 없앤다. */
+  padding-bottom: 0;
+}
+
+.positionList::-webkit-scrollbar {
+  display: none;
+}
+
+/* 종이 인덱스 탭. 현재 포지션만 Acid 면으로 채운다. */
+.positionTab {
+  display: grid;
+  gap: 1px;
+  padding: 10px clamp(14px, 2.2vw, 26px) 12px;
+  background: var(--ink-raised);
+  color: var(--paper);
+  border: var(--line-w) solid rgba(244, 235, 221, 0.3);
+  border-bottom: none;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  text-align: center;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-position) var(--ease),
+    color var(--t-position) var(--ease),
+    transform var(--t-position) var(--ease);
+}
+
+.positionTab:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.positionTabCurrent {
+  background: var(--acid);
+  color: var(--ink);
+  border-color: var(--ink);
+  transform: translateY(2px);
+}
+
+.positionName {
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.positionCode {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------ 카테고리 포스터 */
+
+.posterGroup {
+  --poster-h: clamp(300px, 36vw, 540px);
+  display: flex;
+  align-items: stretch;
+  gap: clamp(10px, 1.4vw, 22px);
+  /* 라벨이 프레임 밖으로 튀어나오므로 좌우 여유를 둔다. */
+  padding: 26px 12px 8px;
+  margin-inline: -12px;
+}
+
+.poster {
+  position: relative;
+  flex: var(--w) 1 0%;
+  min-width: 0;
+  display: block;
+  text-align: left;
+  transition:
+    flex-grow var(--t-poster) var(--ease),
+    transform var(--t-poster) var(--ease);
+}
+
+.posterFrame {
+  position: relative;
+  display: block;
+  height: var(--poster-h);
+  overflow: hidden;
+  border: var(--line-w) solid var(--paper);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+  box-shadow: var(--shadow-cut-paper);
+  transition:
+    box-shadow var(--t-poster) var(--ease),
+    border-color var(--t-poster) var(--ease);
+}
+
+.posterImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+/* 카테고리명은 이미지 바깥으로 8~16px 튀어나온다. */
+.posterLabel {
+  position: absolute;
+  top: -18px;
+  left: -10px;
+  z-index: 2;
+  max-width: calc(100% + 20px);
+  padding: 4px 14px 7px;
+  background: var(--label-bg, var(--acid));
+  color: var(--ink);
+  border: var(--line);
+  font-size: clamp(20px, 2.6vw, 38px);
+  line-height: 1.06;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: rotate(-1.6deg);
+  transition: transform var(--t-poster) var(--ease);
+}
+
+/* 목업의 라벨 색 순서: Acid → Gum → Cobalt */
+.poster:nth-child(1) {
+  --label-bg: var(--acid);
+}
+
+.poster:nth-child(2) {
+  --label-bg: var(--gum);
+}
+
+.poster:nth-child(3) {
+  --label-bg: var(--cobalt);
+}
+
+.poster:nth-child(3) .posterLabel {
+  color: var(--paper);
+}
+
+.posterMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  font-size: 11px;
+  color: var(--smoke);
+}
+
+.posterRole {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 선택된 카테고리 */
+.posterCurrent .posterFrame {
+  border-color: var(--acid);
+  box-shadow: 6px 6px 0 var(--acid);
+}
+
+/*
+ * 포인터 호버·키보드 포커스 시 대상 포스터가 가로로 확장되고 나머지는 좁아진다.
+ * 그룹 전체 폭은 유지되며, 좁아진 포스터의 이미지는 잘려도 라벨과 선택 영역은 남는다.
+ * 터치 환경에서는 폭 변화를 선택의 전제로 삼지 않는다 (블루프린트 8장).
+ */
+@media (hover: hover) and (pointer: fine) {
+  .posterGroup:not(.posterGroupSingle):has(.poster:hover) .poster,
+  .posterGroup:not(.posterGroupSingle):has(.poster:focus-visible) .poster {
+    flex-grow: calc(var(--w) * 0.68);
+  }
+
+  .posterGroup:not(.posterGroupSingle) .poster:hover,
+  .posterGroup:not(.posterGroupSingle) .poster:focus-visible {
+    flex-grow: calc(var(--w) * 1.95);
+  }
+}
+
+/* 보조 피드백: 2deg 이내 기울기, 하드 그림자 6px → 12px, 라벨 8px 이동 */
+.poster:hover .posterFrame,
+.poster:focus-visible .posterFrame {
+  box-shadow: var(--shadow-cut-lg);
+  transform: rotate(-1.2deg);
+}
+
+.poster:hover .posterLabel,
+.poster:focus-visible .posterLabel {
+  transform: rotate(-1.6deg) translateX(8px);
+}
+
+.posterCurrent:hover .posterFrame,
+.posterCurrent:focus-visible .posterFrame {
+  box-shadow: 12px 12px 0 var(--acid);
+}
+
+/* 포스터가 하나인 원딜: 폭은 고정하고 옆에 설명 영역을 둔다. */
+.posterGroupSingle .poster {
+  flex: 8 1 0%;
+}
+
+.singleNote {
+  flex: 4 1 0%;
+  min-width: 0;
+  align-self: flex-end;
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border: var(--line-w) solid rgba(244, 235, 221, 0.3);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+}
+
+.singleNoteBody {
+  font-size: 15px;
+  color: var(--smoke);
+  line-height: 1.7;
+}
+
+/* ------------------------------------------------------------ 안내 문구 */
+
+.sheetAnchor {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 26px 0 8px;
+  color: var(--smoke);
+  font-size: 15px;
+}
+
+/* -------------------------------------------------------------- 반응형 */
+
+@media (max-width: 1023px) {
+  .posterGroup {
+    --poster-h: clamp(240px, 38vw, 380px);
+  }
+}
+
+/* 360~767px: 카테고리 포스터를 세로로 쌓는다 (블루프린트 8장). */
+@media (max-width: 767px) {
+  .masthead {
+    gap: 16px;
+  }
+
+  .ticket {
+    align-self: flex-start;
+    min-width: 0;
+    transform: rotate(-1deg);
+  }
+
+  .posterGroup {
+    --poster-h: 208px;
+    flex-direction: column;
+    padding-top: 30px;
+    gap: 30px;
+  }
+
+  .poster,
+  .posterGroupSingle .poster,
+  .singleNote {
+    flex: none;
+  }
+
+  .posterLabel {
+    font-size: 28px;
+  }
+}

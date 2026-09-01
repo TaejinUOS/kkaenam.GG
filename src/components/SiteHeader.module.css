@@ -1,0 +1,162 @@
+/* 블루프린트 6.1 글로벌 헤더 */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--ink);
+  border-bottom: var(--line-paper);
+}
+
+.bar {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 3vw, 40px);
+}
+
+/* ------------------------------------------------------------------ 로고 */
+
+.logo {
+  display: inline-flex;
+  align-items: baseline;
+  flex-shrink: 0;
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1;
+}
+
+.logoMark {
+  color: var(--acid);
+}
+
+.logoSuffix {
+  color: var(--paper);
+}
+
+/* -------------------------------------------------------------- 주 메뉴 */
+
+.nav {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 1.2vw, 18px);
+  margin: 0;
+  /* 좁은 화면에서는 한 줄 가로 스크롤로 유지한다 (블루프린트 8장). */
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.navList::-webkit-scrollbar {
+  display: none;
+}
+
+.navLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: var(--line-w) solid transparent;
+  border-radius: var(--radius-card);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-poster) var(--ease),
+    color var(--t-poster) var(--ease);
+}
+
+/* hover 시 대상 메뉴만 Acid로 반전한다. */
+.navLink:hover {
+  background: var(--acid);
+  color: var(--ink);
+}
+
+/* 현재 메뉴는 밑줄이 아니라 Acid 직사각형 탭으로 표시한다. */
+.navLinkCurrent {
+  background: var(--acid);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--paper);
+}
+
+.soon {
+  background: var(--gum);
+  color: var(--ink);
+  transform: rotate(-4deg);
+}
+
+.navLink:hover .soon,
+.navLinkCurrent .soon {
+  background: var(--ink);
+  color: var(--acid);
+  border-color: var(--ink);
+}
+
+/* --------------------------------------------------------- 마이페이지 */
+
+.myPage {
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 22px;
+  height: 22px;
+  border: var(--line-w) solid currentColor;
+  border-radius: var(--radius-control);
+  background:
+    radial-gradient(circle at 50% 34%, currentColor 0 26%, transparent 27%),
+    radial-gradient(ellipse 62% 42% at 50% 104%, currentColor 0 60%, transparent 61%);
+}
+
+/* --------------------------------------------- 메뉴 hover 콘텐츠 오버레이 */
+
+.dim {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  z-index: 30;
+  pointer-events: none;
+  background: var(--ink);
+  opacity: 0;
+  transition: opacity var(--t-position) var(--ease);
+}
+
+.dimOn {
+  opacity: 0.08;
+}
+
+/* ------------------------------------------------------------- 반응형 */
+
+@media (max-width: 900px) {
+  .nav {
+    justify-content: flex-start;
+  }
+
+  .myPage span:not(.sr-only) {
+    /* 좁은 화면에서는 아바타만 남긴다. */
+    display: none;
+  }
+
+  .myPage .avatar {
+    display: block;
+  }
+}
+
+@media (max-width: 560px) {
+  .navLink {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .soon {
+    display: none;
+  }
+}

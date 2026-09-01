@@ -1,0 +1,58 @@
+/* 블루프린트 6.4 영상 화면 */
+
+.panel {
+  display: grid;
+  gap: 16px;
+}
+
+.empty {
+  display: grid;
+  gap: 10px;
+  padding: clamp(24px, 4vw, 40px) clamp(18px, 3vw, 32px);
+  border: var(--line-w) dashed var(--paper-line);
+  border-radius: var(--radius-card);
+}
+
+.title {
+  font-size: clamp(18px, 2.2vw, 23px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.body {
+  max-width: 58ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #5d5245;
+}
+
+.note {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #6b6053;
+}
+
+/* 16:9 자리만 잡아 둔 골격 */
+.skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.skeleton li {
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--paper-line);
+  border-radius: var(--radius-card);
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 10px,
+    rgba(16, 16, 20, 0.04) 10px 20px
+  );
+}
+
+@media (max-width: 640px) {
+  .skeleton {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

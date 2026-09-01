@@ -1,0 +1,357 @@
+/* 블루프린트 6.3 Aside */
+
+.aside {
+  position: relative;
+  display: grid;
+  gap: 0;
+  background: var(--ink-raised);
+  border: var(--line-w) solid var(--paper);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-cut-paper);
+}
+
+/* ------------------------------------------------------------- 일러스트 */
+
+.stage {
+  position: relative;
+  /* 표시 크기를 미리 예약해 CLS를 관리한다 (PRD 10 성능). */
+  aspect-ratio: 5 / 6;
+  overflow: hidden;
+  background: var(--ink-sunken);
+}
+
+/* 인쇄 재단선 격자 */
+.registerMarks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(244, 235, 221, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 235, 221, 0.09) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* 일러스트 뒤에서 일부 가려지는 초대형 Gum 이름 */
+.nameBehind {
+  position: absolute;
+  top: 3%;
+  left: -2%;
+  z-index: 0;
+  color: var(--gum);
+  font-size: clamp(58px, 8.6vw, 150px);
+  line-height: 0.84;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* 화면 중앙이 아니라 오른쪽으로 8% 치우치게 배치한다. */
+.illustration {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateX(8%);
+  /* 최초 진입 시 잉크 마스크로 한 번만 공개한다 (블루프린트 7장). */
+  animation: revealIllustration var(--t-pick) var(--ease) both;
+}
+
+@keyframes revealIllustration {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 로딩 실패 대체 UI */
+.fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.fallbackIcon {
+  width: clamp(80px, 22%, 132px);
+  height: auto;
+  border: var(--line-w) solid var(--paper);
+}
+
+.fallbackName {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.fallbackNote {
+  font-size: 13px;
+  color: var(--smoke);
+}
+
+/* 읽을 수 있는 이름 레이블 */
+.nameplate {
+  position: absolute;
+  left: clamp(14px, 4%, 26px);
+  bottom: clamp(14px, 4%, 26px);
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.name {
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--paper);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.title {
+  font-size: 11px;
+  color: var(--paper);
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.positionTag {
+  margin-top: 4px;
+  transform: rotate(-2deg);
+}
+
+.patchTag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  transform: rotate(2deg);
+}
+
+/* ---------------------------------------------------------- 스킬 Q W E R */
+
+.skills {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: clamp(14px, 2vw, 20px);
+  border-top: var(--line-w) solid rgba(244, 235, 221, 0.25);
+}
+
+.skillRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(8px, 1.2vw, 14px);
+  margin: 0;
+}
+
+.skillItem {
+  min-width: 0;
+}
+
+.skill {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 100%;
+}
+
+.skillIconWrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  /* 스킬 아이콘은 1:1 비율 (PRD 5.3.1). */
+  aspect-ratio: 1 / 1;
+  border: var(--line-w) solid var(--paper);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition:
+    border-color var(--t-poster) var(--ease),
+    box-shadow var(--t-poster) var(--ease),
+    transform var(--t-poster) var(--ease);
+}
+
+.skillIcon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cooldown {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 1px 4px;
+  background: var(--ink);
+  color: var(--acid);
+  font-size: 10px;
+  font-weight: 600;
+  border-left: 1px solid var(--paper);
+  border-bottom: 1px solid var(--paper);
+}
+
+.slot {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+.skill:hover .skillIconWrap,
+.skill:focus-visible .skillIconWrap {
+  border-color: var(--acid);
+  transform: translateY(-2px);
+}
+
+.skillOpen .skillIconWrap {
+  border-color: var(--acid);
+  box-shadow: 0 0 0 2px var(--acid);
+}
+
+.skillOpen .slot {
+  color: var(--acid);
+}
+
+/* -------------------------------------------------------- 공략 쪽지 */
+
+.note {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: clamp(14px, 2vw, 20px);
+  right: clamp(14px, 2vw, 20px);
+  z-index: 20;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-cut);
+  /* 스티커가 뜯긴 것처럼 한쪽 모서리를 잘라낸다. */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+  animation: noteIn 140ms var(--ease) both;
+}
+
+@keyframes noteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.noteHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.noteName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.noteSlot {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: var(--ink);
+  color: var(--acid);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.noteClose {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: var(--line);
+  background: var(--paper-shade);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.noteClose:hover {
+  background: var(--gum);
+}
+
+.noteStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 8px 0;
+  border-block: 1px dashed var(--paper-line);
+  font-size: 11px;
+}
+
+.noteStats dt {
+  color: #6b6053;
+  letter-spacing: 0.06em;
+}
+
+.noteStats dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.noteBody {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* -------------------------------------------------------------- 반응형 */
+
+/* 768~1023px: 챔피언 Aside를 상단 가로형으로 변경 (블루프린트 8장). */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .aside {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  .stage {
+    aspect-ratio: 4 / 3;
+  }
+
+  .skills {
+    border-top: none;
+    border-left: var(--line-w) solid rgba(244, 235, 221, 0.25);
+    align-content: start;
+  }
+
+  .note {
+    left: clamp(14px, 2vw, 20px);
+    right: clamp(14px, 2vw, 20px);
+  }
+}
+
+/* 360~767px: 일러스트 영역 높이를 320px 이하로 제한 (블루프린트 8장). */
+@media (max-width: 767px) {
+  .stage {
+    aspect-ratio: auto;
+    height: 300px;
+  }
+
+  .nameBehind {
+    font-size: clamp(52px, 17vw, 92px);
+  }
+
+  .illustration {
+    object-position: center 18% !important;
+  }
+}

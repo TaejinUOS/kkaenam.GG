@@ -1,0 +1,325 @@
+/*
+ * 깨남.GG — GLOWING MATCHUP ZINE
+ * DESIGN_BLUEPRINT.md v0.5의 STATIC BLOOM 토큰과 형태·질감 규칙을 구현한다.
+ * 화면별 스타일은 각 컴포넌트의 CSS Module에 두고, 여기에는 토큰과 공용 문법만 둔다.
+ */
+
+/* ------------------------------------------------------------------ 토큰 */
+
+:root {
+  /* 블루프린트 3장 STATIC BLOOM 팔레트 */
+  --ink: #101014;
+  --paper: #f4ebdd;
+  --acid: #d8ff3e;
+  --gum: #ff5e9c;
+  --cobalt: #3a4cff;
+  --smoke: #a59bad;
+
+  /* 잉크 위에 얹는 단계값. 넓은 면에 강조색을 겹쳐 쓰지 않기 위한 중간 톤이다. */
+  --ink-raised: #17171d;
+  --ink-sunken: #0a0a0d;
+  --paper-shade: #e6dac6;
+  --paper-line: #cbbca4;
+
+  --line-w: 2px;
+  --line: var(--line-w) solid var(--ink);
+  --line-paper: var(--line-w) solid var(--paper);
+  --radius-card: 2px;
+  --radius-control: 999px;
+  --shadow-cut: 6px 6px 0 var(--ink);
+  --shadow-cut-lg: 12px 12px 0 var(--ink);
+  --shadow-cut-paper: 6px 6px 0 var(--paper);
+
+  --shell-max: 1600px;
+  --shell-pad: clamp(16px, 3.4vw, 56px);
+  --header-h: 72px;
+
+  --font-display: var(--font-bagel), "Bagel Fat One", system-ui, sans-serif;
+  --font-ui: var(--font-pretendard), Pretendard, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: var(--font-mono-plex), "IBM Plex Mono", ui-monospace, "SFMono-Regular",
+    Menlo, monospace;
+
+  /* 블루프린트 7장 모션 문법 */
+  --t-poster: 160ms;
+  --t-position: 220ms;
+  --t-pick: 220ms;
+  --t-reveal: 280ms;
+  --t-marker: 320ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ------------------------------------------------------------------ 리셋 */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  line-height: 1.65;
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  /* 잉크 위 인쇄 망점. 블루프린트 5장에 따라 질감은 한 종류만 약하게 적용한다. */
+  background-image: radial-gradient(rgba(244, 235, 221, 0.045) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+
+@media (max-width: 767px) {
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
+img,
+picture,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* ------------------------------------------------------- 포커스와 접근성 */
+
+:focus-visible {
+  outline: 3px solid var(--acid);
+  outline-offset: 3px;
+}
+
+/* 잉크 배경 위에서는 Acid, 종이 배경 위에서는 Cobalt가 대비를 확보한다. */
+.on-paper :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--acid);
+  color: var(--ink);
+  font-weight: 700;
+  border: var(--line);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* --------------------------------------------------------- 타이포그래피 */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  /* Bagel Fat One은 대문자 높이가 커서 기본 word-spacing이 넓어 보인다. */
+  word-spacing: -0.04em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* 블루프린트 5장: 섹션 번호를 목차처럼 크게 노출한다. */
+.section-index {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1vw, 13px);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--smoke);
+}
+
+/* ------------------------------------------------------------- 레이아웃 */
+
+.shell {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  padding-inline: var(--shell-pad);
+}
+
+/* ------------------------------------------------------- 공용 시각 문법 */
+
+/* 잉크 위 종이 스티커 라벨. 카테고리명·태그·상태 표시에 공통으로 쓴다. */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sticker--acid {
+  background: var(--acid);
+}
+
+.sticker--gum {
+  background: var(--gum);
+}
+
+.sticker--cobalt {
+  background: var(--cobalt);
+  color: var(--paper);
+  border-color: var(--cobalt);
+}
+
+.sticker--soon {
+  padding: 1px 5px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  border-width: 1px;
+}
+
+/* 잉크 배경 위 종이 버튼. 하드 오프셋 그림자로 눌리는 느낌을 만든다. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-cut);
+  transition:
+    transform var(--t-poster) var(--ease),
+    box-shadow var(--t-poster) var(--ease),
+    background-color var(--t-poster) var(--ease);
+}
+
+.btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--ink);
+}
+
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.btn--acid {
+  background: var(--acid);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--paper);
+  border-color: var(--paper);
+  box-shadow: none;
+}
+
+.btn--ghost:hover {
+  background: var(--paper);
+  color: var(--ink);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-cut);
+}
+
+/* 이미지 위 하프톤 오버레이. 챔피언 아트를 인쇄물처럼 보이게 한다. */
+.halftone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(16, 16, 20, 0.5) 1px, transparent 1.4px);
+  background-size: 3px 3px;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+}
+
+/* ------------------------------------------------------------ 모션 감소 */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,32 @@
+/* 블루프린트 6.5 추후 개발 안내 화면 */
+
+.screen {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  padding-block: clamp(48px, 10vw, 120px) clamp(60px, 12vw, 140px);
+  /* 잉크 위 재단선 격자로 잡지의 빈 페이지 같은 인상을 만든다. */
+  background-image:
+    linear-gradient(rgba(244, 235, 221, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 235, 221, 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.name {
+  font-size: clamp(52px, 13vw, 190px);
+  line-height: 0.84;
+  color: var(--paper);
+  text-shadow: 6px 6px 0 var(--gum);
+}
+
+.badge {
+  transform: rotate(-2deg);
+  box-shadow: var(--shadow-cut-paper);
+}
+
+.description {
+  max-width: 54ch;
+  font-size: clamp(15px, 1.6vw, 17px);
+  line-height: 1.75;
+  color: var(--smoke);
+}

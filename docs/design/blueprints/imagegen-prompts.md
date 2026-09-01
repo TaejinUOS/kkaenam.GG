@@ -25,7 +25,7 @@ Avoid: glassmorphism, purple-blue gradient, generic SaaS dashboard, repeated rou
 - `images/Zoe.jpg`: 메이지 카테고리 포스터
 - `images/yone.jpg`: 브루저/원딜 카테고리 포스터
 
-이 프롬프트는 미드 포지션이 선택된 상태를 재생성한다. 다른 포지션의 카테고리와 커버 매핑은 `PRD.md` 5.1을 따른다.
+이 프롬프트는 미드 포지션이 선택된 상태를 재생성한다. 다른 포지션의 카테고리와 커버 매핑은 `docs/PRD.md` 5.1을 따른다.
 
 ## 2. 아리 상대법 화면
 

@@ -1,0 +1,143 @@
+/* 블루프린트 6.3: 게시판 첫 줄의 ME / 내 챔피언 선택 콤보박스 */
+
+.wrap {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #6b6053;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--radius-card);
+}
+
+.field:focus-within {
+  box-shadow: 0 0 0 3px var(--gum);
+}
+
+.selectedIcon {
+  flex-shrink: 0;
+  border: 1px solid var(--ink);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--ink);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.clear,
+.caret {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper-shade);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.clear:hover {
+  background: var(--gum);
+}
+
+.caret {
+  padding: 4px 7px;
+  font-family: var(--font-ui);
+}
+
+.caret:hover {
+  background: var(--acid);
+}
+
+/* ------------------------------------------------------------- 목록 */
+
+.listbox {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-cut);
+}
+
+.groupLabel {
+  padding: 8px 8px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b6053;
+  border-bottom: 1px dashed var(--paper-line);
+  margin-bottom: 4px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.option img {
+  border: 1px solid var(--ink);
+  flex-shrink: 0;
+}
+
+.optionActive {
+  background: var(--gum);
+}
+
+.option[aria-selected="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.check {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.noResult {
+  padding: 16px 10px;
+  font-size: 14px;
+  color: #6b6053;
+}

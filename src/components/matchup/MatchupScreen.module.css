@@ -1,0 +1,137 @@
+/* 블루프린트 6.3 챔피언 상대법 화면 */
+
+.screen {
+  padding-block: clamp(16px, 2.4vw, 28px) clamp(40px, 6vw, 72px);
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+}
+
+/* ------------------------------------------------------------- 경로 안내 */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--smoke);
+}
+
+.crumbLink {
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+}
+
+.crumbLink:hover {
+  color: var(--acid);
+  border-bottom-color: var(--acid);
+}
+
+.crumbCurrent {
+  color: var(--paper);
+  font-weight: 700;
+}
+
+.changeLink {
+  margin-left: auto;
+  transform: rotate(-1deg);
+}
+
+.changeLink:hover {
+  background: var(--paper);
+}
+
+/* --------------------------------------------------- Aside 5열 + Main 7열 */
+
+.layout {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: clamp(14px, 1.8vw, 26px);
+  align-items: start;
+}
+
+.main {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------- 종이 인덱스 탭 */
+
+.tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding-left: clamp(10px, 2vw, 26px);
+}
+
+.tab {
+  padding: 10px clamp(20px, 3vw, 40px) 11px;
+  background: var(--paper-shade);
+  color: #5d5245;
+  border: var(--line);
+  border-bottom: none;
+  /* 탭 상단 모서리만 종이처럼 살짝 접는다. */
+  border-radius: 3px 12px 0 0;
+  font-weight: 800;
+  font-size: clamp(15px, 1.5vw, 18px);
+  letter-spacing: -0.02em;
+  transition:
+    background-color var(--t-poster) var(--ease),
+    color var(--t-poster) var(--ease);
+}
+
+.tab:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.tabCurrent {
+  background: var(--paper);
+  color: var(--ink);
+  /* 현재 탭이 패널과 이어져 보이도록 아래 경계선을 지운다. */
+  margin-bottom: calc(var(--line-w) * -1);
+  padding-bottom: calc(11px + var(--line-w));
+  z-index: 1;
+}
+
+.panel {
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-cut-paper);
+  padding: clamp(14px, 2vw, 24px);
+  min-height: 420px;
+}
+
+/* -------------------------------------------------------------- 반응형 */
+
+/* 1024~1439px: Aside 4열 + Main 8열 */
+@media (max-width: 1439px) {
+  .layout {
+    grid-template-columns: 4.6fr 7.4fr;
+  }
+}
+
+/* 768~1023px 이하: Aside를 Main 위로 올린다 (PRD 9, 블루프린트 8장). */
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .changeLink {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 12px;
+    min-height: 0;
+  }
+
+  .tab {
+    flex: 1;
+    padding-inline: 10px;
+  }
+}

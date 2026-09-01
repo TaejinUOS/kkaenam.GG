@@ -1,0 +1,24 @@
+/* 선택 지점에서 번지는 잉크 마스크 (블루프린트 7장). */
+
+.ink {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--ink);
+  clip-path: circle(0 at var(--x) var(--y));
+  animation: bloom var(--t-pick) var(--ease) forwards;
+}
+
+@keyframes bloom {
+  to {
+    /* 화면 어느 지점에서 시작해도 전체를 덮도록 대각선보다 크게 잡는다. */
+    clip-path: circle(150vmax at var(--x) var(--y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink {
+    display: none;
+  }
+}

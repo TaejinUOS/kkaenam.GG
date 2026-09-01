@@ -1,0 +1,284 @@
+/* Tip 상세 (PRD 5.5) */
+
+.screen {
+  padding-block: clamp(16px, 2.4vw, 28px) clamp(40px, 6vw, 72px);
+  display: grid;
+  gap: clamp(14px, 2vw, 20px);
+}
+
+.loading {
+  min-height: 60vh;
+}
+
+/* ------------------------------------------------------------- 경로 안내 */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--smoke);
+}
+
+.crumbLink {
+  font-weight: 600;
+}
+
+.crumbLink:hover {
+  color: var(--acid);
+}
+
+/* ------------------------------------------------------------- 본문 지면 */
+
+.wrap {
+  max-width: 980px;
+}
+
+.sheet {
+  display: grid;
+  gap: clamp(18px, 2.6vw, 26px);
+  padding: clamp(20px, 3.4vw, 40px);
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-cut-paper);
+}
+
+.head {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: var(--line);
+}
+
+.headMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b6053;
+}
+
+.headMeta img {
+  border: 1px solid var(--ink);
+}
+
+.title {
+  font-size: clamp(24px, 3.6vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.22;
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border: var(--line-w) solid var(--ink);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 34%, var(--ink) 0 26%, transparent 27%),
+    radial-gradient(ellipse 62% 42% at 50% 104%, var(--ink) 0 60%, transparent 61%),
+    var(--paper-shade);
+}
+
+.author {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dates {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #6b6053;
+}
+
+/* ------------------------------------------------------- General / Me */
+
+.section {
+  display: grid;
+  gap: 10px;
+}
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sectionName {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #6b6053;
+}
+
+.generalBody {
+  font-size: clamp(15px, 1.7vw, 17px);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  padding-left: 14px;
+  border-left: 4px solid var(--cobalt);
+}
+
+/* Me는 형광펜으로 덧칠한 메모처럼 보이게 한다. */
+.meBody {
+  font-size: clamp(15px, 1.7vw, 17px);
+  line-height: 1.8;
+  font-weight: 600;
+  white-space: pre-wrap;
+  padding: 12px 14px;
+  border-left: 4px solid var(--gum);
+  background: rgba(255, 94, 156, 0.18);
+  animation: marker var(--t-marker) var(--ease) both;
+}
+
+@keyframes marker {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+.noMe {
+  padding: 12px 14px;
+  border: 1px dashed var(--paper-line);
+  border-radius: var(--radius-card);
+  font-size: 14px;
+  line-height: 1.65;
+  color: #5d5245;
+}
+
+/* ------------------------------------------------------------- 바닥글 */
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+  border-top: var(--line);
+}
+
+.votes {
+  display: flex;
+  gap: 8px;
+}
+
+.voteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: var(--line);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.voteBtn:hover {
+  background: var(--paper-shade);
+}
+
+.voteOn {
+  background: var(--acid);
+}
+
+.voteOff {
+  background: var(--smoke);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------- 삭제 확인 */
+
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 10, 13, 0.7);
+}
+
+.confirm {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  padding: 24px;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  box-shadow: var(--shadow-cut-lg);
+}
+
+.confirmTitle {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.confirmBody {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #5d5245;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* --------------------------------------------------------- 없는 Tip */
+
+.missing {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding-block: clamp(48px, 9vw, 110px);
+}
+
+.missingTitle {
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.missingBody {
+  max-width: 52ch;
+  color: var(--smoke);
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: flex-end;
+  }
+}

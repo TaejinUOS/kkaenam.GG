@@ -73,7 +73,7 @@ export function ChampionAside({ champion, position, patch }: Props) {
           </div>
         ) : (
           <img
-            className={`${styles.illustration} halftone`}
+            className={styles.illustration}
             src={champion.illustrationUrl}
             alt={`${champion.name} 일러스트`}
             /* 원본 크기를 지정해 로딩 중 레이아웃 이동을 막는다 (PRD 10 성능). */

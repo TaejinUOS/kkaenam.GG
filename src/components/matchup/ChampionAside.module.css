@@ -55,6 +55,7 @@
   height: 100%;
   object-fit: cover;
   transform: translateX(8%);
+  filter: var(--art-punch);
   /*
    * 왼쪽 가장자리를 잉크 배경으로 녹인다.
    * 목업의 챔피언은 배경이 없는 컷아웃이라 뒤의 초대형 이름이 자연스럽게 비쳤지만,

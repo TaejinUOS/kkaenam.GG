@@ -7,7 +7,7 @@
  *   npx tsx scripts/check-taxonomy.ts
  */
 
-import { access } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { PATCH, allChampions, getCategoriesFor, getChampionsIn } from "../src/data/champions";
@@ -49,13 +49,32 @@ async function main() {
     }
   }
 
-  // PRD 5.1의 대표 이미지가 실제로 존재하는지 확인한다.
+  /*
+   * PRD 5.1의 대표 이미지가 실제로 존재하는지 확인한다.
+   *
+   * `access()`는 Windows에서 대소문자를 구분하지 않아 `Lillia.jpg`와 `lillia.jpg`를
+   * 같은 파일로 본다. 그러면 로컬에서는 통과하고 리눅스 배포에서만 404가 난다.
+   * 디렉터리 목록의 실제 이름과 정확히 대조해 대소문자 불일치까지 잡는다.
+   */
+  const imagesDir = resolve(process.cwd(), "public", "images");
+  const actualFiles = new Set(await readdir(imagesDir));
+
   for (const category of categories) {
-    const file = resolve(process.cwd(), "public", category.coverImage.replace(/^\//, ""));
-    try {
-      await access(file);
-    } catch {
-      problems.push(`${category.name}: 대표 이미지 ${category.coverImage}를 찾을 수 없습니다.`);
+    const path = category.coverImage;
+    if (!path.startsWith("/images/")) {
+      problems.push(`${category.name}: 대표 이미지 경로 ${path}는 /images/ 아래에 있어야 합니다.`);
+      continue;
+    }
+    const fileName = path.slice("/images/".length);
+    if (!actualFiles.has(fileName)) {
+      const caseInsensitive = [...actualFiles].find(
+        (f) => f.toLowerCase() === fileName.toLowerCase(),
+      );
+      problems.push(
+        caseInsensitive
+          ? `${category.name}: 대표 이미지 ${path}의 대소문자가 실제 파일 ${caseInsensitive}와 다릅니다.`
+          : `${category.name}: 대표 이미지 ${path}를 찾을 수 없습니다.`,
+      );
     }
   }
 

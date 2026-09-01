@@ -26,6 +26,13 @@
   color: var(--paper);
   /* 잡지 표지처럼 글자를 잉크 위에 눌러 찍은 인상을 준다. */
   text-shadow: 5px 5px 0 rgba(16, 16, 20, 0.9);
+  /*
+   * `.display`의 line-height 0.86은 글자 상자를 글리프보다 짧게 만든다.
+   * Bagel Fat One은 글리프가 em 상자를 꽉 채우는 서체라 상자 아래로 삐져나오고,
+   * 하드 그림자 5px까지 더해져 바로 뒤의 포지션 탭을 덮었다.
+   * 폰트 크기가 10vw로 변하므로 여유도 em으로 잡아 함께 커지게 한다.
+   */
+  padding-bottom: 0.18em;
 }
 
 /* 목업의 바코드 티켓 */
@@ -65,6 +72,8 @@
 /* ----------------------------------------------------------- 포지션 탭 */
 
 .positions {
+  /* 헤드라인과 탭이 맞붙지 않도록 최소 간격을 둔다. */
+  margin-top: clamp(6px, 1vw, 16px);
   border-bottom: var(--line-w) solid rgba(244, 235, 221, 0.3);
 }
 
@@ -211,6 +220,7 @@
   object-fit: cover;
   object-position: center 30%;
   display: block;
+  filter: var(--art-punch);
 }
 
 /* 카테고리명은 이미지 바깥으로 8~16px 튀어나온다. */

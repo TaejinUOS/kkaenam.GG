@@ -97,7 +97,7 @@ export function ContactSheet({ positionSlug, positionName, category, champions }
                   navigate(`/matchup/${positionSlug}/${champion.slug}`, event.currentTarget)
                 }
               >
-                <span className={`${styles.pickFrame} halftone`}>
+                <span className={styles.pickFrame}>
                   <img
                     className={styles.pickImage}
                     src={champion.iconUrl}

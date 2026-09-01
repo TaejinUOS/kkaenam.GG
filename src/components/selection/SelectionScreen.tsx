@@ -159,7 +159,7 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                         포스터는 장식이 아니라 카테고리 선택 자체이므로, 대체 텍스트는
                         버튼 레이블이 담당하고 이미지는 배경으로 둔다.
                       */}
-                      <span className={`${styles.posterFrameInner} halftone`}>
+                      <span className={styles.posterFrameInner}>
                         <img
                           className={styles.posterImage}
                           src={category.coverImage}

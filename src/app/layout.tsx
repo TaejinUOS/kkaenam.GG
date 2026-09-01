@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Bagel_Fat_One, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -7,12 +8,23 @@ import { ZineFilters } from "@/components/ZineFilters";
 
 import "./globals.css";
 
-/** 블루프린트 4장 Display: 챔피언명과 짧은 메인 카피 전용. */
-const bagel = Bagel_Fat_One({
+/**
+ * 블루프린트 4장 Display: 챔피언명과 짧은 메인 카피 전용.
+ *
+ * SB 어그로체 B (샌드박스네트워크). 목업의 두껍고 각진 제목 글자에 가장 가까우면서
+ * 웹사이트와 임베딩(서버 내 폰트 탑재)이 모두 허용된 서체다.
+ * 라이선스가 폰트 파일의 수정·복제·배포를 금지하므로 **서브셋하지 않고 원본 그대로** 담는다.
+ * https://noonnu.cc/font_page/738
+ */
+const displayFace = localFont({
+  src: "./fonts/SBAggroB.woff",
   weight: "400",
-  subsets: ["latin"],
+  style: "normal",
   display: "swap",
-  variable: "--font-bagel",
+  variable: "--font-display-face",
+  /* 폰트가 로드되기 전 대체 서체와의 크기 차이로 생기는 레이아웃 이동을 줄인다. */
+  adjustFontFallback: "Arial",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 /** 블루프린트 4장 수치·메타데이터: 쿨타임, 좋아요 수, 작성일, 랭킹 번호. */
@@ -38,7 +50,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={`${bagel.variable} ${plexMono.variable}`}>
+    <html lang="ko" className={`${displayFace.variable} ${plexMono.variable}`}>
       <head>
         {/*
           블루프린트 4장이 지정한 본문 서체. Pretendard는 Google Fonts에 없어 배포 CDN의

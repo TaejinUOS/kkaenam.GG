@@ -40,7 +40,7 @@
    */
   --art-punch: saturate(1.16) contrast(1.07);
 
-  --font-display: var(--font-bagel), "Bagel Fat One", system-ui, sans-serif;
+  --font-display: var(--font-display-face), "SB Aggro B", system-ui, sans-serif;
   --font-ui: var(--font-pretendard), Pretendard, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-mono: var(--font-mono-plex), "IBM Plex Mono", ui-monospace, "SFMono-Regular",
@@ -181,7 +181,7 @@ h4 {
   font-weight: 400;
   line-height: 0.86;
   letter-spacing: -0.01em;
-  /* Bagel Fat One은 대문자 높이가 커서 기본 word-spacing이 넓어 보인다. */
+  /* 디스플레이 서체는 자폭이 넓어 기본 낱말 간격이 벌어져 보인다. */
   word-spacing: -0.04em;
 }
 

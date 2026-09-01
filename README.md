@@ -12,7 +12,7 @@
 | [`docs/PRD.md`](./docs/PRD.md) | 기능 범위와 사용자 흐름의 기준 (v0.7) |
 | [`docs/DESIGN_BLUEPRINT.md`](./docs/DESIGN_BLUEPRINT.md) | 시각 기준 — GLOWING MATCHUP ZINE (v0.6) |
 | [`docs/HANDOFF.md`](./docs/HANDOFF.md) | **남은 작업, 임시 구현, 알아 두어야 할 것** |
-| [`AGENTS.md`](./AGENTS.md) | 작업 시 지켜야 할 제품·디자인 규칙 |
+| [`AGENTS.md`](./AGENTS.md) | 제품·디자인 규칙, 명령어, 아키텍처 — 코딩 에이전트가 읽는 지침 |
 
 ## 실행
 

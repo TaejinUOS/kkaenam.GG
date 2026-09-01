@@ -84,7 +84,8 @@ export function SiteHeader() {
             aria-current={isCurrent(pathname, MY_PAGE) ? "page" : undefined}
           >
             <span className={styles.avatar} aria-hidden="true" />
-            {MY_PAGE.label}
+            {/* 좁은 화면에서 숨길 수 있도록 레이블을 감싼다. 아바타만 남는다. */}
+            <span className={styles.myPageLabel}>{MY_PAGE.label}</span>
             <span className="sr-only">(추후 개발)</span>
           </Link>
         </div>

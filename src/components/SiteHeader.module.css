@@ -140,23 +140,36 @@
     justify-content: flex-start;
   }
 
-  .myPage span:not(.sr-only) {
-    /* 좁은 화면에서는 아바타만 남긴다. */
+  /* 좁은 화면에서는 아바타만 남기고 레이블을 숨겨 메뉴에 자리를 내준다. */
+  .myPageLabel {
     display: none;
-  }
-
-  .myPage .avatar {
-    display: block;
   }
 }
 
 @media (max-width: 560px) {
   .navLink {
-    padding: 8px 10px;
-    font-size: 14px;
+    padding: 8px 7px;
+    font-size: 13px;
   }
 
-  .soon {
+  .navList {
+    gap: 2px;
+  }
+
+  /*
+   * `.soon`만 쓰면 전역 `.sticker`(display: inline-flex)와 특이도가 같아(0,1,0)
+   * 소스 순서로 전역이 이겨 숨김이 먹지 않는다. 부모를 함께 적어 특이도를 올린다.
+   */
+  .navLink .soon {
     display: none;
+  }
+
+  /*
+   * 360px에서는 메뉴 다섯 개가 다 들어가지 않아 가로로 스크롤된다.
+   * 오른쪽 끝을 흐리게 해서 더 있다는 것을 알 수 있게 한다.
+   */
+  .nav {
+    -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent);
+    mask-image: linear-gradient(90deg, #000 90%, transparent);
   }
 }

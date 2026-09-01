@@ -29,6 +29,7 @@ npm run lint         # eslint
 npm run data:sync                         # Data Dragon 챔피언·스킬 재동기화
 DDRAGON_PATCH=16.18.1 npm run data:sync   # 패치 지정
 npx tsx scripts/check-taxonomy.ts         # 분류 점검 (이름 불일치·중복·커버 이미지 누락)
+npm run shots                             # 주요 화면 캡처 (dev 서버가 떠 있어야 함)
 ```
 
 **테스트 프레임워크가 없다.** 검증은 `typecheck` + `lint` + `build`와 `check-taxonomy.ts`, 그리고 실행 중인 서버에 대한 수동 확인으로 한다.
@@ -84,7 +85,9 @@ npx tsx scripts/check-taxonomy.ts         # 분류 점검 (이름 불일치·중
 
 ### 스타일
 
-Tailwind를 쓰지 않는다. `src/app/globals.css`의 STATIC BLOOM 토큰과 공용 문법(`.sticker`, `.btn`, `.display`, `.mono`, `.section-index`, `.halftone`) + 컴포넌트별 CSS Module 조합이다. 새 컴포넌트도 이 구조를 따르고, 색·간격을 임의 값으로 넣지 않는다.
+Tailwind를 쓰지 않는다. `src/app/globals.css`의 STATIC BLOOM 토큰과 공용 문법(`.sticker`, `.btn`, `.display`, `.mono`, `.section-index`, `--art-punch`) + 컴포넌트별 CSS Module 조합이다. 새 컴포넌트도 이 구조를 따르고, 색·간격을 임의 값으로 넣지 않는다.
+
+**전역 클래스와 모듈 클래스를 한 요소에 함께 쓸 때는 특이도를 확인한다.** 둘 다 `(0,1,0)`이라 소스 순서로 전역이 이기는 일이 있다. 모바일에서 `SOON` 스티커가 숨겨지지 않던 것이 이 경우였고, 부모 선택자를 덧붙여(`.navLink .soon`) 해결했다.
 
 ### 이미지 출처
 

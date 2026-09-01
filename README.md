@@ -29,6 +29,7 @@ npm run dev          # http://localhost:3000
 | `npm run lint` | 린트 |
 | `npm run data:sync` | Data Dragon 챔피언·스킬 동기화 |
 | `npx tsx scripts/check-taxonomy.ts` | 포지션·카테고리 분류 점검 |
+| `npm run shots` | 주요 화면을 모바일·태블릿·데스크톱 뷰포트로 캡처 |
 
 > `npm run build`와 `npm run dev`는 같은 `.next` 디렉터리를 사용합니다. dev 서버를 켠 채로
 > build를 돌리면 dev 서버 응답이 깨지니 한 번에 하나만 실행하세요.

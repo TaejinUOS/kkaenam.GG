@@ -69,6 +69,19 @@ function burn(value: string): string | null {
   return cleaned;
 }
 
+/**
+ * `costType`은 단위 이름이 아니라 "{{ cost }}"처럼 치환되지 않은 표시용 템플릿을 담고 있다.
+ * 692개 스킬 중 566개가 여기에 해당해, 그대로 두면 스킬 쪽지에 자리표시자가 그대로 노출된다.
+ * 자리표시자와 그로 인해 비어 버린 괄호를 지우고, 남은 실제 단위 표기만 살린다.
+ */
+function costType(raw: string): string {
+  return stripTags(raw ?? "")
+    .replace(/\{\{[^}]*\}\}/g, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
   limit: number,
@@ -122,7 +135,7 @@ async function main() {
         description: stripTags(spell.description),
         cooldown: burn(spell.cooldownBurn),
         cost: burn(spell.costBurn),
-        costType: stripTags(spell.costType ?? ""),
+        costType: costType(spell.costType),
         range: burn(spell.rangeBurn),
         iconFile: spell.image.full,
       })),

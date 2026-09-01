@@ -332,8 +332,13 @@
  * 터치 환경에서는 폭 변화를 선택의 전제로 삼지 않는다 (블루프린트 8장).
  */
 @media (hover: hover) and (pointer: fine) {
-  .posterGroup:not(.posterGroupSingle):has(.poster:hover) .poster,
-  .posterGroup:not(.posterGroupSingle):has(.poster:focus-visible) .poster {
+  /*
+   * 대상이 아닌 포스터만 좁아진다.
+   * `:not(:hover)`를 빼면 이 선택자가 확장 규칙보다 특이도가 높아(0,5,0 대 0,4,0)
+   * 대상 포스터에도 축소가 적용되고, 세 포스터가 같은 비율로 줄어 확장이 보이지 않는다.
+   */
+  .posterGroup:not(.posterGroupSingle):has(.poster:hover) .poster:not(:hover),
+  .posterGroup:not(.posterGroupSingle):has(.poster:focus-visible) .poster:not(:focus-visible) {
     flex-grow: calc(var(--w) * 0.68);
   }
 

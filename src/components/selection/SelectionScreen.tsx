@@ -98,7 +98,6 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
         {/* ------------------------------------------------------ 헤드라인 */}
         <section className={styles.masthead}>
           <div className={styles.mastheadMain}>
-            <p className="section-index">01 / 상대할 챔피언 고르기</p>
             <h1 className={`display ${styles.headline}`}>누굴 상대해?</h1>
           </div>
 
@@ -125,7 +124,6 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                     onClick={() => selectPosition(position.slug)}
                   >
                     <span className={styles.positionName}>{position.name}</span>
-                    <span className={`mono ${styles.positionCode}`}>{position.code}</span>
                   </button>
                 </li>
               );
@@ -184,7 +182,6 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                   </span>
 
                   <span className={`mono ${styles.posterMeta}`}>
-                    <span className={styles.posterRole}>{category.role}</span>
                     <span>{category.championCount}명</span>
                   </span>
                 </button>
@@ -194,7 +191,6 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
             {/* 포스터가 하나인 원딜은 남는 4열을 설명 영역으로 채운다. */}
             {isSingle && (
               <div className={styles.singleNote}>
-                <p className="section-index">02 / 카테고리</p>
                 <p className={styles.singleNoteBody}>
                   {activePosition.name}은 카테고리를 나누지 않고 하나로 모읍니다. 포스터를 선택하면
                   {" "}
@@ -216,14 +212,7 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
             category={activeCategory}
             champions={champions}
           />
-        ) : (
-          <div className="shell">
-            <p className={styles.hint}>
-              <span className="sticker sticker--acid">다음</span>
-              위에서 카테고리를 선택하면 해당 챔피언만 펼쳐집니다.
-            </p>
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

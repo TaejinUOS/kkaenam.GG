@@ -128,11 +128,6 @@
   letter-spacing: -0.02em;
 }
 
-.positionCode {
-  font-size: 10px;
-  opacity: 0.75;
-}
-
 /* ------------------------------------------------------ 카테고리 포스터 */
 
 .posterGroup {
@@ -325,12 +320,6 @@
   color: var(--smoke);
 }
 
-.posterRole {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 /* 선택된 카테고리 */
 .posterCurrent .posterFrameWrap {
   filter: drop-shadow(6px 6px 0 var(--acid));
@@ -402,15 +391,6 @@
 
 .sheetAnchor {
   scroll-margin-top: calc(var(--header-h) + 16px);
-}
-
-.hint {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 26px 0 8px;
-  color: var(--smoke);
-  font-size: 15px;
 }
 
 /* -------------------------------------------------------------- 반응형 */

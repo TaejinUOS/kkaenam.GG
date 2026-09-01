@@ -56,7 +56,6 @@ export function ContactSheet({ positionSlug, positionName, category, champions }
       {/* --------------------------------------------------- 현재 선택 표시 */}
       <header className={styles.head}>
         <div className={styles.headMain}>
-          <p className="section-index">02 / 챔피언 선택</p>
           <h2 className={styles.breadcrumb}>
             <span className="sticker">{positionName}</span>
             <span aria-hidden="true" className={styles.arrow}>

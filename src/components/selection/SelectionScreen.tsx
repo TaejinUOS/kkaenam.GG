@@ -181,9 +181,6 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                     />
                   </span>
 
-                  <span className={`mono ${styles.posterMeta}`}>
-                    <span>{category.championCount}명</span>
-                  </span>
                 </button>
               );
             })}

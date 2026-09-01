@@ -27,12 +27,12 @@
   /* 잡지 표지처럼 글자를 잉크 위에 눌러 찍은 인상을 준다. */
   text-shadow: 5px 5px 0 rgba(16, 16, 20, 0.9);
   /*
-   * `.display`의 line-height 0.86은 글자 상자를 글리프보다 짧게 만든다.
-   * 디스플레이 서체는 글리프가 em 상자를 꽉 채워 상자 아래로 삐져나오고,
-   * 하드 그림자 5px까지 더해져 바로 뒤의 포지션 탭을 덮었다.
-   * 폰트 크기가 10vw로 변하므로 여유도 em으로 잡아 함께 커지게 한다.
+   * 어그로체는 글리프가 상자 위로 넘치고 아래로는 12px가량 여유가 남는 서체다.
+   * (Bagel Fat One은 반대로 아래가 넘쳐 여백이 필요했다.)
+   * 아래 여백을 두면 헤드라인이 상자 위쪽으로 치우쳐 보이므로 없애고,
+   * 포지션 탭이 글자 바로 밑에 붙도록 한다.
    */
-  padding-bottom: 0.18em;
+  padding-bottom: 0;
 }
 
 /* 목업의 바코드 티켓 */
@@ -72,8 +72,6 @@
 /* ----------------------------------------------------------- 포지션 탭 */
 
 .positions {
-  /* 헤드라인과 탭이 맞붙지 않도록 최소 간격을 둔다. */
-  margin-top: clamp(6px, 1vw, 16px);
   border-bottom: var(--line-w) solid rgba(244, 235, 221, 0.3);
 }
 
@@ -224,7 +222,12 @@
   top: -24px;
   left: -12px;
   z-index: 2;
-  padding: 6px 18px 11px;
+  /*
+   * 어그로체의 글리프는 상자 안에서 위로 붙는다. 같은 폰트 크기에서 글자 위쪽 여백이
+   * 아래쪽보다 0.2em만큼 적게 남으므로, 그만큼을 위 여백에 더해 스티커 한가운데에 오게 한다.
+   * 폰트 크기가 포스터 폭에 따라 변하므로 여백도 em으로 잡는다.
+   */
+  padding: 0.24em 0.21em 0.04em;
   color: var(--ink);
   /*
    * 포스터 폭에 비례한다. 좁은 포스터에서도 이름 전체가 들어가므로 말줄임이 필요 없고,
@@ -305,19 +308,13 @@
   --label-bg: var(--cobalt);
 }
 
-.poster:nth-child(3) .posterLabel,
+/*
+ * 라벨 글씨는 세 포스터 모두 잉크로 통일한다.
+ * Cobalt 위 Ink는 3.28:1로 본문 기준에는 못 미치지만, 라벨은 34px 이상 굵은 글자라
+ * WCAG 큰 텍스트 기준(3:1)을 넘긴다. 아이콘은 가는 선이라 Paper를 유지한다.
+ */
 .poster:nth-child(3) .posterIcon {
   color: var(--paper);
-}
-
-.posterMeta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  font-size: 11px;
-  color: var(--smoke);
 }
 
 /* 선택된 카테고리 */

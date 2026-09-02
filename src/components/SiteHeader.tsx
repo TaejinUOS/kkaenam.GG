@@ -9,7 +9,7 @@ import styles from "./SiteHeader.module.css";
 type NavItem = {
   label: string;
   href: string;
-  /** MVP에서 `추후 개발` 안내 화면으로 이동하는 메뉴 (PRD 5.6). */
+  /** MVP에서 `추후 개발` 안내 화면으로 이동하는 메뉴 (PRD 5.7). */
   soon?: boolean;
   /** 현재 위치로 볼 추가 경로 접두사. */
   match?: string;

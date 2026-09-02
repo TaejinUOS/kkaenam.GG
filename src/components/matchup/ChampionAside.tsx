@@ -103,6 +103,8 @@ export function ChampionAside({ champion, position, patch }: Props) {
         <ul className={styles.skillRow}>
           {champion.spells.map((spell) => {
             const isOpen = openSlot === spell.slot;
+            /* 1레벨 값만 쓴다. "9/8/7/6/5" 같은 랭크별 표기는 쪽지에서 전부 보여 준다. */
+            const cooldown = spell.cooldown ? firstValue(spell.cooldown) : null;
             return (
               <li key={spell.slot} className={styles.skillItem}>
                 <button
@@ -126,14 +128,25 @@ export function ChampionAside({ champion, position, patch }: Props) {
                       loading="lazy"
                       decoding="async"
                     />
-                    {/* 쿨타임은 아이콘 우측 상단에 모노 글꼴로 (블루프린트 6.3). */}
-                    {spell.cooldown && (
-                      <span className={`mono ${styles.cooldown}`}>{firstValue(spell.cooldown)}s</span>
+                    {/*
+                      쿨타임은 상대법에서 가장 먼저 확인하는 값이라 아이콘 한가운데를
+                      가로질러 크게 얹는다. 아래 sr-only가 같은 값을 읽어 주므로
+                      이 표시는 접근성 트리에서 뺀다.
+                    */}
+                    {cooldown && (
+                      <span
+                        className={`mono ${styles.cooldown}`}
+                        style={{ ["--cd-len" as string]: cooldown.length }}
+                        aria-hidden="true"
+                      >
+                        {cooldown}
+                      </span>
                     )}
                   </span>
                   <span className={`mono ${styles.slot}`}>{spell.slot}</span>
                   <span className="sr-only">
-                    {spell.name} 상세 정보 {isOpen ? "닫기" : "열기"}
+                    {spell.name} 쿨타임 {cooldown ? `${cooldown}초` : "없음"} · 상세 정보{" "}
+                    {isOpen ? "닫기" : "열기"}
                   </span>
                 </button>
               </li>

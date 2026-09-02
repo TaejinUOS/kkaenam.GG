@@ -45,6 +45,7 @@
     "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-mono: var(--font-mono-plex), "IBM Plex Mono", ui-monospace, "SFMono-Regular",
     Menlo, monospace;
+  --font-hand: var(--font-hand-face), "Nanum Pen Script", "Segoe Script", cursive;
 
   /* 블루프린트 7장 모션 문법 */
   --t-poster: 160ms;
@@ -189,6 +190,17 @@ h4 {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
+}
+
+/*
+ * 손으로 갈겨쓴 메모. 펜 글씨는 같은 px에서 어그로체보다 획이 얇고 글자가 작아 보이므로,
+ * 쓰는 쪽에서 font-size를 한 단계 올려 광학적 크기를 맞춘다.
+ */
+.hand {
+  font-family: var(--font-hand);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: 0;
 }
 
 /* 블루프린트 5장: 섹션 번호를 목차처럼 크게 노출한다. */

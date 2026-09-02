@@ -13,18 +13,28 @@ import styles from "./ZineFilters.module.css";
  * 문서 전체에서 한 번만 렌더링한다 (`layout.tsx`).
  */
 
-/** seed만 다른 변형. 라벨 순서대로 돌려 쓴다. */
+/** seed(와 필요하면 변위 폭)만 다른 변형. 라벨 순서대로 돌려 쓴다. */
 const VARIANTS = [
   { id: "zine-torn-1", seed: 7 },
   { id: "zine-torn-2", seed: 24 },
   { id: "zine-torn-3", seed: 61 },
+  /* 마스트헤드 즐겨찾기 메모지 전용. 포스터 라벨과 겹쳐 보이지 않도록 seed를 분리한다. */
+  { id: "zine-torn-4", seed: 42 },
+  /*
+   * 마스트헤드 표창 배지 전용. 한 변이 50px 남짓인 정사각형이라 기본 변위 폭(6)을 그대로
+   * 걸면 사각형이 뭉개진다. 큰 라벨과 같은 결을 유지하는 선에서 폭만 줄인다.
+   */
+  { id: "zine-torn-5", seed: 88, scale: 3.4 },
 ];
+
+/** 라벨·메모지처럼 넓은 종이의 기본 변위 폭. */
+const DEFAULT_SCALE = 6;
 
 export function ZineFilters() {
   return (
     <svg className={styles.defs} aria-hidden="true" focusable="false">
       <defs>
-        {VARIANTS.map(({ id, seed }) => (
+        {VARIANTS.map(({ id, seed, scale }) => (
           <filter
             key={id}
             id={id}
@@ -49,7 +59,7 @@ export function ZineFilters() {
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
-              scale={6}
+              scale={scale ?? DEFAULT_SCALE}
               xChannelSelector="R"
               yChannelSelector="G"
             />

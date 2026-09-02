@@ -188,6 +188,8 @@
   border: var(--line-w) solid var(--paper);
   border-radius: var(--radius-card);
   overflow: hidden;
+  /* 아래 쿨타임 글자가 아이콘 폭(cqi)에 비례하도록 이 상자를 컨테이너로 삼는다. */
+  container-type: inline-size;
   transition:
     border-color var(--t-poster) var(--ease),
     box-shadow var(--t-poster) var(--ease),
@@ -200,18 +202,32 @@
   object-fit: cover;
 }
 
+/*
+ * 쿨타임은 상대법에서 가장 먼저 보는 값이다. 모서리에 10px로 붙여 두면 아트에 묻히므로
+ * 아이콘 전체를 어둡게 덮고 한가운데에 크게 얹는다. 아트는 어느 스킬인지 알아보는
+ * 단서로만 남으면 되고, 판단에 쓰이는 숫자가 먼저 읽혀야 한다.
+ */
 .cooldown {
   position: absolute;
-  top: 0;
-  right: 0;
-  padding: 1px 4px;
-  background: var(--ink);
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 10, 13, 0.62);
   color: var(--acid);
-  font-size: 10px;
   font-weight: 600;
-  border-left: 1px solid var(--paper);
-  border-bottom: 1px solid var(--paper);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  /*
+   * 기본값은 아이콘 폭의 55%. 다만 쿨타임 표기는 "7"부터 "0.75"까지 한 글자에서 네 글자로
+   * 벌어지고, 이 상자는 overflow: hidden이라 넘치면 잘려서 아예 안 보인다.
+   * 모노 글꼴 자폭이 약 0.6em이므로 아이콘의 92%를 넘길 때만 그만큼 줄인다.
+   * 한 자리·두 자리(대부분)는 그대로 55cqi고, 세 자리는 51, 네 자리는 38로 물러선다.
+   */
+  font-size: min(55cqi, calc(92cqi / (var(--cd-len, 2) * 0.6)));
+  text-shadow: 0 2px 6px rgba(10, 10, 13, 0.9);
 }
+
 
 .slot {
   font-size: 13px;

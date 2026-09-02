@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Nanum_Pen_Script } from "next/font/google";
 import localFont from "next/font/local";
 
 import { SiteFooter } from "@/components/SiteFooter";
@@ -35,6 +35,25 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono-plex",
 });
 
+/**
+ * 마스트헤드 콜라주의 손글씨 메모 · 도장 전용.
+ *
+ * 나눔손글씨 펜 (네이버, OFL). 볼펜으로 급히 적은 획이라 어그로체의 두꺼운 제목 글자와
+ * 대비되고, 옆에 붙은 찢은 종이·도장과 결이 맞는다. 굵기는 400 하나뿐이다.
+ */
+const handFace = Nanum_Pen_Script({
+  weight: "400",
+  /*
+   * `subsets`를 지정하면 next/font가 그 슬라이스의 @font-face만 남기는데, 이 버전의
+   * 폰트 메타데이터에는 korean 슬라이스가 없어 한글이 통째로 빠진다. 목록을 비워
+   * 구글이 주는 unicode-range 전체를 그대로 받고, 대신 preload를 끈다
+   * (한글 본문이 아니라 배지 두 장에만 쓰는 서체라 선행 로드할 이유도 없다).
+   */
+  preload: false,
+  display: "swap",
+  variable: "--font-hand-face",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "깨남.GG — 누굴 상대해?",
@@ -50,7 +69,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={`${displayFace.variable} ${plexMono.variable}`}>
+    <html lang="ko" className={`${displayFace.variable} ${plexMono.variable} ${handFace.variable}`}>
       <head>
         {/*
           블루프린트 4장이 지정한 본문 서체. Pretendard는 Google Fonts에 없어 배포 CDN의

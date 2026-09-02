@@ -77,11 +77,26 @@ function SparkIcon(props: IconProps) {
   );
 }
 
-function ShurikenIcon(props: IconProps) {
+/**
+ * 마스트헤드 스티커 클러스터(표창 배지)에서도 그대로 재사용한다.
+ *
+ * 날 네 장은 중심에서 같은 거리(10.5)에 두어 방사 대칭을 지키고, 제어점을 중심 쪽으로
+ * 당겨 변을 오목하게 만든다. 곡선의 허리가 날 끝 반지름의 절반쯤에 오는데,
+ * 직선 변으로 이으면 표창이 아니라 반짝임으로 읽힌다.
+ *
+ * 가운데 구멍은 색을 덮어씌우지 않고 `evenodd`로 패스에서 파낸다. 이 아이콘은 애시드 ·
+ * 검 · 코발트 세 가지 배경 위에 놓이므로, 구멍에 색을 지정하면 어느 한 배경에서는 반드시
+ * 어긋난다 (실제로 잉크색을 박아 두어 검정 위 검정으로 묻혀 있었다).
+ */
+export function ShurikenIcon(props: IconProps) {
   return (
     <Base {...props}>
-      <path d="M12 2l2.4 6.6L21 12l-6.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2z" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="12" r="1.6" fill="var(--ink)" stroke="none" />
+      <path
+        d="M12 1.5Q14.2 9.8 22.5 12Q14.2 14.2 12 22.5Q9.8 14.2 1.5 12Q9.8 9.8 12 1.5ZM12 9.9A2.1 2.1 0 1 0 12 14.1A2.1 2.1 0 1 0 12 9.9Z"
+        fillRule="evenodd"
+        fill="currentColor"
+        stroke="none"
+      />
     </Base>
   );
 }
@@ -160,6 +175,7 @@ const CATEGORY_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
   "mid/mage": FlameIcon,
   "mid/bruiser-adc": SwordIcon,
   "adc/adc": BowIcon,
+  "adc/non-adc": FlameIcon,
   "support/mom": HeartIcon,
   "support/dad": HookIcon,
   "support/wtf": ChaosIcon,

@@ -106,9 +106,12 @@ export function ContactSheet({ positionSlug, positionName, category, champions }
                     width={120}
                     height={120}
                   />
-                  {/* 이름은 아이콘 아래가 아니라 이미지 하단을 가로지르는 종이 라벨이다. */}
-                  <span className={styles.pickName}>{champion.name}</span>
                 </span>
+                {/*
+                  이름은 화면에 그리지 않는다. 다만 아트의 alt가 비어 있어 이 span을 빼면
+                  버튼에 접근성 이름이 하나도 남지 않으므로, 읽히기만 하도록 숨겨 둔다.
+                */}
+                <span className="sr-only">{champion.name}</span>
               </button>
             </li>
           ))}

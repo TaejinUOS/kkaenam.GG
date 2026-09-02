@@ -7,7 +7,7 @@ import type { SelectionData } from "@/data/selection";
 import { prefersReducedMotion } from "@/lib/motion";
 import { buildQuery } from "@/lib/url";
 
-import { CategoryIcon } from "./categoryIcons";
+import { CategoryIcon, ShurikenIcon } from "./categoryIcons";
 import { ContactSheet } from "./ContactSheet";
 import styles from "./SelectionScreen.module.css";
 
@@ -101,12 +101,33 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
             <h1 className={`display ${styles.headline}`}>누굴 상대해?</h1>
           </div>
 
-          {/* 목업의 바코드 티켓. 현재 포지션·패치·카테고리를 한 줄로 보여 준다. */}
-          <div className={styles.ticket} aria-hidden="true">
-            <p className={`mono ${styles.ticketLine}`}>
-              {activePosition.code} / PATCH {patch} / {activeCategory?.name ?? "CATEGORY"}
-            </p>
-            <div className={styles.barcode} />
+          <div className={styles.badgeRow}>
+            {/* 목업의 바코드 티켓. 현재 포지션·패치·카테고리를 한 줄로 보여 준다. */}
+            <div className={styles.ticket} aria-hidden="true">
+              <p className={`mono ${styles.ticketLine}`}>
+                {activePosition.code} / PATCH {patch} / {activeCategory?.name ?? "CATEGORY"}
+              </p>
+              <div className={styles.barcode} />
+            </div>
+
+            {/* 블루프린트 우상단의 표창 스티커·깨남.GG 도장·메모지 콜라주. 장식이라 정보는 담지 않는다. */}
+            <div className={styles.stickerCluster} aria-hidden="true">
+              <span className={styles.ninjaSticker}>
+                <ShurikenIcon className={styles.ninjaGlyph} />
+              </span>
+              <span className={styles.stampSticker}>
+                <span className={`hand ${styles.stampRing}`}>
+                  깨남
+                  <br />
+                  .GG
+                </span>
+              </span>
+              <span className={`hand ${styles.noteSticker}`}>
+                이기는 법,
+                <br />
+                여기 다 있음.
+              </span>
+            </div>
           </div>
         </section>
 

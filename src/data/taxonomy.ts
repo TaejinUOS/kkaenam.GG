@@ -121,6 +121,17 @@ export const categories: Category[] = [
     active: true,
   },
   {
+    id: "cat-adc-non-adc",
+    slug: "non-adc",
+    positionSlug: "adc",
+    name: "비원딜",
+    coverImage: "/images/Ziggs.jpg",
+    coverAlt: "비원딜 카테고리 대표 이미지",
+    role: "봇에 서는 비원거리 딜러 챔피언",
+    order: 2,
+    active: true,
+  },
+  {
     id: "cat-support-mom",
     slug: "mom",
     positionSlug: "support",
@@ -211,6 +222,11 @@ const roster: Record<string, Record<string, string[]>> = {
       "애쉬", "바루스", "카이사", "아펠리오스", "시비르", "트리스타나",
       "루시안", "드레이븐", "코그모", "트위치", "베인", "사미라",
       "제리", "칼리스타", "닐라", "스몰더", "세나", "유나라", "코르키",
+    ],
+    "non-adc": [
+      "직스", "세라핀", "스웨인", "벨코즈", "카르마", "신드라",
+      "베이가", "흐웨이", "야스오", "판테온", "케넨", "하이머딩거",
+      "자이라", "브랜드", "럭스", "아지르",
     ],
   },
   support: {

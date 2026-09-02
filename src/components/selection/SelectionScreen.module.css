@@ -12,20 +12,44 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
+  gap: clamp(10px, 1.6vw, 24px);
+  /*
+   * 배지 콜라주는 헤드라인 "우측"이 제자리다 (블루프린트 6.2).
+   * 줄바꿈을 허용하면 콜라주가 헤드라인 아래로 떨어져 포지션 탭과 겹치므로 한 줄로 묶는다.
+   * 콜라주를 감당할 수 없는 폭(767px 이하)에서는 아예 감춘다.
+   */
+  flex-wrap: nowrap;
 }
 
 .mastheadMain {
   display: grid;
   gap: 10px;
+  /*
+   * 배지 콜라주가 가져가고 남은 폭만 차지한다. flex-basis를 0으로 두어야 열 너비가
+   * 헤드라인 글자 길이가 아니라 남은 공간으로 정해지고, 아래 cqi 계산이 순환하지 않는다.
+   */
+  flex: 1 1 0%;
+  min-width: 0;
+  container-type: inline-size;
 }
 
 .headline {
-  font-size: clamp(52px, 10vw, 164px);
-  color: var(--paper);
-  /* 잡지 표지처럼 글자를 잉크 위에 눌러 찍은 인상을 준다. */
-  text-shadow: 5px 5px 0 rgba(16, 16, 20, 0.9);
+  /*
+   * 뷰포트(vw)가 아니라 자기 열 폭(cqi) 기준이다. 콜라주가 차지한 만큼 헤드라인이
+   * 스스로 줄어들어야 두 요소가 한 줄에 남는다. 16cqi는 "누굴 상대해?"가 열 폭의
+   * 약 94%를 채우는 값으로, 글자 길이가 이보다 긴 문구로 바뀌면 다시 잡아야 한다.
+   */
+  font-size: clamp(52px, 16cqi, 164px);
+  color: var(--paper-shade);
+  /*
+   * 잡지 표지처럼 글자를 잉크 위에 눌러 찍은 인상을 준다.
+   *
+   * text-shadow가 아니라 drop-shadow인 이유: 아래 @supports 블록이 글자를 배경으로
+   * 채우는데(background-clip: text), text-shadow는 그 배경보다 **나중에** 그려져
+   * 글자 속을 5px씩 덮어 버린다. 종이 질감이 획 가장자리만 남고 속이 까맣게 먹던 원인이다.
+   * drop-shadow는 요소가 다 그려진 결과의 알파를 보고 그 뒤에 깔리므로 둘이 공존한다.
+   */
+  filter: drop-shadow(5px 5px 0 rgba(16, 16, 20, 0.9));
   /*
    * 어그로체는 글리프가 상자 위로 넘치고 아래로는 12px가량 여유가 남는 서체다.
    * (Bagel Fat One은 반대로 아래가 넘쳐 여백이 필요했다.)
@@ -35,12 +59,77 @@
   padding-bottom: 0;
 }
 
+/*
+ * 크기가 서로 다른 잉크 빠짐을 겹쳐 목업의 오래 인쇄된 종이 질감을 만든다.
+ * 서로소에 가까운 타일 크기를 써서 점무늬가 규칙적으로 반복되어 보이지 않게 한다.
+ * background-clip 미지원 환경에서는 위의 단색 Paper Shade가 그대로 폴백이다.
+ */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .headline {
+    background-color: var(--paper-shade);
+    background-image:
+      radial-gradient(
+        circle at 18% 34%,
+        rgba(16, 16, 20, 0.5) 0 0.65px,
+        transparent 1.15px
+      ),
+      radial-gradient(
+        ellipse at 72% 61%,
+        rgba(16, 16, 20, 0.34) 0 1px,
+        transparent 1.8px
+      ),
+      radial-gradient(
+        ellipse at 41% 78%,
+        rgba(16, 16, 20, 0.22) 0 1.6px,
+        transparent 2.6px
+      ),
+      linear-gradient(103deg, var(--paper-shade) 0%, var(--paper) 48%, var(--paper-shade) 100%);
+    background-position:
+      2px 1px,
+      7px 5px,
+      13px 11px,
+      0 0;
+    background-size:
+      11px 13px,
+      29px 23px,
+      53px 47px,
+      100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@media (forced-colors: active) {
+  .headline {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+    filter: none;
+  }
+}
+
+/* 목업 우상단의 티켓 + 스티커 콜라주를 한 줄로 묶는다. */
+.badgeRow {
+  /* 블루프린트처럼 헤드라인 윗변 언저리에 걸어 둔다. 콜라주는 폭을 양보하지 않는다. */
+  flex: none;
+  align-self: flex-start;
+  /* 아래 여백이 없으면 900~1200px에서 기울인 티켓 모서리가 포지션 탭 윗변에 닿는다. */
+  margin-block: clamp(4px, 1vw, 16px) 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(10px, 1.6vw, 18px);
+}
+
 /* 목업의 바코드 티켓 */
 
 .ticket {
-  align-self: flex-end;
-  min-width: 236px;
-  padding: 8px 12px 10px;
+  /*
+   * 고정 하한을 두면 좁은 폭에서 콜라주가 헤드라인 자리를 뺏는다.
+   * 티켓 폭은 아래 자간·글자 크기가 정하도록 맡긴다.
+   */
+  min-width: 0;
+  padding: clamp(7px, 0.7vw, 8px) clamp(10px, 0.9vw, 12px) clamp(8px, 0.8vw, 10px);
   background: var(--paper);
   color: var(--ink);
   border: var(--line);
@@ -49,15 +138,16 @@
 }
 
 .ticketLine {
-  font-size: 11px;
+  font-size: clamp(10px, 0.85vw, 11px);
   font-weight: 600;
-  letter-spacing: 0.14em;
+  /* 자간이 티켓 폭을 가장 크게 좌우한다. 0.14em은 좁은 폭에서 과했다. */
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .barcode {
   margin-top: 6px;
-  height: 26px;
+  height: clamp(22px, 2vw, 26px);
   background-image: repeating-linear-gradient(
     90deg,
     var(--ink) 0 2px,
@@ -67,6 +157,105 @@
     var(--ink) 9px 12px,
     transparent 12px 14px
   );
+}
+
+/*
+ * 목업 우상단의 표창 스티커 · 깨남.GG 도장 · 메모지. 순수 장식이라 정보는 담지 않고
+ * 셋을 살짝 겹쳐 붙여 콜라주처럼 보이게 한다.
+ */
+.stickerCluster {
+  display: flex;
+  align-items: center;
+}
+
+.ninjaSticker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: clamp(44px, 4.6vw, 64px);
+  height: clamp(44px, 4.6vw, 64px);
+  color: var(--ink);
+  transform: rotate(-8deg);
+  /* ::before가 배경을 맡으므로 z-index 음수가 배지 밖으로 새지 않게 가둔다. */
+  isolation: isolate;
+}
+
+/*
+ * 옆에 붙는 메모지와 같은 문법: 종이 면만 분리해 찢김 필터를 걸고 표창은 선명하게 남긴다.
+ * 자로 그은 둥근 사각형 하나만 깔끔하면 옆 메모지의 찢긴 결과 나란히 놓여 더 도드라진다.
+ * 하드 그림자는 걷어냈다. 잉크색 그림자라 잉크 배경 위에서는 어차피 보이지 않고,
+ * 필터를 함께 통과하며 찢긴 윤곽만 흐려 놓는다.
+ */
+.ninjaSticker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gum);
+  border: var(--line);
+  filter: url(#zine-torn-5);
+}
+
+.ninjaGlyph {
+  width: 58%;
+  height: 58%;
+}
+
+.stampSticker {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: clamp(50px, 5.4vw, 72px);
+  height: clamp(50px, 5.4vw, 72px);
+  margin-left: clamp(-12px, -0.9vw, -9px);
+  background: var(--cobalt);
+  color: var(--ink);
+  border: var(--line);
+  border-radius: 50%;
+  box-shadow: var(--shadow-cut);
+  transform: rotate(5deg);
+}
+
+.stampRing {
+  display: grid;
+  place-items: center;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  border: 1.5px dashed currentColor;
+  border-radius: 50%;
+  padding: 4px;
+  /* 펜 글씨가 어그로체보다 작아 보여 한 단계 키운다 (기존 9~13px). */
+  font-size: clamp(12px, 1.45vw, 17px);
+  line-height: 1.04;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.noteSticker {
+  position: relative;
+  flex: none;
+  margin-left: -8px;
+  padding: clamp(7px, 0.8vw, 9px) clamp(10px, 1.1vw, 13px) clamp(8px, 0.9vw, 10px);
+  color: var(--ink);
+  /* 위와 같은 이유로 한 단계 키운다 (기존 12~15px). */
+  font-size: clamp(15px, 1.5vw, 19px);
+  /* 펜 글씨는 상하 여백을 글자 안에 품고 있어, 1.2를 주면 두 줄이 허옇게 벌어진다. */
+  line-height: 0.98;
+  white-space: nowrap;
+  transform: rotate(2.4deg);
+  isolation: isolate;
+}
+
+/* 종이 면은 별도 레이어로 분리해 지글거리는 필터를 걸고, 글자는 선명하게 남긴다. */
+.noteSticker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #f4d33d;
+  border: var(--line);
+  filter: url(#zine-torn-4);
 }
 
 /* ----------------------------------------------------------- 포지션 탭 */
@@ -130,6 +319,13 @@
 
 .posterGroup {
   --poster-h: clamp(300px, 36vw, 540px);
+  /*
+   * 가로 확장은 호버가 아니라 클릭(선택)에 붙는다. 포인터를 스치는 동안 계속 되감기던
+   * 160ms 이즈아웃과 달리, 한 번 일어나고 머무는 변화이므로 가속과 감속이 대칭인
+   * 이즈인아웃을 더 긴 시간에 걸어 폭이 미끄러지듯 벌어지게 한다.
+   */
+  --t-poster-open: 420ms;
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
   display: flex;
   align-items: stretch;
   /* 블루프린트처럼 카드가 필름 스트립으로 붙어 보이도록 간격을 최소화한다. */
@@ -152,7 +348,7 @@
    */
   container-type: inline-size;
   transition:
-    flex-grow var(--t-poster) var(--ease),
+    flex-grow var(--t-poster-open) var(--ease-inout),
     transform var(--t-poster) var(--ease);
 }
 
@@ -317,34 +513,40 @@
   color: var(--paper);
 }
 
-/* 선택된 카테고리 */
+/*
+ * 선택된 카테고리. 강조 그림자는 라벨 스티커와 같은 색을 쓴다.
+ * `--acid`로 고정하면 두 번째(Gum) · 세 번째(Cobalt) 포스터에서 라벨과 색이 어긋난다.
+ */
 .posterCurrent .posterFrameWrap {
-  filter: drop-shadow(6px 6px 0 var(--acid));
+  filter: drop-shadow(6px 6px 0 var(--label-bg, var(--acid)));
 }
 
 /*
- * 포인터 호버·키보드 포커스 시 대상 포스터가 가로로 확장되고 나머지는 좁아진다.
+ * 클릭으로 선택된 포스터가 가로로 확장되고 나머지는 좁아진다.
  * 그룹 전체 폭은 유지되며, 좁아진 포스터의 이미지는 잘려도 라벨과 선택 영역은 남는다.
- * 터치 환경에서는 폭 변화를 선택의 전제로 삼지 않는다 (블루프린트 8장).
+ * 호버는 기울기만 맡고 폭에는 관여하지 않으므로 포인터 유무와 무관하게 동작한다.
+ * 세로로 쌓이는 767px 이하에서는 flex-grow가 높이를 늘리므로 적용하지 않는다.
  */
-@media (hover: hover) and (pointer: fine) {
+@media (min-width: 768px) {
   /*
-   * 대상이 아닌 포스터만 좁아진다.
-   * `:not(:hover)`를 빼면 이 선택자가 확장 규칙보다 특이도가 높아(0,5,0 대 0,4,0)
-   * 대상 포스터에도 축소가 적용되고, 세 포스터가 같은 비율로 줄어 확장이 보이지 않는다.
+   * 선택되지 않은 포스터만 좁아진다.
+   * `:not(.posterCurrent)`를 빼면 이 선택자가 확장 규칙보다 특이도가 높아(0,5,0 대 0,3,0)
+   * 선택된 포스터에도 축소가 적용되고, 모두 같은 비율로 줄어 확장이 보이지 않는다.
    */
-  .posterGroup:not(.posterGroupSingle):has(.poster:hover) .poster:not(:hover),
-  .posterGroup:not(.posterGroupSingle):has(.poster:focus-visible) .poster:not(:focus-visible) {
+  .posterGroup:not(.posterGroupSingle):has(.posterCurrent) .poster:not(.posterCurrent) {
     flex-grow: calc(var(--w) * 0.68);
   }
 
-  .posterGroup:not(.posterGroupSingle) .poster:hover,
-  .posterGroup:not(.posterGroupSingle) .poster:focus-visible {
+  .posterGroup:not(.posterGroupSingle) .posterCurrent {
     flex-grow: calc(var(--w) * 1.95);
   }
 }
 
-/* 보조 피드백: 2deg 이내 기울기, 하드 그림자 6px → 12px, 라벨 8px 이동 */
+/*
+ * 호버·포커스 피드백은 기울기 하나로 한정한다: 2deg 이내로 프레임을 눕히고,
+ * 그 기울기가 읽히도록 하드 그림자(6px → 12px)와 라벨 8px 이동이 따라붙는다.
+ * 폭은 여기서 건드리지 않는다 — 가로 확장은 선택(.posterCurrent)의 몫이다.
+ */
 .poster:hover .posterFrameWrap,
 .poster:focus-visible .posterFrameWrap {
   filter: drop-shadow(var(--shadow-cut-lg));
@@ -358,7 +560,7 @@
 
 .posterCurrent:hover .posterFrameWrap,
 .posterCurrent:focus-visible .posterFrameWrap {
-  filter: drop-shadow(12px 12px 0 var(--acid));
+  filter: drop-shadow(12px 12px 0 var(--label-bg, var(--acid)));
 }
 
 /* 포스터가 하나인 원딜: 폭은 고정하고 옆에 설명 영역을 둔다. */
@@ -404,10 +606,13 @@
     gap: 16px;
   }
 
-  .ticket {
-    align-self: flex-start;
-    min-width: 0;
-    transform: rotate(-1deg);
+  /*
+   * 티켓·표창·도장·메모지 네 장 모두 감춘다. 이 폭에서는 콜라주가 들어갈 자리가 없어
+   * 헤드라인을 최소 크기까지 누르고 포지션 탭 위로 넘어온다.
+   * 티켓이 담던 정보는 포지션 탭(포지션) · 브레드크럼(카테고리) · 푸터(패치)에 그대로 남는다.
+   */
+  .badgeRow {
+    display: none;
   }
 
   .posterGroup {

@@ -34,3 +34,7 @@ Thumbs.db
 
 # 캡처 결과 (로컬 확인용)
 /.screenshots/
+
+# Cloudflare 배포 산출물
+/.open-next/
+/.wrangler/

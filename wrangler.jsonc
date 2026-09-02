@@ -1,0 +1,22 @@
+/**
+ * Cloudflare Workers 배포 설정.
+ *
+ * Next.js 앱은 `@opennextjs/cloudflare`가 `.open-next/`로 변환한 뒤 이 설정으로 올라간다.
+ * `main`과 `assets.directory`는 그 변환 산출물의 경로라 임의로 바꾸지 않는다.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kkaenam-gg",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-31",
+  // nodejs_compat: Next 런타임이 쓰는 Node API를 Workers에서 쓰기 위해 필수.
+  // global_fetch_strictly_public: 앱이 자기 도메인으로 보내는 fetch를 공개 인터넷 경로로 돌린다.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

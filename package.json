@@ -9,22 +9,26 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "data:sync": "tsx scripts/sync-ddragon.ts",
-    "shots": "tsx scripts/screenshot.ts"
+    "shots": "tsx scripts/screenshot.ts",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "next": "15.5.4",
+    "next": "^15.5.25",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@opennextjs/cloudflare": "^1.20.6",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "^15.5.25",
     "playwright": "^1.62.1",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.128.0"
   }
 }

@@ -19,6 +19,16 @@
   "observability": {
     "enabled": true
   },
+  /*
+   * 커스텀 도메인. `custom_domain: true`는 Cloudflare가 DNS 레코드와 인증서를
+   * 알아서 만들게 한다. 도메인이 같은 계정의 zone이어야 동작한다.
+   * 배포할 때 반영되므로 대시보드에서 따로 만들지 않는다.
+   */
+  "routes": [
+    { "pattern": "kkaenam.com", "custom_domain": true },
+    // www로 들어와도 끊기지 않게 받아 두고, next.config.ts가 apex로 넘긴다.
+    { "pattern": "www.kkaenam.com", "custom_domain": true }
+  ],
   // 상대법 위키 저장소. 스키마는 migrations/, 설계는 docs/WIKI_MODEL.md.
   "d1_databases": [
     {

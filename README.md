@@ -135,5 +135,5 @@ DDRAGON_PATCH=16.17.1 npm run data:sync
 
 ## 배포
 
-운영 주소는 <https://kkaenam-gg.taejin1472.workers.dev> 이고, Cloudflare Workers에서 돌아갑니다.
+운영 주소는 <https://kkaenam.com> 이고, Cloudflare Workers에서 돌아갑니다.
 `main`에 push하면 자동 배포됩니다. 설정 방법과 롤백은 [`docs/DEPLOY.md`](./docs/DEPLOY.md)를 보세요.

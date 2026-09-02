@@ -2,7 +2,7 @@
 
 깨남.GG는 **Cloudflare Workers**에 올라간다.
 
-- 운영 주소: <https://kkaenam-gg.taejin1472.workers.dev>
+- 운영 주소: <https://kkaenam.com> (`www`는 이쪽으로 넘어온다)
 - Worker 이름: `kkaenam-gg`
 
 ## 왜 Workers인가
@@ -67,6 +67,20 @@ npm run cf:deploy
 ```bash
 npx wrangler login
 ```
+
+## 도메인
+
+`wrangler.jsonc`의 `routes`가 커스텀 도메인을 정의한다. `custom_domain: true`라서
+Cloudflare가 DNS 레코드와 인증서를 알아서 만든다. **대시보드에서 따로 만들지 않는다.**
+
+| 주소 | 역할 |
+| --- | --- |
+| `kkaenam.com` | 정식 주소 |
+| `www.kkaenam.com` | 받아서 apex로 301 이동 (`next.config.ts`의 `redirects()`) |
+
+`workers.dev` 주소(`kkaenam-gg.taejin1472.workers.dev`)는 커스텀 도메인을 붙이면서
+자동으로 꺼졌다. 되살리려면 `wrangler.jsonc`에 `"workers_dev": true`를 넣는다.
+주소가 둘로 갈리면 검색 엔진이 같은 문서를 둘로 세므로 꺼진 채로 두는 편이 낫다.
 
 ## 데이터베이스는 따로 배포한다
 

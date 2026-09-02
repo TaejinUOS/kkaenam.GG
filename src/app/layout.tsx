@@ -55,12 +55,17 @@ const handFace = Nanum_Pen_Script({
 });
 
 export const metadata: Metadata = {
+  /*
+   * 공유 링크와 검색 엔진이 쓰는 절대 URL의 기준. 없으면 Open Graph 이미지와
+   * canonical이 상대 경로로 나가 카카오톡·디스코드 미리보기가 깨진다.
+   */
+  metadataBase: new URL("https://kkaenam.com"),
   title: {
     default: "깨남.GG — 누굴 상대해?",
     template: "%s | 깨남.GG",
   },
   description:
-    "포지션별로 상대 챔피언을 고르고, 보편 상대법 General과 내 챔피언 전용 상대법 Me를 함께 보는 리그 오브 레전드 상대법 커뮤니티.",
+    "포지션별로 상대 챔피언을 고르고, 보편 상대법 공통과 내 챔피언 전용 상대법 Me를 함께 보는 리그 오브 레전드 상대법 위키.",
 };
 
 export const viewport: Viewport = {

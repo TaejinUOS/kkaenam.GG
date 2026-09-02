@@ -10,11 +10,23 @@ const nextConfig: NextConfig = {
    * 미들웨어 파일 대신 Next의 라우팅 계층에서 처리해 매 요청에 부담을 더하지 않는다.
    */
   async redirects() {
+    const fromWww = [{ type: "host" as const, value: `www.${SITE_HOST}` }];
     return [
+      /*
+       * 루트를 따로 두는 이유: `:path*`가 0개 세그먼트에 매칭되면 치환이 일어나지 않고
+       * 목적지에 `:path*`가 문자 그대로 남는다. www.kkaenam.com/ 하나만 깨지는데
+       * 하필 가장 많이 입력되는 주소다. `:path+`로 한 개 이상만 받고 루트는 분리한다.
+       */
       {
-        source: "/:path*",
-        has: [{ type: "host", value: `www.${SITE_HOST}` }],
-        destination: `https://${SITE_HOST}/:path*`,
+        source: "/",
+        has: fromWww,
+        destination: `https://${SITE_HOST}/`,
+        permanent: true,
+      },
+      {
+        source: "/:path+",
+        has: fromWww,
+        destination: `https://${SITE_HOST}/:path+`,
         permanent: true,
       },
     ];

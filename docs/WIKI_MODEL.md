@@ -1,0 +1,345 @@
+# 상대법 위키 데이터 모델 (제안)
+
+> 상태: **검토 중**. 승인되면 `docs/PRD.md`를 개정하고 이 문서는 그 부속 설계가 된다.
+
+기존 Tip 게시판을 매치업 위키로 바꾼다. 이 문서는 그 데이터 모델과 D1 스키마를 정한다.
+
+## 왜 바꾸는가
+
+게시판은 같은 지식이 여러 글에 흩어진다. `미드 아리 상대법`을 열 명이 쓰면 열 개의
+비슷한 글이 좋아요 수로 경쟁하고, 읽는 사람은 열 번 읽어야 한다. 위키는 그 열 개를
+한 문서로 모으고, 틀린 부분은 다음 사람이 고친다.
+
+## 결정 사항
+
+| 항목 | 결정 |
+| --- | --- |
+| 문서 단위 | 매치업당 문서 1개 — `(포지션, 상대 챔피언)`이 곧 문서 식별자 |
+| 내 챔피언별 상대법 | 문서 안의 섹션. 별도 문서로 쪼개지 않는다 |
+| 편집 방식 | **빈 섹션은 바로 반영, 이미 쓰인 섹션은 검토 후 반영** |
+| 검토자 | 초기에는 운영자 1인. 나중에 확대 |
+| 로그인 | 구글, 카카오 소셜 로그인 (PRD 15장 미결정 1번 해소) |
+| 좋아요·싫어요 | 없앤다. 문서가 하나뿐이라 비교 대상이 없다 |
+| 기존 시드 Tip | 위키 문서 초안으로 이관한다 |
+
+## 문서 구조
+
+```
+미드 / 아리 상대법                     ← 문서 하나
+├── 공통 상대법                        ← 내 챔피언과 무관하게 항상 보임
+├── 제드로 상대할 때                    ← Me 섹션
+├── 야스오로 상대할 때                  ← Me 섹션
+└── 갈리오로 상대할 때                  ← Me 섹션
+```
+
+화면 동작은 지금과 같다. Me Combobox에서 내 챔피언을 고르면 공통 + 해당 섹션만 보인다
+(PRD FR-12, FR-13 유지). 고르지 않으면 공통만 보인다.
+
+## 편집에는 두 갈래가 있다
+
+빈 섹션을 채우는 것과 남이 쓴 내용을 고치는 것은 **위험의 크기가 다르다.**
+전자는 잃을 것이 없고, 후자는 남의 글을 지운다. 그래서 다르게 다룬다.
+
+```
+                  섹션에 내용이 있는가?
+                          │
+          ┌──── 아니오 ────┴──── 예 ────┐
+          ▼                             ▼
+     즉시 반영                      검토 대기
+     accepted                       pending
+   (accepted_via                        │
+    = empty_section)         운영자가 승인 · 거절 · 고쳐서 반영
+          │                             │
+          ▼                             ▼
+     리비전 +1                   승인된 경우에만 리비전 +1
+```
+
+기여는 어느 쪽이든 **제안자 이름으로** 기록된다. 운영자 본인의 편집은 제출과 동시에
+승인된 것으로 기록한다(`accepted_via = admin`). 자기 글을 자기가 검토하지 않는다.
+
+### 왜 갈라놓는가
+
+모든 편집을 검토 뒤에 줄 세우면 **초기에 위키가 죽는다.** 문서가 전부 비어 있는
+시점에 첫 기여자가 글을 쓰고 아무 일도 일어나지 않으면 그 사람은 다시 오지 않는다.
+빈 섹션을 즉시 반영하면 초기 기여 대부분이 즉시 게시되고, 검토 부담은 운영자가
+혼자일 때 가장 낮게 유지된다.
+
+동시에 이미 쌓인 내용은 보호된다. 남의 글을 지우는 편집만 사람의 눈을 거친다.
+
+### 판정은 서버가 한다
+
+**빈 섹션인지는 저장 시점에 서버가 실제 상태로 판정한다.** 편집기를 열 때 비어
+있었다는 클라이언트의 주장은 믿지 않는다. 두 사람이 같은 빈 섹션에 동시에 제출하면
+먼저 닿은 쪽이 즉시 반영되고, 나중 쪽은 그 시점엔 이미 내용이 있으므로 검토 대기로
+간다. 올바른 결과다.
+
+**내용을 지우는 것은 '고치기'다.** 그렇지 않으면 우회로가 열린다 — 섹션을 비우고,
+빈 섹션이 되었으니 아무 내용이나 즉시 게시하는 경로다. 빈 본문을 제출하는 편집은
+언제나 검토 대기로 보낸다.
+
+### 편집기를 열 때 알린다
+
+경고는 저장 버튼이 아니라 **편집기를 여는 순간** 보여준다. 오래 쓴 뒤에 대기열로
+간다는 사실을 알게 되면 그 사람은 두 번 다시 쓰지 않는다.
+
+빈 섹션:
+
+> 아직 아무도 쓰지 않은 부분입니다. 저장하면 바로 반영됩니다.
+
+이미 쓰인 섹션:
+
+> 이미 내용이 있는 부분이라 저장 즉시 반영되지 않습니다.
+> 운영자 검토를 거쳐 반영되며 며칠이 걸릴 수 있습니다.
+> 작성한 내용은 저장되니 `내 편집`에서 진행 상황을 확인할 수 있습니다.
+
+### 뒤처진 제안
+
+문서가 r5일 때 쓴 제안이, 검토 시점엔 문서가 r7이 되어 있을 수 있다.
+**이것을 자동으로 거절하지 않는다.** 검토 화면에 사실만 표시한다.
+
+```
+이 제안은 r5를 기준으로 작성되었습니다. 현재 문서는 r7입니다.
+그 사이 이 섹션이 2번 바뀌었습니다.  [변경 내용 보기]
+
+  [ 그대로 반영 ]   [ 고쳐서 반영 ]   [ 거절 ]
+```
+
+판단은 사람이 한다. `base_revision`은 잠금이 아니라 **검토자에게 주는 정보**다.
+
+## 즉시 반영의 대가
+
+빈 섹션을 열어두면 검토 없이 게시되는 경로가 생긴다. 챔피언 약 170명 × 포지션 5개에
+Me 섹션까지 곱하면 **빈 섹션은 수만 개**이고, 로그인한 계정 하나가 그 전부에 즉시
+게시할 수 있다. 광고 · 도배에 그대로 노출되는 면이다.
+
+즉시 반영을 유지하려면 다음 세 가지를 함께 만들어야 한다. 선택 사항이 아니다.
+
+| 장치 | 이유 |
+| --- | --- |
+| 최근 변경 피드 | 자동 게시된 편집을 운영자가 훑어볼 수 있어야 한다. 나무위키 RC와 같은 역할 |
+| 한 번에 되돌리기 | 자동 게시를 허용하는 대가는 빠른 복구 능력이다 |
+| 제출 수 제한 | 계정당 시간당 상한. PRD 10장이 이미 요구하고 있다 |
+
+도배가 실제로 발생하면 해당 문서의 `edit_policy`를 `locked`로 좁히는 것이 탈출구다.
+문서 단위로 좁힐 수 있으므로 전체를 잠글 필요가 없다.
+
+## 타입
+
+```ts
+export type Editor = { id: string; name: string };
+
+/** 내 챔피언별 상대법 섹션. */
+export type MeSection = {
+  /** 내 챔피언 슬러그. 문서 안에서 유일하다. */
+  championSlug: string;
+  body: string;
+  updatedAt: string;
+  updatedBy: Editor;
+};
+
+/** 매치업 위키 문서. (positionSlug, championSlug)당 하나. */
+export type WikiDoc = {
+  id: string;
+  positionSlug: string;
+  /** 상대 챔피언 슬러그. */
+  championSlug: string;
+  /** 공통 상대법. 문서의 본문. */
+  general: string;
+  meSections: MeSection[];
+  /** 승인된 편집이 반영될 때마다 1씩 오른다. */
+  revision: number;
+  patch: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: Editor | null;
+};
+
+export type EditStatus = "pending" | "accepted" | "rejected" | "withdrawn";
+
+/**
+ * 승인이 어느 경로로 이루어졌는지. 감사와 최근 변경 피드가 이 값을 쓴다.
+ * - empty_section : 빈 섹션이라 검토 없이 즉시 반영됨
+ * - review        : 운영자가 검토해 승인함
+ * - admin         : 운영자 본인의 편집이라 제출과 동시에 반영됨
+ */
+export type AcceptedVia = "empty_section" | "review" | "admin";
+
+/**
+ * 편집 제안. 승인된 제안은 그대로 문서의 역사가 된다.
+ * `body`가 차이가 아니라 섹션 전문이라, 특정 리비전의 문서를 되짚기 쉽다.
+ */
+export type WikiEdit = {
+  id: string;
+  docId: string;
+  /** 고치려는 섹션. null이면 공통 섹션. */
+  meSlug: string | null;
+  /** 제안을 쓸 때 보고 있던 문서 리비전. 뒤처졌는지 판단하는 근거. */
+  baseRevision: number;
+  /** 섹션 전문. 차이가 아니다. */
+  body: string;
+  /** 편집 요약. 예: "Q 쿨타임 수정" */
+  summary: string;
+  status: EditStatus;
+  author: Editor;
+  createdAt: string;
+  /** 승인된 경우에만 채워진다. 검토를 거치지 않은 승인도 구분해 남긴다. */
+  acceptedVia: AcceptedVia | null;
+  /** 사람이 검토한 경우에만 채워진다. 즉시 반영이면 null. */
+  reviewedAt: string | null;
+  reviewer: Editor | null;
+  reviewNote: string | null;
+  /** 승인된 경우 이 편집이 만든 문서 리비전. */
+  revision: number | null;
+};
+```
+
+## D1 스키마
+
+```sql
+CREATE TABLE users (
+  id            TEXT PRIMARY KEY,
+  provider      TEXT NOT NULL,          -- 'google' | 'kakao'
+  provider_id   TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  -- 제공자가 인증된 이메일을 줄 때만 채운다. 훗날 계정 연결의 근거이고,
+  -- 카카오는 선택 항목이라 비어 있을 수 있다. 지금은 자동 병합에 쓰지 않는다.
+  email         TEXT,
+  -- 'member' | 'admin'. 검토 권한의 유일한 기준이다.
+  -- 나중에 등급을 늘릴 때 이 열의 값만 확장한다.
+  role          TEXT NOT NULL DEFAULT 'member',
+  created_at    TEXT NOT NULL,
+  UNIQUE (provider, provider_id)
+);
+
+CREATE TABLE wiki_docs (
+  id            TEXT PRIMARY KEY,
+  position_slug TEXT NOT NULL,
+  champion_slug TEXT NOT NULL,          -- 상대 챔피언
+  general       TEXT NOT NULL DEFAULT '',
+  revision      INTEGER NOT NULL DEFAULT 0,
+  patch         TEXT NOT NULL,
+  -- 'guarded' : 빈 섹션은 즉시 반영, 이미 쓰인 섹션은 검토 (기본이자 현재 유일한 구현)
+  -- 'open'    : 전부 즉시 반영     ← 신뢰가 쌓인 문서에 쓸 자리
+  -- 'locked'  : 전부 검토          ← 도배를 맞은 문서에 쓸 자리
+  edit_policy   TEXT NOT NULL DEFAULT 'guarded',
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT REFERENCES users(id),
+  UNIQUE (position_slug, champion_slug)
+);
+
+CREATE TABLE wiki_sections (
+  doc_id        TEXT NOT NULL REFERENCES wiki_docs(id) ON DELETE CASCADE,
+  me_slug       TEXT NOT NULL,          -- 내 챔피언
+  body          TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT REFERENCES users(id),
+  PRIMARY KEY (doc_id, me_slug)
+);
+
+-- 편집 제안이자 문서의 역사. 승인된 행이 곧 리비전이다.
+CREATE TABLE wiki_edits (
+  id            TEXT PRIMARY KEY,
+  doc_id        TEXT NOT NULL REFERENCES wiki_docs(id) ON DELETE CASCADE,
+  me_slug       TEXT,                   -- NULL이면 공통 섹션
+  base_revision INTEGER NOT NULL,
+  body          TEXT NOT NULL,          -- 섹션 전문
+  summary       TEXT NOT NULL DEFAULT '',
+  status        TEXT NOT NULL DEFAULT 'pending',
+  author        TEXT REFERENCES users(id),
+  created_at    TEXT NOT NULL,
+  -- 'empty_section' | 'review' | 'admin'. 승인된 경우에만 채워진다.
+  -- 검토를 거치지 않은 승인을 구분해 두어야 최근 변경 피드에서 걸러 볼 수 있다.
+  accepted_via  TEXT,
+  reviewed_at   TEXT,                   -- 사람이 검토한 경우에만
+  reviewer      TEXT REFERENCES users(id),
+  review_note   TEXT,
+  revision      INTEGER                 -- 승인된 경우에만 채워진다
+);
+
+CREATE INDEX idx_docs_lookup    ON wiki_docs (position_slug, champion_slug);
+-- 검토 대기열: 오래된 제안부터
+CREATE INDEX idx_edits_pending  ON wiki_edits (status, created_at);
+-- 문서 역사: 최신 리비전부터
+CREATE INDEX idx_edits_history  ON wiki_edits (doc_id, revision DESC);
+-- 최근 변경 피드: 검토 없이 반영된 편집을 훑어보기 위한 것
+CREATE INDEX idx_edits_recent   ON wiki_edits (created_at DESC, accepted_via);
+```
+
+`wiki_sections`를 문서 안 JSON이 아니라 별도 표로 두는 이유는, 화면이 늘 "공통 +
+선택된 챔피언 섹션 하나"만 필요로 하기 때문이다. 문서 전체를 읽어 버릴 필요가 없다.
+
+`wiki_edits`가 제안 대기열과 문서 역사를 겸한다. 승인된 제안이 곧 리비전이므로
+표를 따로 두지 않는다. 나무위키가 승인된 편집 요청을 요청자의 기여로 기록하는 방식과
+같다.
+
+## 나중을 위해 열어둔 자리
+
+지금 만들지 않되, 스키마가 나중에 받아들일 수 있게 해 둔 것들.
+
+| 기능 | 준비해 둔 것 | 지금 하지 않는 이유 |
+| --- | --- | --- |
+| 문서별 편집 권한 (ACL) | `wiki_docs.edit_policy` | `guarded` 하나만 쓴다. `open`·`locked`는 실제 문제가 생긴 뒤에 켠다 |
+| 검토자 확대 | `users.role` | 검토할 사람이 운영자뿐이다 |
+| 기여 이력 기반 신뢰 | `wiki_edits.author` | 나무위키 Semi protect3처럼 "이 문서를 고쳐 본 사람"을 우대할 수 있다. 판단할 이력이 아직 없다 |
+| 토론 | 없음 — 별도 표를 새로 추가하면 된다 | 다툴 사람이 아직 없다. 기존 표를 건드리지 않고 붙일 수 있어 미리 만들 이유가 없다 |
+
+## 알고 있는 한계
+
+**검토자가 병목이다.** 검토가 필요한 것은 이미 쓰인 섹션을 고치는 편집뿐이라 초기
+부담은 낮지만, 문서가 채워질수록 그 비율이 올라간다. 하루에 스무 건씩 쌓이면 이
+방식은 무너진다. 탈출구는 검토자를 늘리거나(`users.role`) 문서를 `open`으로 여는
+것이고, 판단 근거는 그때의 제안 품질이다. 지금 미리 정하지 않는다.
+
+**즉시 반영은 도배에 열려 있다.** 위 "즉시 반영의 대가"에 적은 세 장치가 함께
+만들어지지 않으면 이 설계는 안전하지 않다.
+
+**제안자는 며칠을 기다린다.** 검토 대기가 길어지면 기여자가 떠난다. 대기 시간을
+실제로 지킬 수 있는지는 운영해 봐야 안다.
+
+## 로그인과 계정
+
+구글과 카카오를 모두 지원한다. 여기엔 알려진 함정이 하나 있다.
+
+**같은 사람이 구글로 한 번, 카카오로 한 번 들어오면 서로 다른 사용자가 된다.**
+`users` 표가 `(provider, provider_id)`로 유일성을 잡기 때문이다. 문서 역사에 같은
+사람이 두 이름으로 나타난다.
+
+이번 범위에서는 이를 **허용하되 나중에 합칠 수 있게만** 설계한다. `users.email`을
+두고 제공자가 인증된 이메일을 주면 저장해, 이후 계정 연결 기능을 붙일 때 근거로 쓴다.
+카카오는 이메일 제공이 선택 항목이라 `NULL`을 허용한다.
+
+지금 단계에서 이메일로 자동 병합하지는 않는다. 자동 병합은 이메일을 신뢰할 수 있을
+때만 안전한데, 그 판단을 아직 할 수 없다.
+
+## 시드 Tip 이관
+
+`src/data/tips.ts`의 시드 Tip을 문서 초안으로 옮긴다.
+
+- Tip의 `general` → 문서의 공통 섹션
+- Tip의 각 `meBlocks[]` → 해당 챔피언의 Me 섹션
+- 같은 매치업에 Tip이 여러 개면 공통 섹션을 이어 붙인다
+- 이관분은 승인된 편집(리비전 1)으로 남기고, 제안자는 시스템 계정으로 기록한다
+
+일회성 스크립트로 처리하고 결과를 사람이 한 번 읽어 본 뒤 반영한다.
+
+## PRD 개정이 필요한 항목
+
+위키 전환으로 다음 P0 요구사항이 성립하지 않는다.
+
+| 요구사항 | 처리 |
+| --- | --- |
+| FR-11 좋아요순 게시판 | 삭제 — 목록과 정렬이 사라진다 |
+| FR-14 Tip 작성 | 편집 제안으로 대체 |
+| FR-15 평가 | 삭제 — 좋아요·싫어요를 두지 않는다 |
+| FR-16 검색·페이지네이션 | 페이지네이션 삭제, 검색은 범위를 다시 정의 |
+| FR-17 작성자 권한 | 삭제 — 공동 소유로 바뀐다. 대신 검토 권한을 새로 정의 |
+
+FR-12(Me Combobox), FR-13(General·Me 노출)은 그대로 유지되며 위키의 중심이 된다.
+검토 흐름은 새 요구사항으로 추가해야 한다.
+
+## 남은 결정
+
+- **검색 범위** — 문서 안 검색인지, 매치업을 찾는 검색인지. 문서가 하나로 합쳐지면
+  문서 안 검색은 브라우저 찾기로 충분하므로, 검색을 매치업 찾기로 옮기는 쪽을 제안한다.
+  선택 화면에 이미 챔피언 검색이 있어 역할이 겹치는지 확인이 필요하다.

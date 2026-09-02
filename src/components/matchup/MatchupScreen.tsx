@@ -4,17 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-import type { Tip } from "@/data/types";
+import type { WikiView } from "@/lib/wikiStore";
 import { buildQuery } from "@/lib/url";
 
 import { ChampionAside } from "./ChampionAside";
 import styles from "./MatchupScreen.module.css";
-import { TipBoard } from "./TipBoard";
 import type { CategoryView, ChampionOption, ChampionView, PositionView } from "./types";
 import { VideoPanel } from "./VideoPanel";
+import { WikiPanel } from "./WikiPanel";
 
 const TABS = [
-  { id: "board", label: "게시판" },
+  { id: "board", label: "상대법" },
   { id: "video", label: "영상" },
 ] as const;
 
@@ -25,7 +25,8 @@ type Props = {
   position: PositionView;
   category: CategoryView;
   champion: ChampionView;
-  seedTips: Tip[];
+  /** 서버가 D1에서 읽어 온 위키 문서. */
+  wiki: WikiView;
   positionChampions: ChampionOption[];
   allChampions: ChampionOption[];
 };
@@ -35,7 +36,7 @@ export function MatchupScreen({
   position,
   category,
   champion,
-  seedTips,
+  wiki,
   positionChampions,
   allChampions,
 }: Props) {
@@ -55,9 +56,6 @@ export function MatchupScreen({
     },
     [pathname, router, searchParams],
   );
-
-  /** 게시판으로 돌아갔을 때 상태를 유지하기 위해 현재 질의를 그대로 넘긴다 (PRD 5.5). */
-  const currentQuery = buildQuery(searchParams.toString(), {});
 
   return (
     <div className={styles.screen}>
@@ -120,14 +118,12 @@ export function MatchupScreen({
             aria-labelledby={`tab-${tab}`}
           >
             {tab === "board" ? (
-              <TipBoard
+              <WikiPanel
                 position={position}
                 champion={champion}
-                seedTips={seedTips}
+                wiki={wiki}
                 positionChampions={positionChampions}
                 allChampions={allChampions}
-                patch={patch}
-                currentQuery={currentQuery}
               />
             ) : (
               <VideoPanel champion={champion} position={position} />

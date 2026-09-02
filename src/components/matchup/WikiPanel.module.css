@@ -1,0 +1,109 @@
+/* 블루프린트 6.3 Main — 상대법 위키 열람 */
+
+.panel {
+  display: grid;
+  gap: 18px;
+}
+
+/* --------------------------------------------------------- 내 챔피언 선택 */
+
+.controls {
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper-shade);
+}
+
+.controls > :first-child {
+  max-width: 420px;
+}
+
+/* ------------------------------------------------------------------ 섹션 */
+
+.section {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------------ 본문 */
+
+.body {
+  display: grid;
+  gap: 12px;
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.75;
+  /* 긴 챔피언명·스킬명이 줄 끝에서 깨지지 않게 한다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  margin: 0;
+  padding: 14px 0 4px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--smoke);
+  word-break: keep-all;
+}
+
+/* ------------------------------------------------------------ 안내 · 정보 */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper-shade);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+.notice .sticker {
+  flex: none;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 12px;
+  color: var(--smoke);
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 14px;
+  }
+
+  .controls > :first-child {
+    max-width: none;
+  }
+}

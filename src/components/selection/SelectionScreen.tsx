@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import type { SelectionData } from "@/data/selection";
+import { eunNeun } from "@/lib/josa";
 import { prefersReducedMotion } from "@/lib/motion";
 import { buildQuery } from "@/lib/url";
 
@@ -210,7 +211,8 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
             {isSingle && (
               <div className={styles.singleNote}>
                 <p className={styles.singleNoteBody}>
-                  {activePosition.name}은 카테고리를 나누지 않고 하나로 모읍니다. 포스터를 선택하면
+                  {activePosition.name}
+                  {eunNeun(activePosition.name)} 카테고리를 나누지 않고 하나로 모읍니다. 포스터를 선택하면
                   {" "}
                   {categoryList[0]?.championCount}명의 챔피언이 아래에 펼쳐집니다.
                 </p>

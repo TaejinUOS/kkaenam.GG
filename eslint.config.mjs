@@ -15,6 +15,8 @@ const config = [
       // Cloudflare 배포 산출물. OpenNext와 wrangler가 만드는 번들이라 마찬가지다.
       ".open-next/**",
       ".wrangler/**",
+      // wrangler types가 생성하는 바인딩 타입.
+      "cloudflare-env.d.ts",
     ],
   },
   {

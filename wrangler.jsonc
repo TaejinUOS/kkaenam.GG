@@ -18,5 +18,14 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // 상대법 위키 저장소. 스키마는 migrations/, 설계는 docs/WIKI_MODEL.md.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kkaenam-gg",
+      "database_id": "9df1655b-da71-4d23-ba2f-6c2b6981e632",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

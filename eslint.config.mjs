@@ -12,6 +12,9 @@ const config = [
       // Next.js가 생성하는 파일들. 우리가 고칠 수 있는 대상이 아니다.
       "next-env.d.ts",
       "src/data/generated/**",
+      // Cloudflare 배포 산출물. OpenNext와 wrangler가 만드는 번들이라 마찬가지다.
+      ".open-next/**",
+      ".wrangler/**",
     ],
   },
   {

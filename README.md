@@ -13,6 +13,7 @@
 | [`docs/DESIGN_BLUEPRINT.md`](./docs/DESIGN_BLUEPRINT.md) | 시각 기준 — GLOWING MATCHUP ZINE (v0.6) |
 | [`docs/HANDOFF.md`](./docs/HANDOFF.md) | **남은 작업, 임시 구현, 알아 두어야 할 것** |
 | [`AGENTS.md`](./AGENTS.md) | 제품·디자인 규칙, 명령어, 아키텍처 — 코딩 에이전트가 읽는 지침 |
+| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | 배포 방법과 자동 배포 설정 |
 
 ## 실행
 
@@ -30,6 +31,8 @@ npm run dev          # http://localhost:3000
 | `npm run data:sync` | Data Dragon 챔피언·스킬 동기화 |
 | `npx tsx scripts/check-taxonomy.ts` | 포지션·카테고리 분류 점검 |
 | `npm run shots` | 주요 화면을 모바일·태블릿·데스크톱 뷰포트로 캡처 |
+| `npm run cf:preview` | Cloudflare Workers 런타임으로 로컬 실행 (http://127.0.0.1:8788) |
+| `npm run cf:deploy` | Cloudflare Workers에 수동 배포 |
 
 > `npm run build`와 `npm run dev`는 같은 `.next` 디렉터리를 사용합니다. dev 서버를 켠 채로
 > build를 돌리면 dev 서버 응답이 깨지니 한 번에 하나만 실행하세요.
@@ -106,3 +109,8 @@ DDRAGON_PATCH=16.17.1 npm run data:sync
 
 챔피언 이미지와 스킬 정보는 Riot Games의 Data Dragon(`16.17.1`, `ko_KR`)을 사용합니다.
 깨남.GG는 Riot Games가 승인하거나 후원하지 않은 비공식 프로젝트입니다.
+
+## 배포
+
+운영 주소는 <https://kkaenam-gg.taejin1472.workers.dev> 이고, Cloudflare Workers에서 돌아갑니다.
+`main`에 push하면 자동 배포됩니다. 설정 방법과 롤백은 [`docs/DEPLOY.md`](./docs/DEPLOY.md)를 보세요.

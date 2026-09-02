@@ -8,8 +8,13 @@
 ## 왜 Workers인가
 
 Next.js 앱을 정적 파일로만 내보내는 방법(`output: "export"`)도 있지만 쓰지 않았다.
-상대법 팁의 상세 경로 `/matchup/[position]/[champion]/tips/[tipId]`가 사용자가 쓴 팁의
-id를 받는데, 이 값은 빌드 시점에 알 수 없다. 정적 배포였다면 그 URL이 전부 404가 된다.
+상대법 문서가 **Cloudflare D1에 있고 요청마다 서버에서 읽기** 때문이다. 정적 배포에는
+데이터베이스를 읽을 서버가 없다.
+
+(전환 초기의 이유는 달랐다. 당시에는 사용자가 쓴 팁의 상세 경로
+`/matchup/[position]/[champion]/tips/[tipId]`가 빌드 시점에 알 수 없는 id를 받아
+정적 배포로는 404가 되는 것이 이유였다. 그 라우트는 위키 전환 2단계에서 사라졌지만,
+D1을 쓰게 되면서 서버가 필요한 이유는 오히려 더 분명해졌다.)
 
 그래서 `@opennextjs/cloudflare` 어댑터로 Next.js 서버를 Worker로 변환해 올린다.
 Cloudflare가 현재 Next.js에 공식 권장하는 방식이다 (Pages의 Next.js 지원은 레거시).
@@ -63,6 +68,33 @@ npm run cf:deploy
 npx wrangler login
 ```
 
+## 데이터베이스는 따로 배포한다
+
+**코드 배포는 D1 스키마를 바꾸지 않는다.** 마이그레이션을 추가했다면 배포와 별개로
+직접 적용해야 하며, 잊으면 새 코드가 없는 표를 찾다가 운영에서 깨진다.
+
+```bash
+# 로컬에서 먼저 적용하고 확인
+npx wrangler d1 migrations apply kkaenam-gg --local
+npm run cf:preview
+
+# 운영에 적용 (배포 전에 한다)
+npx wrangler d1 migrations apply kkaenam-gg --remote
+```
+
+순서가 중요하다. **스키마를 먼저 적용하고 코드를 배포한다.** 반대로 하면 새 코드가
+아직 없는 표를 읽는 구간이 생긴다.
+
+적용 상태는 이렇게 확인한다.
+
+```bash
+npx wrangler d1 migrations list kkaenam-gg --remote
+```
+
+> `migrations/`에는 마이그레이션만 둔다. wrangler가 그 디렉터리의 `.sql`을 전부
+> 마이그레이션으로 취급하므로, 시드처럼 한 번만 실행할 SQL은 `seeds/`에 두고
+> `d1 execute --file`로 직접 넣는다.
+
 ## 배포 전 로컬 확인
 
 Workers 런타임은 Node와 다르다. `next dev`에서 되던 게 배포 후 깨질 수 있으므로,
@@ -83,11 +115,9 @@ npx wrangler rollback <version-id>
 
 ## 알아둘 것
 
-**팁은 아직 서버에 저장되지 않는다.** `src/lib/tipStore.ts`가 `localStorage`를 쓰기
-때문에, 배포된 사이트에서 쓴 팁도 그 브라우저에만 남는다. 다른 사람에게 보이지 않고
-브라우저 데이터를 지우면 사라진다. 공유되는 게시판이 되려면 D1(Cloudflare의 무료 DB)을
-붙이고 `tipStore`를 서버 저장으로 옮겨야 한다. `docs/PRD.md` 15장 미결정 1번(회원가입
-방식)과 함께 결정할 사안이다.
+**사이트는 현재 읽기 전용이다.** 상대법 문서는 D1에 있고 열람은 동작하지만, 로그인과
+편집이 아직 없다 (위키 전환 3·4단계). 시드 이관분 외에는 내용이 늘지 않는다.
+`docs/HANDOFF.md` 2.1을 참고할 것.
 
 **무료 요금제 한도**는 하루 10만 요청이다. 현재 트래픽 규모에서는 여유가 있다.
 

@@ -2,7 +2,7 @@
 
 상대법부터 기본기까지, 롤을 깨우치다.
 
-포지션별로 상대 챔피언을 고르고, 보편 상대법 `General`과 내 챔피언 전용 상대법 `Me`를 함께 보는
+포지션별로 상대 챔피언을 고르고, 보편 상대법 `공통`과 내 챔피언 전용 상대법 `Me`를 함께 보는
 리그 오브 레전드 상대법 커뮤니티입니다.
 
 ## 기준 문서
@@ -42,9 +42,7 @@ npm run dev          # http://localhost:3000
 | 경로 | 화면 |
 | --- | --- |
 | `/?position=&category=&q=` | 포지션·카테고리 선택과 챔피언 Contact Sheet |
-| `/matchup/[position]/[champion]?tab=&me=&sort=&q=&page=` | 챔피언 상대법 (Aside + 게시판·영상) |
-| `/matchup/[position]/[champion]/tips/[tipId]` | Tip 상세 |
-| `/matchup/[position]/[champion]/write` | Tip 작성·수정 |
+| `/matchup/[position]/[champion]?tab=&me=` | 챔피언 상대법 위키 (Aside + 상대법·영상) |
 | `/records` `/stats` `/tier-list` `/lessons` `/my` | `추후 개발` 안내 화면 |
 
 화면 상태는 모두 URL 질의 문자열에 반영되어 새로고침과 뒤로 가기 후에도 복원됩니다.
@@ -64,18 +62,26 @@ src/
   app/                     라우트 (App Router)
   components/
     selection/             포지션·카테고리 선택 화면
-    matchup/               상대법 화면, 게시판, Tip 상세·작성
+    matchup/               상대법 화면과 위키 문서 열람
   data/
     generated/             Data Dragon 동기화 결과 (스크립트가 생성)
     taxonomy.ts            포지션 · 카테고리 · 챔피언 분류 (단일 원본)
     champions.ts           Data Dragon과 분류를 합치는 조인 계층
-    tips.ts                시드 Tip
-  lib/                     URL·모션·Tip 저장소 유틸
+    tips.ts                시드 Tip (위키 이관 원본. 화면은 더 이상 읽지 않는다)
+    wiki.ts                위키 도메인 타입
+  lib/
+    wikiStore.ts           D1 조회 (server-only)
+    josa.ts                한국어 조사 선택
+    url.ts  motion.ts      URL·모션 유틸
+
+migrations/                D1 스키마
+seeds/                     시드 Tip → 위키 문서 이관 SQL (생성물)
 
 public/images/             PRD 5.1이 지정한 카테고리 대표 이미지
 scripts/
   sync-ddragon.ts          챔피언·스킬 동기화
   check-taxonomy.ts        분류 점검
+  seed-wiki.ts             시드 Tip을 위키 문서 SQL로 변환
 ```
 
 ### 챔피언 분류 갱신
@@ -98,12 +104,25 @@ DDRAGON_PATCH=16.17.1 npm run data:sync
 
 - FR-01~07 포지션·카테고리·챔피언 선택, 검색, 선택 애니메이션, URL 상태
 - FR-08~09 정적 2D 일러스트와 로딩 실패 대체 UI, Q/W/E/R 스킬과 공략 쪽지
-- FR-10~13 게시판·영상 탭, 좋아요순 정렬, Me 콤보박스, General/Me 노출 규칙
-- FR-14~17 Tip 작성·수정·삭제, 좋아요·싫어요, 검색과 페이지네이션
+- FR-10, 12, 13 상대법·영상 탭, Me 콤보박스, 공통/Me 노출 규칙
 - FR-18~20 반응형, 상태·오류 안내, 추후 개발 메뉴
+- FR-23 위키 문서 열람 (D1)
 
-아직 남은 것은 **[`docs/HANDOFF.md`](./docs/HANDOFF.md)** 에 정리했습니다. 서버·인증, 영상 탭,
-입력 길이 제한이 임시 구현이며 각각 PRD 15의 미결정 사항에 걸려 있습니다.
+**진행 중: Tip 게시판 → 매치업 위키 전환** (PRD v0.8). 설계는
+[`docs/WIKI_MODEL.md`](./docs/WIKI_MODEL.md)입니다.
+
+| 단계 | 내용 | 상태 |
+| --- | --- | --- |
+| 1 | D1 스키마와 시드 이관 | 완료 |
+| 2 | 위키 문서 열람 화면 | 완료 |
+| 3 | 구글·카카오 로그인 (FR-22) | 예정 |
+| 4 | 편집 제안과 검토 (FR-24~33) | 예정 |
+
+**지금은 편집할 수 없습니다.** 옛 Tip 작성 화면은 2단계에서 제거했고 위키 편집은
+4단계에 붙습니다. 좋아요·정렬·페이지네이션·작성자 소유권(구 FR-11, 14~17)은
+위키 전환으로 삭제되었습니다.
+
+나머지 남은 것은 **[`docs/HANDOFF.md`](./docs/HANDOFF.md)** 에 정리했습니다.
 
 ## 데이터 출처
 

@@ -103,6 +103,7 @@ export function WikiPanel({
       id: GENERAL_ID,
       title: "공통 상대법",
       badge: <span className="sticker sticker--cobalt">general</span>,
+      badgePosition: "after",
       body: wiki.general,
       action: (
         <EditEntryButton
@@ -138,7 +139,6 @@ export function WikiPanel({
       .map<DocSection>((c) => ({
         id: meId(c.slug),
         title: `${c.name}${ro(c.name)} 상대할 때`,
-        badge: <span className="sticker sticker--gum">me / {c.name}</span>,
         body: byChampion.get(c.slug)?.body ?? "",
         action: (
           <EditEntryButton
@@ -157,7 +157,6 @@ export function WikiPanel({
       filled.push({
         id: meId(meChampion.slug),
         title: `${meChampion.name}${ro(meChampion.name)} 상대할 때`,
-        badge: <span className="sticker sticker--gum">me / {meChampion.name}</span>,
         body: "",
         action: (
           <EditEntryButton

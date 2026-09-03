@@ -25,13 +25,14 @@ export type DocSection = {
   /** 앵커이자 목차 키. `general` 또는 `me-<슬러그>`. */
   id: string;
   title: string;
-  /** 제목 앞 스티커. */
+  /** 제목 곁의 스티커. 기본값은 제목 앞이다. */
   badge?: ReactNode;
+  badgePosition?: "before" | "after";
   /** 섹션 본문 마크다운. */
   body: string;
-  /** 제목 줄 오른쪽에 놓을 것. 편집 버튼이 여기로 온다. */
+  /** 제목 줄 오른쪽 조작부의 끝에 놓을 것. 편집 버튼이 여기로 온다. */
   action?: ReactNode;
-  /** 제목 줄 맨 오른쪽. 공통 상대법 줄의 내 챔피언 콤보박스가 여기로 온다. */
+  /** 편집 버튼 앞에 놓을 것. 공통 상대법 줄의 내 챔피언 콤보박스가 여기로 온다. */
   tools?: ReactNode;
   /** 본문이 비었을 때 대신 보여줄 안내. */
   empty?: ReactNode;
@@ -224,15 +225,21 @@ function NodeView({
           </span>
         </button>
 
-        {section?.badge}
+        {section?.badgePosition !== "after" && section?.badge}
 
         <Heading className={styles.title}>
           <span className={`mono ${styles.number}`}>{node.number}</span>
           <span>{stripInlineMarkup(node.title)}</span>
         </Heading>
 
-        {section?.action}
-        {section?.tools}
+        {section?.badgePosition === "after" && section.badge}
+
+        {(section?.tools || section?.action) && (
+          <div className={styles.controls}>
+            {section?.tools}
+            {section?.action}
+          </div>
+        )}
       </div>
 
       <div id={`${node.id}--body`} className={styles.body} hidden={isCollapsed}>

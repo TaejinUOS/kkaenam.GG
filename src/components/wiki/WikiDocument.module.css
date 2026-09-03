@@ -107,10 +107,13 @@
   font-weight: 500;
 }
 
-/* 제목 줄 오른쪽 끝. 편집 버튼과 콤보박스가 여기 붙는다. */
-.head > :nth-last-child(1):not(.title),
-.head > :nth-last-child(2):not(.title) {
+/* 콤보박스가 편집 버튼보다 먼저 오도록 우측 조작부를 한 덩어리로 묶는다. */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: none;
+  margin-left: auto;
 }
 
 /* ------------------------------------------------------------------ 본문 */

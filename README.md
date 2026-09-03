@@ -1,4 +1,4 @@
-# 깨남.GG
+# 깨남.com
 
 상대법부터 기본기까지, 롤을 깨우치다.
 
@@ -131,7 +131,7 @@ DDRAGON_PATCH=16.17.1 npm run data:sync
 ## 데이터 출처
 
 챔피언 이미지와 스킬 정보는 Riot Games의 Data Dragon(`16.17.1`, `ko_KR`)을 사용합니다.
-깨남.GG는 Riot Games가 승인하거나 후원하지 않은 비공식 프로젝트입니다.
+kkaenam.com는 Riot Games가 승인하거나 후원하지 않은 비공식 프로젝트입니다.
 
 ## 배포
 

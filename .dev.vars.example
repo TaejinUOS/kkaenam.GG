@@ -1,0 +1,16 @@
+# 로컬 개발용 시크릿 템플릿.
+# 이 파일을 .dev.vars로 복사하고 실제 값을 채운다. .dev.vars는 git에 올라가지 않는다.
+#
+#   cp .dev.vars.example .dev.vars
+#
+# AUTH_SECRET은 아래로 생성한다.
+#   openssl rand -base64 32
+#
+# 나머지 값은 Google Cloud Console / Kakao Developers에서 발급받는다.
+# 자세한 절차는 docs/HANDOFF.md 참고.
+
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+AUTH_KAKAO_ID=
+AUTH_KAKAO_SECRET=

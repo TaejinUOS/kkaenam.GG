@@ -20,6 +20,7 @@ yarn-error.log*
 # 환경 변수
 .env
 .env*.local
+.dev.vars
 
 # 배포
 .vercel

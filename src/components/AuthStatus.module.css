@@ -1,0 +1,37 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.login {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+  white-space: nowrap;
+}
+
+.login:hover {
+  color: var(--acid);
+}
+
+.name {
+  max-width: 8ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--paper);
+}
+
+.signOut {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--smoke);
+  white-space: nowrap;
+}
+
+.signOut:hover {
+  color: var(--gum);
+}

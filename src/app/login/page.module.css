@@ -1,0 +1,35 @@
+.screen {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+  max-width: 60ch;
+  padding-block: clamp(48px, 10vw, 120px) clamp(60px, 12vw, 140px);
+}
+
+.title {
+  font-size: clamp(40px, 8vw, 96px);
+  line-height: 0.88;
+  color: var(--paper);
+}
+
+.description {
+  max-width: 48ch;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--smoke);
+}
+
+.providers {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.providerBtn {
+  width: 100%;
+}
+
+.back {
+  margin-top: 8px;
+}

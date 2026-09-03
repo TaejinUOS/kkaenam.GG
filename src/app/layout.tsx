@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Nanum_Pen_Script } from "next/font/google";
 import localFont from "next/font/local";
 
+import { AuthStatus } from "@/components/AuthStatus";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ZineFilters } from "@/components/ZineFilters";
@@ -91,7 +92,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           본문으로 건너뛰기
         </a>
         <ZineFilters />
-        <SiteHeader />
+        <SiteHeader>
+          <AuthStatus />
+        </SiteHeader>
         <main id="main">{children}</main>
         <SiteFooter />
       </body>

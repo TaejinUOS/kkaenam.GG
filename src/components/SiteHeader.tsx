@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import styles from "./SiteHeader.module.css";
@@ -32,7 +33,7 @@ function isCurrent(pathname: string, item: NavItem) {
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-export function SiteHeader() {
+export function SiteHeader({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   // 블루프린트 6.1: 메뉴 hover 시 페이지를 흐리게 하지 않고 콘텐츠에 옅은 잉크를 덮는다.
   const [navHovered, setNavHovered] = useState(false);
@@ -88,6 +89,8 @@ export function SiteHeader() {
             <span className={styles.myPageLabel}>{MY_PAGE.label}</span>
             <span className="sr-only">(추후 개발)</span>
           </Link>
+
+          {children}
         </div>
       </header>
 

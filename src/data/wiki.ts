@@ -107,6 +107,15 @@ export type WikiUser = {
 /** 시드 이관분과 자동 생성물의 작성자로 쓰는 고정 계정. */
 export const SYSTEM_USER_ID = "user-system";
 
+/** 섹션 본문 최대 길이 (PRD 15 미결정 5번 해소, 2026-09-03). 마크다운 문법 포함 글자 수다. */
+export const MAX_BODY_LENGTH = 4000;
+
+/** 편집 요약 최대 길이. 선택 입력이며 비우면 빈 문자열로 저장한다 (미결정 6번 해소). */
+export const MAX_SUMMARY_LENGTH = 80;
+
+/** 계정당 시간당 편집 제출 상한 (미결정 7번 해소). FR-32. */
+export const RATE_LIMIT_PER_HOUR = 10;
+
 /**
  * 섹션이 비어 있는지 판정한다.
  *

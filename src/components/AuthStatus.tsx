@@ -24,6 +24,14 @@ export async function AuthStatus() {
   return (
     <div className={styles.wrap}>
       <span className={styles.name}>{session.user.name ?? "회원"}</span>
+      <Link className={styles.myEdits} href="/my/edits">
+        내 편집
+      </Link>
+      {session.user.role === "admin" && (
+        <Link className={styles.admin} href="/admin">
+          관리자
+        </Link>
+      )}
       <form
         action={async () => {
           "use server";

@@ -35,3 +35,16 @@
 .signOut:hover {
   color: var(--gum);
 }
+
+.myEdits,
+.admin {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--smoke);
+  white-space: nowrap;
+}
+
+.myEdits:hover,
+.admin:hover {
+  color: var(--acid);
+}

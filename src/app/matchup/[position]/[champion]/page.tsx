@@ -3,39 +3,20 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { MatchupScreen } from "@/components/matchup/MatchupScreen";
-import {
-  PATCH,
-  allChampions,
-  getChampionBySlug,
-  getChampionsInPosition,
-  getClassificationFor,
-  getPosition,
-  skillIconUrl,
-} from "@/data/champions";
+import { PATCH, allChampions, getChampionsInPosition, skillIconUrl } from "@/data/champions";
+import { getViewer } from "@/lib/authGuard";
 import { eulReul } from "@/lib/josa";
+import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
 import { getWikiView } from "@/lib/wikiStore";
 
-type RouteParams = { position: string; champion: string };
-
-/** 라우트 파라미터를 검증해 화면에 필요한 데이터로 바꾼다. 조합이 틀리면 undefined. */
-function resolve({ position, champion }: RouteParams) {
-  const positionData = getPosition(position);
-  const championData = getChampionBySlug(champion);
-  if (!positionData || !championData) return undefined;
-
-  // PRD FR-07: 다른 포지션의 콘텐츠가 섞이지 않도록 분류에 없는 조합은 허용하지 않는다.
-  const category = getClassificationFor(position, champion);
-  if (!category) return undefined;
-
-  return { positionData, championData, category };
-}
+type RouteParams = MatchupRouteParams;
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
-  const resolved = resolve(await params);
+  const resolved = resolveMatchup(await params);
   if (!resolved) return { title: "찾을 수 없는 상대법" };
 
   const { positionData, championData } = resolved;
@@ -53,7 +34,7 @@ export default async function MatchupPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const routeParams = await params;
-  const resolved = resolve(routeParams);
+  const resolved = resolveMatchup(routeParams);
   if (!resolved) notFound();
 
   const { positionData, championData, category } = resolved;
@@ -65,7 +46,10 @@ export default async function MatchupPage({
   const meParam = (await searchParams).me;
   const meSlug = typeof meParam === "string" && meParam ? meParam : null;
 
-  const wiki = await getWikiView(positionData.slug, championData.slug, meSlug);
+  const [wiki, viewer] = await Promise.all([
+    getWikiView(positionData.slug, championData.slug, meSlug),
+    getViewer(),
+  ]);
 
   return (
     <Suspense fallback={<div style={{ minHeight: "70vh" }} />}>
@@ -96,6 +80,7 @@ export default async function MatchupPage({
           })),
         }}
         wiki={wiki}
+        viewer={viewer}
         /* Me 콤보박스는 현재 포지션의 챔피언을 기본 검색 대상으로 한다 (PRD 5.3.3). */
         positionChampions={getChampionsInPosition(positionData.slug).map((c) => ({
           slug: c.slug,

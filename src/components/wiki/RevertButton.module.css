@@ -1,0 +1,24 @@
+.trigger {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.success {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f6d3a;
+}
+
+.error {
+  font-size: 13px;
+  font-weight: 700;
+  color: #b3261e;
+}

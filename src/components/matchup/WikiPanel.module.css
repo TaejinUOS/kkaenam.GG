@@ -43,20 +43,64 @@
   letter-spacing: -0.01em;
 }
 
+.editButton {
+  margin-left: auto;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  background: var(--acid);
+}
+
 /* ------------------------------------------------------------------ 본문 */
 
 .body {
   display: grid;
   gap: 12px;
-}
-
-.paragraph {
-  margin: 0;
   font-size: 15px;
   line-height: 1.75;
   /* 긴 챔피언명·스킬명이 줄 끝에서 깨지지 않게 한다. */
   word-break: keep-all;
   overflow-wrap: anywhere;
+}
+
+.body p,
+.body ul,
+.body ol,
+.body blockquote {
+  margin: 0;
+}
+
+.body ul,
+.body ol {
+  padding-left: 1.4em;
+  display: grid;
+  gap: 4px;
+}
+
+.body blockquote {
+  padding: 4px 0 4px 12px;
+  border-left: 3px solid var(--paper-line);
+  color: #6b6053;
+}
+
+.body h4 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.body code {
+  padding: 1px 5px;
+  background: var(--paper-shade);
+  border-radius: var(--radius-card);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.body a {
+  color: var(--cobalt);
+  text-decoration: underline;
 }
 
 .empty {
@@ -96,6 +140,15 @@
   margin: 0;
   font-size: 12px;
   color: var(--smoke);
+}
+
+.historyLink {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.historyLink:hover {
+  color: var(--ink);
 }
 
 @media (max-width: 640px) {

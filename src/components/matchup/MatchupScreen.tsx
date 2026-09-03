@@ -20,6 +20,8 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+type Viewer = { id: string; name: string; role: "member" | "admin" } | null;
+
 type Props = {
   patch: string;
   position: PositionView;
@@ -29,6 +31,7 @@ type Props = {
   wiki: WikiView;
   positionChampions: ChampionOption[];
   allChampions: ChampionOption[];
+  viewer: Viewer;
 };
 
 export function MatchupScreen({
@@ -39,6 +42,7 @@ export function MatchupScreen({
   wiki,
   positionChampions,
   allChampions,
+  viewer,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -121,9 +125,11 @@ export function MatchupScreen({
               <WikiPanel
                 position={position}
                 champion={champion}
+                patch={patch}
                 wiki={wiki}
                 positionChampions={positionChampions}
                 allChampions={allChampions}
+                viewer={viewer}
               />
             ) : (
               <VideoPanel champion={champion} position={position} />

@@ -1,0 +1,54 @@
+.screen {
+  display: grid;
+  gap: 20px;
+  padding-block: clamp(32px, 6vw, 64px) clamp(60px, 12vw, 140px);
+}
+
+.title {
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 0.95;
+}
+
+.empty {
+  color: var(--smoke);
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.target {
+  font-weight: 700;
+}
+
+.summary {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6053;
+}
+
+.reviewNote {
+  margin: 0;
+  font-size: 13px;
+  color: #b3261e;
+}

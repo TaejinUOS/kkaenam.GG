@@ -1,0 +1,20 @@
+.screen {
+  display: grid;
+  gap: 20px;
+  padding-block: clamp(32px, 6vw, 64px) clamp(60px, 12vw, 140px);
+}
+
+.title {
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 0.95;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.link {
+  min-width: 160px;
+}

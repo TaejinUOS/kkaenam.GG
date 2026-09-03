@@ -95,8 +95,12 @@ function makeLink(notes: Footnote[], resolveLink: WikiLinkResolver) {
 
     // 3. 사이트 안 — 새 탭을 열지 않고 클라이언트 이동한다.
     if (typeof href === "string" && href.startsWith("/")) {
+      /*
+       * `rest`를 먼저 펼친다. markdown-to-jsx가 빈 `className`을 함께 넘겨서, 뒤에
+       * 펼치면 여기서 준 클래스를 지워 버린다 — 문서 링크가 파랗지 않던 원인이었다.
+       */
       return (
-        <Link href={href} className={styles.internal} {...rest}>
+        <Link {...rest} href={href} className={styles.internal}>
           {children}
         </Link>
       );

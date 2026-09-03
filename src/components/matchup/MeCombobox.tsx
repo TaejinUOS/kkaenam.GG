@@ -15,6 +15,8 @@ type Props = {
   positionName: string;
   value: string | null;
   onChange: (slug: string | null) => void;
+  /** 제목 줄에 끼워 넣을 때. 라벨을 화면에서 감추고 폭을 줄인다. */
+  compact?: boolean;
 };
 
 type Group = { label: string; options: ChampionOption[] };
@@ -25,6 +27,7 @@ export function MeCombobox({
   positionName,
   value,
   onChange,
+  compact = false,
 }: Props) {
   const listboxId = useId();
   const inputId = useId();
@@ -105,8 +108,9 @@ export function MeCombobox({
   }
 
   return (
-    <div className={styles.wrap} ref={rootRef}>
-      <label className={`mono ${styles.label}`} htmlFor={inputId}>
+    <div className={`${styles.wrap} ${compact ? styles.wrapCompact : ""}`} ref={rootRef}>
+      {/* 좁게 놓을 때도 라벨을 지우지 않는다. 화면에서만 감추고 낭독기에는 남긴다. */}
+      <label className={`mono ${compact ? "sr-only" : styles.label}`} htmlFor={inputId}>
         ME / 내 챔피언 선택
       </label>
 

@@ -1,79 +1,17 @@
-/* 통합 상대법 문서 — 목차와 접히는 번호 제목. 본문 인라인은 MarkdownBody.module.css. */
+/* 통합 상대법 문서 — 구분선 제목과 구석 목차. 본문 인라인은 MarkdownBody.module.css. */
 
 /*
  * 글자색을 문서 뿌리에서 직접 세운다. 지금은 이 문서가 늘 밝은 패널 안에 들어가
  * 있어 물려받아도 맞지만, 그 사실에 기대면 문서를 다른 곳에 옮겨 놓는 순간
  * body의 크림색 글자를 물려받아 종이 위 크림이 된다. 읽히는 것이 이 화면의
  * 존재 이유라 우연에 맡기지 않는다.
+ *
+ * 섹션마다 상자를 두르지 않는다. 공통 상대법과 챔피언별 상대법은 편집 단위가 다를 뿐
+ * 읽는 사람에게는 한 편의 글이다. 상자가 갈라놓으면 목차 하나로 이어 붙인 뜻이 없다.
+ * 구분은 제목 아래 선이 맡는다.
  */
 .doc {
-  display: grid;
-  gap: 16px;
-  color: var(--ink);
-}
-
-/* ------------------------------------------------------------------ 목차 */
-
-.toc {
-  padding: 12px 14px;
-  border: var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper-shade);
-}
-
-.tocHead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.tocToggle {
-  margin-left: auto;
-  cursor: pointer;
-}
-
-.tocToggle:hover {
-  background: var(--acid);
-}
-
-.tocList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 2px;
-  font-size: 14px;
-}
-
-/* 단계마다 들여쓴다. 번호만으로는 깊이가 한눈에 들어오지 않는다. */
-.tocList .tocList {
-  margin-top: 2px;
-  padding-left: 16px;
-}
-
-.tocLink {
-  display: flex;
-  gap: 8px;
-  padding: 2px 4px;
-  border-radius: var(--radius-card);
-  color: inherit;
-  text-decoration: none;
-  word-break: keep-all;
-}
-
-.tocLink:hover {
-  background: var(--acid);
-}
-
-.tocNumber {
-  flex: none;
-  min-width: 2.4em;
-  color: var(--ink-soft);
-  font-size: 12px;
-}
-
-.tocLink:hover .tocNumber {
+  position: relative;
   color: var(--ink);
 }
 
@@ -87,32 +25,34 @@
   scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
-/* 1단계(섹션)만 카드로 떼어 놓는다. 그 아래는 문서 안의 흐름이다. */
-.node[data-level="1"] {
-  padding: 16px 18px;
-  border: var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper);
-}
-
-.node[data-level="1"] + .node[data-level="1"] {
-  margin-top: 2px;
-}
-
 .head {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  /* 모든 단계의 제목 아래에 선을 둔다. 단계는 굵기와 글자 크기로 구분한다. */
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-line);
 }
 
 .node[data-level="1"] > .head {
   gap: 10px;
+  border-bottom-width: var(--line-w);
+  border-bottom-color: var(--ink);
 }
 
-/* 2단계 이하는 위쪽 여백으로 앞 내용과 떨어뜨린다. */
-.node:not([data-level="1"]) > .head {
-  margin-top: 14px;
+.node[data-level="2"] > .head {
+  border-bottom-color: var(--ink-soft);
+}
+
+/* 앞 내용과 떨어뜨린다. 상자가 없어진 자리를 여백이 대신한다. */
+.node + .node,
+.node:not(:first-child) {
+  margin-top: 22px;
+}
+
+.node:not([data-level="1"]) {
+  margin-top: 18px;
 }
 
 .toggle {
@@ -145,7 +85,7 @@
 }
 
 .node[data-level="1"] > .head > .title {
-  font-size: 17px;
+  font-size: 19px;
 }
 
 .node[data-level="2"] > .head > .title {
@@ -167,27 +107,27 @@
   font-weight: 500;
 }
 
+/* 제목 줄 오른쪽 끝. 편집 버튼과 콤보박스가 여기 붙는다. */
+.head > :nth-last-child(1):not(.title),
+.head > :nth-last-child(2):not(.title) {
+  flex: none;
+}
+
 /* ------------------------------------------------------------------ 본문 */
 
+/*
+ * 하위 제목이라고 본문을 들여쓰지 않는다. 깊이는 제목의 크기와 번호가 이미 말해 주고,
+ * 들여쓰기까지 겹치면 3단계만 내려가도 본문 폭이 눈에 띄게 줄어든다.
+ */
 .body {
   display: grid;
   gap: 12px;
+  margin-top: 10px;
   font-size: 15px;
   line-height: 1.75;
   /* 긴 챔피언명·스킬명이 줄 끝에서 깨지지 않게 한다. */
   word-break: keep-all;
   overflow-wrap: anywhere;
-}
-
-/* 2단계 이하 본문은 제목 아래로 살짝 들여 계층이 눈에 보이게 한다. */
-.node:not([data-level="1"]) > .body {
-  margin-top: 8px;
-  padding-left: 12px;
-  border-left: 2px solid var(--paper-line);
-}
-
-.node[data-level="1"] > .body {
-  margin-top: 10px;
 }
 
 .body p,
@@ -250,8 +190,120 @@
   text-align: left;
 }
 
-@media (max-width: 640px) {
-  .node[data-level="1"] {
-    padding: 14px;
+/* ------------------------------------------------------------ 구석 목차 */
+
+/*
+ * 화면에 고정한다. 문서가 길어져도 목차를 열려고 맨 위로 되감을 필요가 없어야 한다.
+ * 팝업은 단추 위로 열어 손가락이나 커서가 가리지 않게 한다.
+ */
+.tocCorner {
+  position: fixed;
+  right: clamp(12px, 2.4vw, 28px);
+  bottom: clamp(12px, 2.4vw, 28px);
+  z-index: 40;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.tocButton {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-cut);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform var(--t-poster) var(--ease),
+    background-color var(--t-poster) var(--ease);
+}
+
+.tocButton:hover {
+  background: var(--acid);
+  transform: translate(-1px, -1px);
+}
+
+.tocButton[aria-expanded="true"] {
+  background: var(--acid);
+}
+
+.tocPopup {
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper-shade);
+  box-shadow: var(--shadow-cut);
+  color: var(--ink);
+}
+
+.tocHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tocToggle {
+  margin-left: auto;
+  cursor: pointer;
+}
+
+.tocToggle:hover {
+  background: var(--acid);
+}
+
+.tocList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+/* 목차에서는 들여쓴다. 본문과 달리 여기서는 깊이가 곧 정보다. */
+.tocList .tocList {
+  margin-top: 2px;
+  padding-left: 16px;
+}
+
+.tocLink {
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: var(--radius-card);
+  color: inherit;
+  text-decoration: none;
+  word-break: keep-all;
+}
+
+.tocLink:hover {
+  background: var(--acid);
+}
+
+.tocNumber {
+  flex: none;
+  min-width: 2.4em;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.tocLink:hover .tocNumber {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tocButton {
+    transition: none;
   }
 }

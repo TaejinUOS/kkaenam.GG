@@ -111,6 +111,20 @@ export function WikiPanel({
           viewer={viewer}
         />
       ),
+      /*
+       * 내 챔피언 선택은 문서 첫 제목 줄 오른쪽 끝에 둔다. 따로 상자를 만들면 본문이
+       * 그만큼 아래로 밀리는데, 이건 한 번 고르고 마는 조작이라 그 자리를 살 값이 없다.
+       */
+      tools: (
+        <MeCombobox
+          positionChampions={positionChampions}
+          allChampions={allChampions}
+          positionName={position.name}
+          value={meSlug}
+          onChange={setMe}
+          compact
+        />
+      ),
       empty: (
         <p className={styles.empty}>
           {position.name}에서 {champion.name}
@@ -166,25 +180,22 @@ export function WikiPanel({
     return [general, ...filled];
     // editHref는 searchParams에서 파생되므로 그 값만 의존성으로 둔다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wiki, allChampions, meChampion, viewer, position.name, champion.name, searchParams, pathname]);
+  }, [
+    wiki,
+    allChampions,
+    positionChampions,
+    meChampion,
+    meSlug,
+    setMe,
+    viewer,
+    position.name,
+    champion.name,
+    searchParams,
+    pathname,
+  ]);
 
   return (
     <div className={styles.panel}>
-      {/* ------------------------------------------------------ 내 챔피언 선택 */}
-      <div className={styles.controls}>
-        <MeCombobox
-          positionChampions={positionChampions}
-          allChampions={allChampions}
-          positionName={position.name}
-          value={meSlug}
-          onChange={setMe}
-        />
-        <p className={styles.controlsHint}>
-          고른 챔피언의 상대법으로 문서 안에서 바로 이동합니다.
-          {wiki.meSections.length === 0 && " 아직 챔피언별 상대법은 하나도 없습니다."}
-        </p>
-      </div>
-
       {/* ---------------------------------------------------------- 문서 본문 */}
       <WikiDocument
         sections={sections}

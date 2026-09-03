@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type Footnote,
@@ -31,6 +31,8 @@ export type DocSection = {
   body: string;
   /** 제목 줄 오른쪽에 놓을 것. 편집 버튼이 여기로 온다. */
   action?: ReactNode;
+  /** 제목 줄 맨 오른쪽. 공통 상대법 줄의 내 챔피언 콤보박스가 여기로 온다. */
+  tools?: ReactNode;
   /** 본문이 비었을 때 대신 보여줄 안내. */
   empty?: ReactNode;
 };
@@ -153,15 +155,6 @@ export function WikiDocument({ sections, resolveLink, focusId, focusNonce = 0 }:
 
   return (
     <article className={styles.doc}>
-      <WikiToc
-        nodes={prepared.map((item) => item.node)}
-        onJump={goTo}
-        onToggleAll={() =>
-          setCollapsed(allCollapsed ? new Set() : new Set(collectIds(prepared.map((i) => i.node))))
-        }
-        allCollapsed={allCollapsed}
-      />
-
       {prepared.map((item) => (
         <NodeView
           key={item.node.id}
@@ -173,6 +166,15 @@ export function WikiDocument({ sections, resolveLink, focusId, focusNonce = 0 }:
           onToggle={toggle}
         />
       ))}
+
+      <TocCorner
+        nodes={prepared.map((item) => item.node)}
+        onJump={goTo}
+        onToggleAll={() =>
+          setCollapsed(allCollapsed ? new Set() : new Set(collectIds(prepared.map((i) => i.node))))
+        }
+        allCollapsed={allCollapsed}
+      />
     </article>
   );
 }
@@ -230,6 +232,7 @@ function NodeView({
         </Heading>
 
         {section?.action}
+        {section?.tools}
       </div>
 
       <div id={`${node.id}--body`} className={styles.body} hidden={isCollapsed}>
@@ -256,7 +259,16 @@ function NodeView({
 
 /* ------------------------------------------------------------------ 목차 */
 
-function WikiToc({
+/**
+ * 문서 우측 하단에 붙는 목차 단추와 팝업.
+ *
+ * 목차를 글 맨 위에 펼쳐 두면 문서를 열 때마다 본문이 한 화면 아래로 밀린다. 목차는
+ * 늘 보고 있을 것이 아니라 **필요할 때 찾는 것**이라, 자리를 차지하지 않고 어디서든
+ * 닿는 구석에 둔다.
+ *
+ * 화면에 고정(`fixed`)한다. 문서가 길어져도 스크롤을 되감지 않고 바로 열 수 있어야 한다.
+ */
+function TocCorner({
   nodes,
   onJump,
   onToggleAll,
@@ -267,16 +279,58 @@ function WikiToc({
   onToggleAll: () => void;
   allCollapsed: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // 바깥을 누르거나 Esc를 누르면 닫는다. 팝업을 닫는 두 가지 익숙한 방법이다.
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <nav className={styles.toc} aria-label="목차">
-      <div className={styles.tocHead}>
-        <span className="sticker sticker--cobalt">목차</span>
-        <button type="button" className={`sticker ${styles.tocToggle}`} onClick={onToggleAll}>
-          {allCollapsed ? "모두 펼치기" : "모두 접기"}
-        </button>
-      </div>
-      <TocList nodes={nodes} onJump={onJump} />
-    </nav>
+    <div className={styles.tocCorner} ref={rootRef}>
+      {open && (
+        <div className={styles.tocPopup} role="dialog" aria-label="목차">
+          <div className={styles.tocHead}>
+            <span className="sticker sticker--cobalt">목차</span>
+            <button type="button" className={`sticker ${styles.tocToggle}`} onClick={onToggleAll}>
+              {allCollapsed ? "모두 펼치기" : "모두 접기"}
+            </button>
+          </div>
+          <TocList
+            nodes={nodes}
+            onJump={(id) => {
+              onJump(id);
+              setOpen(false);
+            }}
+          />
+        </div>
+      )}
+
+      <button
+        type="button"
+        className={styles.tocButton}
+        aria-expanded={open}
+        aria-label="목차"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
   );
 }
 

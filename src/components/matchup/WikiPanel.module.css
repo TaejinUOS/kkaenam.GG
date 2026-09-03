@@ -11,30 +11,6 @@
   gap: 18px;
 }
 
-/* --------------------------------------------------------- 내 챔피언 선택 */
-
-.controls {
-  display: grid;
-  gap: 8px;
-  padding: 12px 14px;
-  border: var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper-shade);
-}
-
-.controls > :first-child {
-  max-width: 420px;
-}
-
-/* 고르면 걸러지는 게 아니라 옮겨 간다는 것을 미리 알려 준다. */
-.controlsHint {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
-
 /* ----------------------------------------------------------- 편집 · 안내 */
 
 .editButton {
@@ -73,10 +49,4 @@
 
 .historyLink:hover {
   color: var(--ink);
-}
-
-@media (max-width: 640px) {
-  .controls > :first-child {
-    max-width: none;
-  }
 }

@@ -141,3 +141,32 @@
   font-size: 14px;
   color: var(--ink-soft);
 }
+
+/* --------------------------------------------------------------- 좁은 배치 */
+
+/*
+ * 제목 줄에 끼워 넣는 형태. 라벨을 화면에서 감추고(낭독기에는 남는다) 글자와 여백을
+ * 줄인다. 제목이 주인공인 줄이라 콤보박스가 그보다 커 보이면 안 된다.
+ */
+.wrapCompact {
+  width: clamp(160px, 26vw, 230px);
+}
+
+.wrapCompact .field {
+  padding: 3px 5px 3px 9px;
+}
+
+.wrapCompact .input {
+  font-size: 13px;
+}
+
+.wrapCompact .selectedIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.wrapCompact .clear,
+.wrapCompact .caret {
+  padding: 2px 6px;
+  font-size: 11px;
+}

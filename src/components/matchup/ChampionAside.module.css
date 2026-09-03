@@ -312,6 +312,8 @@
   place-items: center;
   border: var(--line);
   background: var(--paper-shade);
+  /* 어두운 aside 안의 밝은 단추라, 물려받은 크림색 글자로는 × 표시가 보이지 않는다. */
+  color: var(--ink);
   font-size: 12px;
   line-height: 1;
 }
@@ -331,7 +333,7 @@
 }
 
 .noteStats dt {
-  color: #6b6053;
+  color: var(--ink-soft);
   letter-spacing: 0.06em;
 }
 

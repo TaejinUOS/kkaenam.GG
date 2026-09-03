@@ -28,6 +28,8 @@
   border: var(--line);
   border-radius: var(--radius-card);
   background: var(--paper);
+  /* body가 크림색 글자를 물려주므로 밝은 면에서는 글자색을 직접 세운다. */
+  color: var(--ink);
 }
 
 .rowHead {
@@ -44,7 +46,7 @@
 .summary {
   margin: 0;
   font-size: 14px;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .reviewNote {

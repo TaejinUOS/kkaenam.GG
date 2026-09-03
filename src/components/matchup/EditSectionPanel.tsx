@@ -99,17 +99,58 @@ export function EditSectionPanel({
 
 function BodyField({ defaultValue }: { defaultValue: string }) {
   return (
-    <label className={styles.field}>
-      <span className={styles.label}>본문 (마크다운 지원, 최대 {MAX_BODY_LENGTH.toLocaleString()}자)</span>
-      <textarea
-        name="body"
-        className={styles.textarea}
-        defaultValue={defaultValue}
-        maxLength={MAX_BODY_LENGTH}
-        rows={10}
-        required
-      />
-    </label>
+    <div className={styles.field}>
+      <label className={styles.field}>
+        <span className={styles.label}>
+          본문 (마크다운 지원, 최대 {MAX_BODY_LENGTH.toLocaleString()}자)
+        </span>
+        <textarea
+          name="body"
+          className={styles.textarea}
+          defaultValue={defaultValue}
+          maxLength={MAX_BODY_LENGTH}
+          rows={10}
+          required
+        />
+      </label>
+      <SyntaxHelp />
+    </div>
+  );
+}
+
+/**
+ * 이 위키에만 있는 문법 안내.
+ *
+ * 접어 두는 것은 처음 쓰는 사람의 화면을 문법 설명으로 덮지 않기 위해서다. 문법을
+ * 몰라도 그냥 쓰면 문단이 되고, 필요할 때 펼쳐 보면 된다.
+ */
+function SyntaxHelp() {
+  return (
+    <details className={styles.help}>
+      <summary className={styles.helpSummary}>쓸 수 있는 문법</summary>
+      <dl className={styles.helpList}>
+        <dt>
+          <code># 제목</code> <code>## 소제목</code> <code>### 더 작은 제목</code>
+        </dt>
+        <dd>목차에 1.1, 1.1.1처럼 번호가 매겨지고 접었다 펼 수 있게 된다.</dd>
+
+        <dt>
+          <code>본문[^쿨타임]</code> · 아래쪽에 <code>[^쿨타임]: 설명</code>
+        </dt>
+        <dd>주석이 된다. 읽는 사람이 표식에 마우스를 올리면 설명이 그 자리에 뜬다.</dd>
+
+        <dt>
+          <code>[[미드/아리]]</code> · <code>[[미드/아리|아리 상대법]]</code>
+        </dt>
+        <dd>다른 상대법 문서로 가는 링크. 없는 문서는 빨갛게 보여 오타를 알 수 있다.</dd>
+
+        <dt>
+          <code>**굵게**</code> <code>- 목록</code> <code>&gt; 인용</code>{" "}
+          <code>[글](https://…)</code>
+        </dt>
+        <dd>보통의 마크다운도 그대로 쓸 수 있다. HTML 태그는 글자 그대로 보인다.</dd>
+      </dl>
+    </details>
   );
 }
 

@@ -50,7 +50,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .textarea,
@@ -90,4 +90,56 @@
 .actions {
   display: flex;
   gap: 8px;
+}
+
+/* ------------------------------------------------------------- 문법 안내 */
+
+/*
+ * 접어 둔다. 처음 쓰는 사람의 화면을 문법 설명으로 덮지 않으면서, 각주나 문서 링크를
+ * 쓰려는 사람은 찾을 수 있어야 한다.
+ */
+.help {
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper-shade);
+  font-size: 13px;
+}
+
+.helpSummary {
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.helpSummary:hover {
+  background: var(--acid);
+}
+
+.helpList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 12px 12px;
+  line-height: 1.7;
+}
+
+.helpList dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.helpList dd {
+  margin: 0;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.helpList code {
+  padding: 1px 5px;
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
 }

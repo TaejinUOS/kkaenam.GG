@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MarkdownBody } from "@/components/wiki/MarkdownBody";
+import { resolveWikiTarget } from "@/lib/wikiLink";
 import { getChampionBySlug, getPosition } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { approveEditAction, rejectEditAction } from "@/lib/actions/wikiEditActions";
@@ -73,13 +74,16 @@ export default async function ReviewDetailPage({
         <section className={styles.pane}>
           <h2 className={styles.paneTitle}>현재 문서</h2>
           <div className={styles.body}>
-            <MarkdownBody text={detail.currentBody || "(비어 있음)"} />
+            <MarkdownBody text={detail.currentBody || "(비어 있음)"} resolveLink={resolveWikiTarget} />
           </div>
         </section>
         <section className={styles.pane}>
           <h2 className={styles.paneTitle}>제안된 내용</h2>
           <div className={styles.body}>
-            <MarkdownBody text={detail.body || "(비어 있음 — 삭제 제안)"} />
+            <MarkdownBody
+              text={detail.body || "(비어 있음 — 삭제 제안)"}
+              resolveLink={resolveWikiTarget}
+            />
           </div>
           {detail.summary && <p className={styles.summary}>편집 요약: {detail.summary}</p>}
         </section>

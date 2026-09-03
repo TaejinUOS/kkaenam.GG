@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
+import type { WikiLinkMap } from "@/lib/wikiLink";
 import type { WikiView } from "@/lib/wikiStore";
 import { buildQuery } from "@/lib/url";
 
@@ -29,6 +30,7 @@ type Props = {
   champion: ChampionView;
   /** 서버가 D1에서 읽어 온 위키 문서. */
   wiki: WikiView;
+  wikiLinks: WikiLinkMap;
   positionChampions: ChampionOption[];
   allChampions: ChampionOption[];
   viewer: Viewer;
@@ -40,6 +42,7 @@ export function MatchupScreen({
   category,
   champion,
   wiki,
+  wikiLinks,
   positionChampions,
   allChampions,
   viewer,
@@ -127,6 +130,7 @@ export function MatchupScreen({
                 champion={champion}
                 patch={patch}
                 wiki={wiki}
+                wikiLinks={wikiLinks}
                 positionChampions={positionChampions}
                 allChampions={allChampions}
                 viewer={viewer}

@@ -11,7 +11,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .field {
@@ -101,7 +101,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #6b6053;
+  color: var(--ink-soft);
   border-bottom: 1px dashed var(--paper-line);
   margin-bottom: 4px;
 }
@@ -139,5 +139,5 @@
 .noResult {
   padding: 16px 10px;
   font-size: 14px;
-  color: #6b6053;
+  color: var(--ink-soft);
 }

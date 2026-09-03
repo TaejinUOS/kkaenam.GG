@@ -41,11 +41,15 @@
   background: var(--paper);
 }
 
-/* --------------------------------------------------- Aside 5열 + Main 7열 */
+/*
+ * ---------------------------------------------- 좁은 Aside + 넓은 Wiki Main
+ * 기존 5:7에서 Aside 몫을 2/3(5 → 3.33)로 줄이고 회수한 폭을 Main에 준다.
+ * 정수 비율 10:26은 3.33:8.67과 같다.
+ */
 
 .layout {
   display: grid;
-  grid-template-columns: 5fr 7fr;
+  grid-template-columns: minmax(0, 10fr) minmax(0, 26fr);
   gap: clamp(14px, 1.8vw, 26px);
   align-items: start;
 }
@@ -106,10 +110,10 @@
 
 /* -------------------------------------------------------------- 반응형 */
 
-/* 1024~1439px: Aside 4열 + Main 8열 */
+/* 1024~1439px: 기존 4.6열의 2/3만 Aside에 남긴다. */
 @media (max-width: 1439px) {
   .layout {
-    grid-template-columns: 4.6fr 7.4fr;
+    grid-template-columns: minmax(0, 3.07fr) minmax(0, 8.93fr);
   }
 }
 

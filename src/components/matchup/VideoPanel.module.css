@@ -29,7 +29,7 @@
 .note {
   font-size: 11px;
   letter-spacing: 0.08em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 /* 16:9 자리만 잡아 둔 골격 */

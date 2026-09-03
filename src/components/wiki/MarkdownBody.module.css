@@ -8,7 +8,7 @@
  */
 
 .internal {
-  color: var(--cobalt);
+  color: var(--cobalt-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -19,7 +19,7 @@
 }
 
 .external {
-  color: var(--cobalt);
+  color: var(--cobalt-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -42,7 +42,7 @@
  * 나무위키의 빨간 링크와 같은 역할이고, 편집자가 오타를 눈으로 찾게 해 준다.
  */
 .missing {
-  color: #c2352b;
+  color: var(--missing-doc);
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
@@ -59,7 +59,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--cobalt);
+  color: var(--cobalt-ink);
   font-family: var(--font-mono);
   font-size: 0.72em;
   font-weight: 700;

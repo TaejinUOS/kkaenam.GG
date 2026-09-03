@@ -50,7 +50,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .textarea,
@@ -132,7 +132,7 @@
 
 .helpList dd {
   margin: 0;
-  color: #6b6053;
+  color: var(--ink-soft);
   word-break: keep-all;
 }
 

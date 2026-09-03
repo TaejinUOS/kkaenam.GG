@@ -1,8 +1,15 @@
 /* 통합 상대법 문서 — 목차와 접히는 번호 제목. 본문 인라인은 MarkdownBody.module.css. */
 
+/*
+ * 글자색을 문서 뿌리에서 직접 세운다. 지금은 이 문서가 늘 밝은 패널 안에 들어가
+ * 있어 물려받아도 맞지만, 그 사실에 기대면 문서를 다른 곳에 옮겨 놓는 순간
+ * body의 크림색 글자를 물려받아 종이 위 크림이 된다. 읽히는 것이 이 화면의
+ * 존재 이유라 우연에 맡기지 않는다.
+ */
 .doc {
   display: grid;
   gap: 16px;
+  color: var(--ink);
 }
 
 /* ------------------------------------------------------------------ 목차 */
@@ -62,7 +69,7 @@
 .tocNumber {
   flex: none;
   min-width: 2.4em;
-  color: var(--smoke);
+  color: var(--ink-soft);
   font-size: 12px;
 }
 
@@ -116,7 +123,7 @@
   border: 0;
   border-radius: var(--radius-card);
   background: none;
-  color: var(--smoke);
+  color: var(--ink-soft);
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -155,7 +162,7 @@
 
 .number {
   flex: none;
-  color: var(--smoke);
+  color: var(--ink-soft);
   font-size: 0.82em;
   font-weight: 500;
 }
@@ -200,7 +207,7 @@
 .body blockquote {
   padding: 4px 0 4px 12px;
   border-left: 3px solid var(--paper-line);
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .body h5,

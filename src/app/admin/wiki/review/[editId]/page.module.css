@@ -14,6 +14,8 @@
   border: var(--line);
   border-radius: var(--radius-card);
   background: var(--gum);
+  /* body가 크림색 글자를 물려주므로 밝은 면에서는 글자색을 직접 세운다. */
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -22,6 +24,7 @@
   border: var(--line);
   border-radius: var(--radius-card);
   background: var(--paper-shade);
+  color: var(--ink);
 }
 
 .staleList {
@@ -49,6 +52,7 @@
   border: var(--line);
   border-radius: var(--radius-card);
   background: var(--paper);
+  color: var(--ink);
 }
 
 .paneTitle {
@@ -56,7 +60,7 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .body {
@@ -69,7 +73,7 @@
 .summary {
   margin: 0;
   font-size: 13px;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .reviewForm {
@@ -86,12 +90,13 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: #6b6053;
+  color: var(--ink-soft);
 }
 
 .textarea {
   padding: 10px 12px;
   background: var(--paper);
+  color: var(--ink);
   border: var(--line);
   border-radius: var(--radius-card);
   font-family: var(--font-ui);

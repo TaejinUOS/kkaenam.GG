@@ -140,6 +140,7 @@ export function WikiPanel({
         id: meId(c.slug),
         title: `${c.name}${ro(c.name)} 상대할 때`,
         body: byChampion.get(c.slug)?.body ?? "",
+        current: c.slug === meSlug,
         action: (
           <EditEntryButton
             href={editHref(`me:${c.slug}`)}
@@ -158,6 +159,7 @@ export function WikiPanel({
         id: meId(meChampion.slug),
         title: `${meChampion.name}${ro(meChampion.name)} 상대할 때`,
         body: "",
+        current: true,
         action: (
           <EditEntryButton
             href={editHref(`me:${meChampion.slug}`)}
@@ -195,6 +197,11 @@ export function WikiPanel({
 
   return (
     <div className={styles.panel}>
+      <header className={styles.documentHeader}>
+        <p className={`mono ${styles.documentKicker}`}>{position.name} MATCHUP WIKI</p>
+        <h2 className={styles.documentTitle}>{champion.name} 상대법</h2>
+      </header>
+
       {/* ---------------------------------------------------------- 문서 본문 */}
       <WikiDocument
         sections={sections}

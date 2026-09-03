@@ -1,6 +1,6 @@
 import Markdown from "markdown-to-jsx";
 import Link from "next/link";
-import type { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, PropsWithChildren } from "react";
 
 import {
   FOOTNOTE_HREF,
@@ -40,6 +40,10 @@ type Props = {
 
 const NO_LINK = () => null;
 
+function Prose({ children }: PropsWithChildren) {
+  return <div className={styles.prose}>{children}</div>;
+}
+
 export function MarkdownBody({ text, footnotes, resolveLink = NO_LINK }: Props) {
   if (!text.trim()) return null;
 
@@ -50,6 +54,8 @@ export function MarkdownBody({ text, footnotes, resolveLink = NO_LINK }: Props) 
     <Markdown
       options={{
         disableParsingRawHTML: true,
+        forceWrapper: true,
+        wrapper: Prose,
         overrides: {
           a: { component: makeLink(source.notes, resolveLink) },
           /*

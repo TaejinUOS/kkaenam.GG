@@ -36,6 +36,8 @@ export type DocSection = {
   tools?: ReactNode;
   /** 본문이 비었을 때 대신 보여줄 안내. */
   empty?: ReactNode;
+  /** Me 콤보박스에서 현재 고른 챔피언의 섹션. */
+  current?: boolean;
 };
 
 type Props = {
@@ -210,7 +212,12 @@ function NodeView({
   const isEmpty = !node.lead.trim() && node.children.length === 0;
 
   return (
-    <section className={styles.node} id={node.id} data-level={node.level}>
+    <section
+      className={styles.node}
+      id={node.id}
+      data-level={node.level}
+      data-current={section?.current || undefined}
+    >
       <div className={styles.head}>
         <button
           type="button"
@@ -233,6 +240,8 @@ function NodeView({
         </Heading>
 
         {section?.badgePosition === "after" && section.badge}
+
+        {section?.current && <span className={`mono ${styles.currentLabel}`}>현재 선택</span>}
 
         {(section?.tools || section?.action) && (
           <div className={styles.controls}>

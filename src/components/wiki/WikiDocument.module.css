@@ -45,14 +45,21 @@
   border-bottom-color: var(--ink-soft);
 }
 
+/* 선택한 Me는 스티커 없이 배경과 텍스트 두 단서로 현재 위치를 알려 준다. */
+.node[data-level="1"][data-current="true"] > .head {
+  padding: 7px 8px 7px 10px;
+  border-left: 4px solid var(--cobalt);
+  background: var(--paper-shade);
+}
+
 /* 앞 내용과 떨어뜨린다. 상자가 없어진 자리를 여백이 대신한다. */
 .node + .node,
 .node:not(:first-child) {
-  margin-top: 22px;
+  margin-top: 28px;
 }
 
 .node:not([data-level="1"]) {
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .toggle {
@@ -85,19 +92,19 @@
 }
 
 .node[data-level="1"] > .head > .title {
-  font-size: 19px;
+  font-size: 23px;
 }
 
 .node[data-level="2"] > .head > .title {
-  font-size: 16px;
+  font-size: 19px;
 }
 
 .node[data-level="3"] > .head > .title {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .node:not([data-level="1"]):not([data-level="2"]):not([data-level="3"]) > .head > .title {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .number {
@@ -105,6 +112,14 @@
   color: var(--ink-soft);
   font-size: 0.82em;
   font-weight: 500;
+}
+
+.currentLabel {
+  flex: none;
+  color: var(--cobalt-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 /* 콤보박스가 편집 버튼보다 먼저 오도록 우측 조작부를 한 덩어리로 묶는다. */
@@ -126,7 +141,7 @@
   display: grid;
   gap: 12px;
   margin-top: 10px;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.75;
   /* 긴 챔피언명·스킬명이 줄 끝에서 깨지지 않게 한다. */
   word-break: keep-all;

@@ -11,14 +11,44 @@
   gap: 18px;
 }
 
+/* 본문 열에도 문서 제목을 둔다. Aside가 화면 밖으로 나간 뒤에도 읽는 대상을 잃지 않는다. */
+.documentHeader {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--paper-line);
+}
+
+.documentKicker {
+  margin: 0;
+  color: var(--cobalt-ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.documentTitle {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
 /* ----------------------------------------------------------- 편집 · 안내 */
 
-.editButton {
+.panel .editButton {
+  padding: 3px 8px;
+  border-width: 1px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 10px;
   cursor: pointer;
 }
 
-.editButton:hover {
+.panel .editButton:hover {
   background: var(--acid);
+  color: var(--ink);
 }
 
 .empty {

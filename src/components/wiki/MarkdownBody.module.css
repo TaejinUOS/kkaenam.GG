@@ -1,5 +1,17 @@
 /* 위키 본문 안의 링크와 각주. 문서 골격은 WikiDocument.module.css에 있다. */
 
+/*
+ * markdown-to-jsx가 만든 문단들은 한 wrapper 안에 들어간다. 바깥 문서의 grid gap은
+ * 그 안까지 닿지 않으므로 여기에서 문단 리듬과 읽기 폭을 직접 책임진다.
+ */
+.prose {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+}
+
 /* ------------------------------------------------------------------ 링크 */
 
 /*

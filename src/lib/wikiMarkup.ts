@@ -2,7 +2,7 @@
  * 위키 본문 마크업 처리 — 각주 · 위키링크 · 제목 개요.
  *
  * markdown-to-jsx에는 새 문법을 추가하는 플러그인 API가 없다. 그래서 위키에만 있는
- * 문법(각주 호버, `[[문서]]` 링크)은 **파싱 전 문자열 변환**으로 처리한다. 변환 결과가
+ * 문법(`[* 각주]`, `[[문서명]]` 링크)은 **파싱 전 문자열 변환**으로 처리한다. 변환 결과가
  * 표준 마크다운이므로 렌더러는 `disableParsingRawHTML: true`를 유지할 수 있고, 원시 HTML을
  * 허용하지 않는다는 보안 결정(PRD 10)에 구멍을 내지 않는다.
  *
@@ -19,9 +19,7 @@ export const FOOTNOTE_HREF = "#wiki-fn-";
 export const MISSING_DOC_HREF = "#wiki-missing";
 
 export type Footnote = {
-  /** 원문에 적힌 별칭. `[^가]`의 `가`. */
-  key: string;
-  /** 1부터. 화면에 보이는 번호다. */
+  /** 1부터. 나온 순서대로 붙는 화면에 보이는 번호다. */
   index: number;
   /** 각주 내용. 마크다운 인라인 문법을 그대로 쓸 수 있다. */
   body: string;
@@ -51,7 +49,7 @@ const INLINE_CODE = /(`+)(?:[^`]|[^`][\s\S]*?[^`])\1(?!`)/;
 /**
  * 코드 바깥의 글자에만 `fn`을 적용한다.
  *
- * 코드 블록에 적힌 `[^1]`이나 `[[미드/아리]]`는 문법을 설명하는 예제일 때가 많다.
+ * 코드 블록에 적힌 `[* 각주]`나 `[[미드/아리]]`는 문법을 설명하는 예제일 때가 많다.
  * 그것까지 링크로 바꿔 버리면 위키에 쓰는 법을 위키에 적을 수 없다.
  */
 function mapOutsideCode(source: string, fn: (chunk: string) => string): string {
@@ -83,103 +81,126 @@ function mapOutsideCode(source: string, fn: (chunk: string) => string): string {
     .join("\n");
 }
 
-/** 코드 블록 바깥의 줄만 `visit`에 넘긴다. `visit`이 false를 돌려주면 그 줄을 버린다. */
-function filterOutsideCode(source: string, visit: (line: string) => boolean): string {
-  let fence: string | null = null;
-
-  return source
-    .split("\n")
-    .filter((line) => {
-      const opener = FENCE.exec(line);
-      if (fence) {
-        if (opener && opener[1][0] === fence[0] && opener[1].length >= fence.length) fence = null;
-        return true;
-      }
-      if (opener) {
-        fence = opener[1];
-        return true;
-      }
-      return visit(line);
-    })
-    .join("\n");
-}
-
 /* -------------------------------------------------------------------- 각주 */
 
-const FOOTNOTE_DEF = /^\[\^([^\]\r\n]+)\]:[ \t]*(.*)$/;
-const FOOTNOTE_REF = /\[\^([^\]\r\n]+)\]/g;
-
 /**
- * 각주 정의(`[^가]: 내용`) 줄을 본문에서 걷어내고 목록으로 돌려준다.
+ * 각주를 뽑아내고 그 자리에 번호 링크를 남긴다.
  *
- * 정의는 한 줄이다. 여러 줄에 걸친 각주는 받지 않는다 — 편집자가 외울 규칙이 적은
- * 쪽이 낫고, 짧은 보충 설명이라는 각주의 쓰임에도 맞는다.
+ * 문법은 `[* 내용]`이다. 내용이 그 자리에 있으므로 글 아래에 정의를 따로 모으지
+ * 않아도 되고, 번호는 **나온 순서대로** 1, 2, 3이 붙는다. 정의 순서와 참조 순서가
+ * 어긋나 번호가 뒤집히는 일이 구조적으로 생기지 않는다.
  *
- * 본문을 제목 단위로 쪼개기 **전에** 불러야 한다. 그러지 않으면 글 끝에 모아 둔
- * 정의가 앞쪽 소제목의 참조에서 보이지 않는다.
+ * 내용 안에 `[[문서명]]`처럼 대괄호가 다시 나올 수 있어 정규식으로는 끝을 찾을 수
+ * 없다. 대괄호 짝을 세면서 걷고, 인라인 코드 안의 괄호는 세지 않는다.
+ *
+ * 각주는 한 줄 안에서 닫혀야 한다. 줄을 넘기면 닫는 괄호를 빠뜨린 글이 문서 끝까지
+ * 각주로 먹히는데, 짧은 보충 설명이라는 각주의 쓰임을 생각하면 그 위험이 더 크다.
+ *
+ * 본문을 제목 단위로 쪼개기 **전에** 불러야 번호가 문서 순서대로 매겨진다.
  */
 export function extractFootnotes(source: string): { body: string; notes: Footnote[] } {
   const notes: Footnote[] = [];
-  const seen = new Set<string>();
+  let fence: string | null = null;
 
-  const body = filterOutsideCode(source, (line) => {
-    const def = FOOTNOTE_DEF.exec(line);
-    if (!def) return true;
-
-    const key = def[1].trim();
-    // 같은 별칭을 두 번 정의하면 먼저 쓴 것을 남긴다. 둘 다 지우면 참조가 미아가 된다.
-    if (key && !seen.has(key)) {
-      seen.add(key);
-      notes.push({ key, index: notes.length + 1, body: def[2].trim() });
-    }
-    return false;
-  });
+  const body = source
+    .split("\n")
+    .map((line) => {
+      const opener = FENCE.exec(line);
+      if (fence) {
+        if (opener && opener[1][0] === fence[0] && opener[1].length >= fence.length) fence = null;
+        return line;
+      }
+      if (opener) {
+        fence = opener[1];
+        return line;
+      }
+      return replaceFootnotesInLine(line, notes);
+    })
+    .join("\n");
 
   return { body, notes };
 }
 
-/**
- * 각주 참조 `[^가]`를 표준 마크다운 링크로 바꾼다.
- *
- * 정의가 없는 참조는 손대지 않고 그대로 둔다. 조용히 사라지면 편집자가 오타를
- * 알아채지 못한다.
- */
-export function linkifyFootnotes(body: string, notes: Footnote[]): string {
-  if (notes.length === 0) return body;
-  const byKey = new Map(notes.map((note) => [note.key, note]));
+function replaceFootnotesInLine(line: string, notes: Footnote[]): string {
+  let out = "";
+  let i = 0;
 
-  return mapOutsideCode(body, (chunk) =>
-    chunk.replace(FOOTNOTE_REF, (whole, rawKey: string) => {
-      const note = byKey.get(rawKey.trim());
-      return note ? `[${note.index}](${FOOTNOTE_HREF}${note.index})` : whole;
-    }),
-  );
+  while (i < line.length) {
+    const code = codeSpanAt(line, i);
+    if (code >= 0) {
+      // 인라인 코드는 통째로 옮긴다. 그 안의 `[*`는 문법이 아니라 예제다.
+      out += line.slice(i, code);
+      i = code;
+      continue;
+    }
+
+    if (line.startsWith("[*", i)) {
+      const close = matchingBracket(line, i);
+      const content = close > 0 ? line.slice(i + 2, close).trim() : "";
+      if (content) {
+        const index = notes.length + 1;
+        notes.push({ index, body: content });
+        out += `[${index}](${FOOTNOTE_HREF}${index})`;
+        i = close + 1;
+        continue;
+      }
+    }
+
+    out += line[i];
+    i += 1;
+  }
+
+  return out;
+}
+
+/** `i`에서 인라인 코드가 시작하면 그 span이 끝나는 위치를, 아니면 -1을 준다. */
+function codeSpanAt(line: string, i: number): number {
+  if (line[i] !== "`") return -1;
+  const hit = INLINE_CODE.exec(line.slice(i));
+  return hit && hit.index === 0 ? i + hit[0].length : -1;
+}
+
+/** `open` 위치의 `[`와 짝이 되는 `]`의 위치. 못 찾으면 -1. */
+function matchingBracket(line: string, open: number): number {
+  let depth = 0;
+  let i = open;
+
+  while (i < line.length) {
+    const code = codeSpanAt(line, i);
+    if (code >= 0) {
+      i = code;
+      continue;
+    }
+    if (line[i] === "[") depth += 1;
+    else if (line[i] === "]") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+    i += 1;
+  }
+
+  return -1;
 }
 
 /* ---------------------------------------------------------------- 위키링크 */
 
 const WIKI_LINK = /\[\[([^[\]|\r\n]+)(?:\|([^[\]\r\n]+))?\]\]/g;
 
-export type WikiLinkTarget = { positionSlug: string; championSlug: string };
+/**
+ * 문서 이름 -> 그 문서의 주소. 해석하는 쪽이 무엇을 문서로 볼지 정한다.
+ *
+ * 매치업만이 아니라 일반 문서까지 받을 수 있게 주소만 돌려준다. 매치업에 매인
+ * 모양(`{positionSlug, championSlug}`)이었다면 룬·정글 동선 같은 문서를 붙일 때
+ * 이 계층까지 함께 바뀌어야 했다.
+ */
+export type WikiLinkResolver = (title: string) => string | null;
 
 /**
- * 본문에 적힌 `[[...]]` 대상들을 중복 없이 모은다.
+ * 본문에 적힌 `[[...]]` 문서 이름들을 중복 없이 모은다.
  *
- * 해석은 서버에서 한 번에 해 두고 결과만 화면으로 내려보내기 위한 것이다. 챔피언
- * 카탈로그를 클라이언트로 끌어오면 170명이 통째로 번들에 실린다.
+ * 해석은 서버에서 한 번에 해 두고 결과만 화면으로 내려보내기 위한 것이다.
  */
-
-/**
- * `[[미드/아리]]`, `[[미드/아리|표시할 글]]`을 매치업 문서 링크로 바꾼다.
- *
- * 편집자는 슬러그(`mid/ahri`)가 아니라 아는 이름(`미드/아리`)으로 쓴다. 해석은
- * 부르는 쪽이 맡는다 — 챔피언 카탈로그를 이 모듈로 끌어오면 클라이언트 번들에
- * 170명이 통째로 실린다.
- *
- * 해석되지 않은 링크는 지우지 않고 `MISSING_DOC_HREF`로 남겨 빨간 링크로 그린다.
- * 오타든 아직 없는 조합이든, 보이는 편이 낫다.
- */
-export function collectWikiLinkTargets(body: string): string[] {
+export function collectWikiLinkTitles(body: string): string[] {
   const found = new Set<string>();
   mapOutsideCode(body, (chunk) => {
     for (const hit of chunk.matchAll(WIKI_LINK)) found.add(hit[1].trim());
@@ -188,17 +209,23 @@ export function collectWikiLinkTargets(body: string): string[] {
   return [...found];
 }
 
-export function linkifyWikiLinks(
-  body: string,
-  resolve: (target: string) => WikiLinkTarget | null,
-): string {
+/**
+ * `[[문서명]]`, `[[문서명 | 출력할 글]]`을 문서 링크로 바꾼다.
+ *
+ * 편집자는 슬러그가 아니라 아는 이름으로 쓴다. 무엇이 문서인지는 부르는 쪽이 정한다 —
+ * 챔피언 카탈로그를 이 모듈로 끌어오면 클라이언트 번들에 170명이 통째로 실리고,
+ * 나중에 일반 문서가 생겼을 때 이 계층을 다시 고쳐야 한다.
+ *
+ * 해석되지 않은 링크는 지우지 않고 `MISSING_DOC_HREF`로 남겨 빨간 링크로 그린다.
+ * 위키에서 빨간 링크는 실패가 아니라 **아직 쓰이지 않은 문서를 가리키는 예약**이다.
+ * 오타도 같은 방식으로 눈에 띈다.
+ */
+export function linkifyWikiLinks(body: string, resolve: WikiLinkResolver): string {
   return mapOutsideCode(body, (chunk) =>
-    chunk.replace(WIKI_LINK, (_whole, rawTarget: string, rawLabel?: string) => {
-      const target = rawTarget.trim();
-      const label = (rawLabel ?? target).trim();
-      const hit = resolve(target);
-      const href = hit ? `/matchup/${hit.positionSlug}/${hit.championSlug}` : MISSING_DOC_HREF;
-      return `[${label}](${href})`;
+    chunk.replace(WIKI_LINK, (_whole, rawTitle: string, rawLabel?: string) => {
+      const title = rawTitle.trim();
+      const label = (rawLabel ?? title).trim();
+      return `[${label}](${resolve(title) ?? MISSING_DOC_HREF})`;
     }),
   );
 }
@@ -229,9 +256,15 @@ export function headingSlug(title: string): string {
  */
 export function stripInlineMarkup(text: string): string {
   return text
-    .replace(WIKI_LINK, (_whole, target: string, label?: string) => (label ?? target).trim())
+    .replace(WIKI_LINK, (_whole, title: string, label?: string) => (label ?? title).trim())
+    /*
+     * 각주는 제목에서 지운다. 제목은 목차와 앵커로도 쓰여 짧고 안정적이어야 한다.
+     * 개요를 만드는 시점에는 이미 번호 링크로 바뀐 뒤라 그 형태를 먼저 지우고,
+     * 아직 원문인 경우를 대비해 `[* ...]`도 함께 지운다.
+     */
+    .replace(new RegExp(`\\[\\d+\\]\\(${FOOTNOTE_HREF}\\d+\\)`, "g"), "")
+    .replace(/\[\*[^\]]*\]/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(FOOTNOTE_REF, "")
     .replace(/\*\*|__|~~/g, "")
     .replace(/[*`]/g, "")
     .trim();

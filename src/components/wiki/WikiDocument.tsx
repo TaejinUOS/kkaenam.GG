@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import {
   type Footnote,
   type OutlineNode,
-  type WikiLinkTarget,
+  type WikiLinkResolver,
   buildOutline,
   extractFootnotes,
   numberOutline,
@@ -37,7 +37,7 @@ export type DocSection = {
 
 type Props = {
   sections: DocSection[];
-  resolveLink: (target: string) => WikiLinkTarget | null;
+  resolveLink: WikiLinkResolver;
   /** 이 앵커로 옮겨 간다. `focusNonce`가 바뀔 때마다 다시 움직인다. */
   focusId?: string | null;
   focusNonce?: number;
@@ -198,7 +198,7 @@ function NodeView({
   notes: Footnote[];
   /** 섹션 노드일 때만 있다. 스티커·편집 버튼·빈 안내가 여기서 온다. */
   section?: DocSection;
-  resolveLink: (target: string) => WikiLinkTarget | null;
+  resolveLink: WikiLinkResolver;
   collapsed: ReadonlySet<string>;
   onToggle: (id: string) => void;
 }) {

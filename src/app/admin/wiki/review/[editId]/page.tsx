@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MarkdownBody } from "@/components/wiki/MarkdownBody";
-import { resolveWikiTarget } from "@/lib/wikiLink";
+import { resolveWikiTitle } from "@/lib/wikiLink";
 import { getChampionBySlug, getPosition } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { approveEditAction, rejectEditAction } from "@/lib/actions/wikiEditActions";
@@ -74,7 +74,7 @@ export default async function ReviewDetailPage({
         <section className={styles.pane}>
           <h2 className={styles.paneTitle}>현재 문서</h2>
           <div className={styles.body}>
-            <MarkdownBody text={detail.currentBody || "(비어 있음)"} resolveLink={resolveWikiTarget} />
+            <MarkdownBody text={detail.currentBody || "(비어 있음)"} resolveLink={resolveWikiTitle} />
           </div>
         </section>
         <section className={styles.pane}>
@@ -82,7 +82,7 @@ export default async function ReviewDetailPage({
           <div className={styles.body}>
             <MarkdownBody
               text={detail.body || "(비어 있음 — 삭제 제안)"}
-              resolveLink={resolveWikiTarget}
+              resolveLink={resolveWikiTitle}
             />
           </div>
           {detail.summary && <p className={styles.summary}>편집 요약: {detail.summary}</p>}

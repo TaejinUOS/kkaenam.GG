@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MarkdownBody } from "@/components/wiki/MarkdownBody";
-import { resolveWikiTarget } from "@/lib/wikiLink";
+import { resolveWikiTitle } from "@/lib/wikiLink";
 import { RevertButton } from "@/components/wiki/RevertButton";
 import { getChampionBySlug } from "@/data/champions";
 import { getViewer } from "@/lib/authGuard";
@@ -90,7 +90,7 @@ async function HistoryBody({ editId }: { editId: string }) {
   const body = await getHistoryEntryBody(editId);
   return (
     <div className={styles.body}>
-      <MarkdownBody text={body || "(비어 있음)"} resolveLink={resolveWikiTarget} />
+      <MarkdownBody text={body || "(비어 있음)"} resolveLink={resolveWikiTitle} />
     </div>
   );
 }

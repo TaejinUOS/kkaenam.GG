@@ -6,9 +6,8 @@ import {
   FOOTNOTE_HREF,
   MISSING_DOC_HREF,
   type Footnote,
-  type WikiLinkTarget,
+  type WikiLinkResolver,
   extractFootnotes,
-  linkifyFootnotes,
   linkifyWikiLinks,
 } from "@/lib/wikiMarkup";
 
@@ -31,12 +30,12 @@ type Props = {
   text: string;
   /**
    * 문서 단위로 미리 뽑아 둔 각주. 본문이 제목마다 쪼개져 들어올 때 필요하다 —
-   * 글 끝에 모아 둔 정의가 앞쪽 소제목의 참조에도 닿아야 한다.
-   * 주지 않으면 `text`에서 직접 뽑는다.
+   * 번호는 섹션 전체를 훑어야 순서대로 매겨진다. 이때 `text`는 이미 번호 링크로
+   * 바뀐 뒤여야 한다. 주지 않으면 `text`에서 직접 뽑는다.
    */
   footnotes?: Footnote[];
   /** 위키링크 해석기. 주지 않으면 모든 `[[...]]`가 없는 문서로 표시된다. */
-  resolveLink?: (target: string) => WikiLinkTarget | null;
+  resolveLink?: WikiLinkResolver;
 };
 
 const NO_LINK = () => null;
@@ -45,7 +44,7 @@ export function MarkdownBody({ text, footnotes, resolveLink = NO_LINK }: Props) 
   if (!text.trim()) return null;
 
   const source = footnotes ? { body: text, notes: footnotes } : extractFootnotes(text);
-  const markdown = linkifyFootnotes(linkifyWikiLinks(source.body, resolveLink), source.notes);
+  const markdown = linkifyWikiLinks(source.body, resolveLink);
 
   return (
     <Markdown
@@ -75,7 +74,7 @@ export function MarkdownBody({ text, footnotes, resolveLink = NO_LINK }: Props) 
  * 갈래마다 색이 다른 것은 장식이 아니다. 같은 밑줄이라도 문서 안으로 들어가는지,
  * 사이트를 떠나는지, 아직 없는 문서인지에 따라 누르기 전에 알아야 할 것이 다르다.
  */
-function makeLink(notes: Footnote[], resolveLink: (t: string) => WikiLinkTarget | null) {
+function makeLink(notes: Footnote[], resolveLink: WikiLinkResolver) {
   const byIndex = new Map(notes.map((note) => [note.index, note]));
 
   return function WikiLink({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
@@ -144,7 +143,7 @@ function Annotation({
   resolveLink,
 }: {
   note: Footnote;
-  resolveLink: (t: string) => WikiLinkTarget | null;
+  resolveLink: WikiLinkResolver;
 }) {
   return (
     <span className={styles.footnote}>

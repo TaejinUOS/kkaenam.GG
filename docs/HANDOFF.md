@@ -140,6 +140,23 @@ PRD 15 미결정 8번으로 남아 있기 때문이다.
 | 편집 요약 | 선택 입력, 최대 80자 (`MAX_SUMMARY_LENGTH`) |
 | 계정당 시간당 제출 수 상한 | 10건 (`RATE_LIMIT_PER_HOUR`) |
 | 마크다운 지원 | 지원함 (`markdown-to-jsx`, `MarkdownBody.tsx`) |
+| 위키 전용 문법 | 각주 `[* 내용]`, 문서 링크 `[[문서명]]` (`src/lib/wikiMarkup.ts`) |
+
+**각주 문법을 한 번 바꿨고 운영 데이터를 이관했다 (2026-09-03).** 처음에는 글 아래에
+정의를 모으는 방식(`[^가]` + `[^가]: 내용`)이었으나 `[* 내용]`으로 바꿨다. 이유는
+`WIKI_MODEL.md`의 "주석은 내용을 그 자리에 적는다"에 적었다.
+
+이관은 운영 D1에서 아래 한 번으로 끝냈다. 닫는 `]`는 그대로 쓰이므로 여는 쪽만 바꾼다.
+
+```sql
+UPDATE wiki_docs     SET general = REPLACE(general, '[^', '[* ') WHERE general LIKE '%[^%';
+UPDATE wiki_sections SET body    = REPLACE(body,    '[^', '[* ') WHERE body    LIKE '%[^%';
+UPDATE wiki_edits    SET body    = REPLACE(body,    '[^', '[* ') WHERE body    LIKE '%[^%';
+```
+
+6행(문서 1 + 편집 이력 5)이 바뀌었고 옛 문법은 0행이 남았다. **편집 이력까지 함께 바꾼
+것은 의도한 선택**이다 — 시험 삼아 쓴 글이라 기록 보존 가치보다 역사 화면이 깨져
+보이지 않는 쪽이 낫다고 판단했다. 실제 기여가 쌓인 뒤라면 이 판단은 달라져야 한다.
 
 **시드 이관분 재이관은 하지 않았다.** 옛 Tip 제목이 본문 앞 줄에 평문으로 남아 있는
 문서들은 마크다운 제목 문법(`#`)으로 바꾸지 않아도 그대로 문단으로 정상 렌더된다 —

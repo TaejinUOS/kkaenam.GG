@@ -24,7 +24,7 @@ export function SiteFooter() {
 
         {/* PRD 16: Riot 정책에 따른 비공식 프로젝트 고지. */}
         <p className={styles.legal}>
-          깨남.GG는 Riot Games가 승인하거나 후원하지 않은 비공식 프로젝트입니다. League of Legends와
+          깨남.COM는 Riot Games가 승인하거나 후원하지 않은 비공식 프로젝트입니다. League of Legends와
           관련 자산은 Riot Games, Inc.의 자산이며, 챔피언 이미지와 스킬 정보는 Riot Games의 Data
           Dragon을 사용합니다.
         </p>

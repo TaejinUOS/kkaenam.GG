@@ -1,6 +1,6 @@
 # 배포
 
-깨남.GG는 **Cloudflare Workers**에 올라간다.
+깨남.COM는 **Cloudflare Workers**에 올라간다.
 
 - 운영 주소: <https://kkaenam.com> (`www`는 이쪽으로 넘어온다)
 - Worker 이름: `kkaenam-gg`
@@ -39,7 +39,7 @@ Cloudflare가 현재 Next.js에 공식 권장하는 방식이다 (Pages의 Next.
 
 1. <https://dash.cloudflare.com> → **Compute (Workers)** → `kkaenam-gg` 선택
 2. **Settings** 탭 → **Build** 섹션 → **Connect** 클릭
-3. GitHub 계정을 연결하고 `TaejinUOS/kkaenam.GG` 저장소를 고른다
+3. GitHub 계정을 연결하고 `TaejinUOS/kkaenam.com` 저장소를 고른다
 4. 빌드 설정을 아래로 채운다
 
    | 항목 | 값 |

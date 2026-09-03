@@ -61,8 +61,8 @@ export const metadata: Metadata = {
    */
   metadataBase: new URL("https://kkaenam.com"),
   title: {
-    default: "깨남.GG — 누굴 상대해?",
-    template: "%s | 깨남.GG",
+    default: "깨남.COM — 누굴 상대해?",
+    template: "%s | 깨남.COM",
   },
   description:
     "포지션별로 상대 챔피언을 고르고, 보편 상대법 공통과 내 챔피언 전용 상대법 Me를 함께 보는 리그 오브 레전드 상대법 위키.",

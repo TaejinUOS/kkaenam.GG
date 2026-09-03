@@ -1,4 +1,4 @@
-# 깨남.GG 프로젝트 지침
+# 깨남.COM 프로젝트 지침
 
 리그 오브 레전드 상대법 위키. 포지션별로 상대 챔피언을 고르고, 보편 상대법 `공통`과 내 챔피언 전용 상대법 `Me`를 함께 보여 준다. 상대법은 매치업당 문서 하나로 모이며 여러 사람이 이어서 고친다.
 
@@ -7,7 +7,7 @@
 - 기능 범위와 사용자 흐름의 기준 문서는 `docs/PRD.md`다.
 - UI를 구현하거나 수정하기 전에 `docs/DESIGN_BLUEPRINT.md`를 읽는다.
 - 남은 작업과 임시 구현의 목록은 `docs/HANDOFF.md`에 있다. 작업을 시작하기 전에 확인한다.
-- `docs/DESIGN_BLUEPRINT.md`와 아래 생성 목업을 깨남.GG의 승인된 시각 기준으로 취급한다.
+- `docs/DESIGN_BLUEPRINT.md`와 아래 생성 목업을 깨남.COM의 승인된 시각 기준으로 취급한다.
   - `docs/design/blueprints/category-selection-v1.png`
   - `docs/design/blueprints/ahri-matchup-v1.png`
 - 핵심 방향은 **GLOWING MATCHUP ZINE — 야광 상대법 잡지**다. 비대칭 에디토리얼 그리드, STATIC BLOOM 팔레트, 강한 한글 타이포그래피, 포스터·스티커·형광펜 메모 문법을 일관되게 확장한다.

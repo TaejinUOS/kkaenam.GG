@@ -111,7 +111,7 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
               <div className={styles.barcode} />
             </div>
 
-            {/* 블루프린트 우상단의 표창 스티커·깨남.GG 도장·메모지 콜라주. 장식이라 정보는 담지 않는다. */}
+            {/* 블루프린트 우상단의 표창 스티커·깨남.COM 도장·메모지 콜라주. 장식이라 정보는 담지 않는다. */}
             <div className={styles.stickerCluster} aria-hidden="true">
               <span className={styles.ninjaSticker}>
                 <ShurikenIcon className={styles.ninjaGlyph} />
@@ -120,7 +120,7 @@ export function SelectionScreen({ data, defaultPosition, patch }: Props) {
                 <span className={`hand ${styles.stampRing}`}>
                   깨남
                   <br />
-                  .GG
+                  .COM
                 </span>
               </span>
               <span className={`hand ${styles.noteSticker}`}>

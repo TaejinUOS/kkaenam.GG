@@ -90,7 +90,7 @@ const lines: string[] = [
   "",
   "-- 이관분의 작성자로 쓰는 시스템 계정.",
   `INSERT OR IGNORE INTO users (id, provider, provider_id, name, email, role, created_at)`,
-  `VALUES (${sql(SYSTEM_USER_ID)}, 'system', 'seed', '깨남.GG', NULL, 'admin', ${sql(MIGRATED_AT)});`,
+  `VALUES (${sql(SYSTEM_USER_ID)}, 'system', 'seed', '깨남.COM', NULL, 'admin', ${sql(MIGRATED_AT)});`,
   "",
 ];
 

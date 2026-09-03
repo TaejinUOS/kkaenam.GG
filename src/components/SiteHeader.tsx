@@ -41,9 +41,9 @@ export function SiteHeader() {
     <>
       <header className={styles.header}>
         <div className={`shell ${styles.bar}`}>
-          <Link href="/" className={styles.logo} aria-label="깨남.GG 홈">
+          <Link href="/" className={styles.logo} aria-label="깨남.COM 홈">
             <span className={`display ${styles.logoMark}`}>깨남</span>
-            <span className={`display ${styles.logoSuffix}`}>.GG</span>
+            <span className={`display ${styles.logoSuffix}`}>.COM</span>
           </Link>
 
           <nav

@@ -7,6 +7,7 @@ import { PATCH, allChampions, getChampionsInPosition, skillIconUrl } from "@/dat
 import { getViewer } from "@/lib/authGuard";
 import { eulReul } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
+import { resolveWikiLinks } from "@/lib/wikiLink";
 import { getWikiView } from "@/lib/wikiStore";
 
 type RouteParams = MatchupRouteParams;
@@ -26,13 +27,13 @@ export async function generateMetadata({
   };
 }
 
-export default async function MatchupPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<RouteParams>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+/*
+ * 위키는 편집으로 계속 바뀐다. `?me=`가 더 이상 서버 렌더에 관여하지 않게 되면서
+ * 이 화면에는 동적으로 만들 요소가 남지 않았으므로, 빌드 시점에 굳지 않도록 못을 박는다.
+ */
+export const dynamic = "force-dynamic";
+
+export default async function MatchupPage({ params }: { params: Promise<RouteParams> }) {
   const routeParams = await params;
   const resolved = resolveMatchup(routeParams);
   if (!resolved) notFound();
@@ -40,16 +41,20 @@ export default async function MatchupPage({
   const { positionData, championData, category } = resolved;
 
   /*
-   * 어떤 Me 섹션을 읽을지는 URL이 정한다. 섹션 본문이 서버에서 오므로
-   * 콤보박스를 바꾸면 URL이 바뀌고 이 렌더가 다시 돈다 (PRD FR-12, FR-13).
+   * 문서를 통째로 읽는다. 상대법이 목차 하나를 가진 한 문서로 합쳐지면서 `?me=`는
+   * 걸러내기가 아니라 문서 안 이동이 되었고, 그래서 서버가 읽는 내용이 선택과
+   * 무관해졌다 (PRD FR-12, FR-13, `docs/WIKI_MODEL.md` "문서 구조").
    */
-  const meParam = (await searchParams).me;
-  const meSlug = typeof meParam === "string" && meParam ? meParam : null;
-
   const [wiki, viewer] = await Promise.all([
-    getWikiView(positionData.slug, championData.slug, meSlug),
+    getWikiView(positionData.slug, championData.slug),
     getViewer(),
   ]);
+
+  /*
+   * 본문에 적힌 `[[미드/아리]]`를 여기서 미리 풀어 둔다. 해석에 필요한 챔피언
+   * 카탈로그와 운영 분류를 클라이언트로 내려보내지 않기 위해서다.
+   */
+  const wikiLinks = resolveWikiLinks([wiki.general, ...wiki.meSections.map((s) => s.body)]);
 
   return (
     <Suspense fallback={<div style={{ minHeight: "70vh" }} />}>
@@ -80,6 +85,7 @@ export default async function MatchupPage({
           })),
         }}
         wiki={wiki}
+        wikiLinks={wikiLinks}
         viewer={viewer}
         /* Me 콤보박스는 현재 포지션의 챔피언을 기본 검색 대상으로 한다 (PRD 5.3.3). */
         positionChampions={getChampionsInPosition(positionData.slug).map((c) => ({

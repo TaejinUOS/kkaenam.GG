@@ -1,4 +1,10 @@
-/* 블루프린트 6.3 Main — 상대법 위키 열람 */
+/*
+ * 블루프린트 6.3 Main — 상대법 위키 열람.
+ *
+ * 문서 골격(목차 · 번호 제목 · 접기)과 본문 타이포그래피는 문서 렌더러가 가진다.
+ * 여기에는 그 바깥, 즉 챔피언 선택 · 편집 진입 · 문서 정보만 남긴다.
+ * 문서 쪽은 `components/wiki/WikiDocument.module.css`.
+ */
 
 .panel {
   display: grid;
@@ -8,6 +14,8 @@
 /* --------------------------------------------------------- 내 챔피언 선택 */
 
 .controls {
+  display: grid;
+  gap: 8px;
   padding: 12px 14px;
   border: var(--line);
   border-radius: var(--radius-card);
@@ -18,30 +26,16 @@
   max-width: 420px;
 }
 
-/* ------------------------------------------------------------------ 섹션 */
-
-.section {
-  display: grid;
-  gap: 10px;
-  padding: 16px 18px;
-  border: var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper);
-}
-
-.sectionHead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.sectionTitle {
+/* 고르면 걸러지는 게 아니라 옮겨 간다는 것을 미리 알려 준다. */
+.controlsHint {
   margin: 0;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--smoke);
+  word-break: keep-all;
 }
+
+/* ----------------------------------------------------------- 편집 · 안내 */
 
 .editButton {
   margin-left: auto;
@@ -52,85 +46,15 @@
   background: var(--acid);
 }
 
-/* ------------------------------------------------------------------ 본문 */
-
-.body {
-  display: grid;
-  gap: 12px;
-  font-size: 15px;
-  line-height: 1.75;
-  /* 긴 챔피언명·스킬명이 줄 끝에서 깨지지 않게 한다. */
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-
-.body p,
-.body ul,
-.body ol,
-.body blockquote {
-  margin: 0;
-}
-
-.body ul,
-.body ol {
-  padding-left: 1.4em;
-  display: grid;
-  gap: 4px;
-}
-
-.body blockquote {
-  padding: 4px 0 4px 12px;
-  border-left: 3px solid var(--paper-line);
-  color: #6b6053;
-}
-
-.body h4 {
-  margin: 4px 0 0;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.body code {
-  padding: 1px 5px;
-  background: var(--paper-shade);
-  border-radius: var(--radius-card);
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-}
-
-.body a {
-  color: var(--cobalt);
-  text-decoration: underline;
-}
-
 .empty {
   margin: 0;
-  padding: 14px 0 4px;
   font-size: 14px;
   line-height: 1.7;
   color: var(--smoke);
   word-break: keep-all;
 }
 
-/* ------------------------------------------------------------ 안내 · 정보 */
-
-.notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0;
-  padding: 12px 14px;
-  border: var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper-shade);
-  font-size: 14px;
-  line-height: 1.7;
-  word-break: keep-all;
-}
-
-.notice .sticker {
-  flex: none;
-}
+/* ------------------------------------------------------------- 문서 정보 */
 
 .meta {
   display: flex;
@@ -152,10 +76,6 @@
 }
 
 @media (max-width: 640px) {
-  .section {
-    padding: 14px;
-  }
-
   .controls > :first-child {
     max-width: none;
   }

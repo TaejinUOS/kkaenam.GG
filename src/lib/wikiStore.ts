@@ -14,7 +14,15 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import type { EditPolicy } from "@/data/wiki";
 
-/** 화면 하나가 필요로 하는 만큼의 문서. 문서 전체를 읽지 않는다. */
+/**
+ * 한 매치업 문서 전체.
+ *
+ * 예전에는 "공통 + 선택된 섹션 하나"만 읽었다. 상대법이 목차 하나를 가진 **한 문서**로
+ * 합쳐지면서(`docs/WIKI_MODEL.md` "문서 구조") 내용이 있는 섹션을 모두 읽는다. 내 챔피언
+ * 선택은 걸러내기가 아니라 그 제목으로 옮겨 가는 일이라, 읽는 양이 선택과 무관하다.
+ *
+ * 그 덕에 이 조회 결과는 `?me=`에 좌우되지 않는다. 매치업 하나당 결과가 하나뿐이다.
+ */
 export type WikiView = {
   /** 문서가 아직 없으면 false. 이때 general은 빈 문자열이다. */
   exists: boolean;
@@ -25,10 +33,8 @@ export type WikiView = {
   updatedAt: string | null;
   /** 마지막으로 반영한 사람의 표시 이름. */
   updatedBy: string | null;
-  /** 선택한 내 챔피언의 섹션. 고르지 않았거나 비어 있으면 null. */
-  meSection: MeSectionView | null;
-  /** 내용이 있는 내 챔피언 슬러그. 어디에 글이 있는지 안내하는 데 쓴다. */
-  filledMeSlugs: string[];
+  /** 내용이 있는 내 챔피언 섹션 전부. 비어 있는 섹션은 담기지 않는다. */
+  meSections: MeSectionView[];
 };
 
 export type MeSectionView = {
@@ -71,20 +77,19 @@ function emptyView(): WikiView {
     editPolicy: "guarded",
     updatedAt: null,
     updatedBy: null,
-    meSection: null,
-    filledMeSlugs: [],
+    meSections: [],
   };
 }
 
 /**
- * 매치업 문서를 읽는다. `meSlug`를 주면 그 챔피언의 섹션 하나만 함께 읽는다.
+ * 매치업 문서를 통째로 읽는다.
  *
- * 섹션을 별도 표에 둔 덕분에 문서 전체를 읽지 않아도 된다 (`docs/WIKI_MODEL.md`).
+ * `wiki_sections`를 별도 표로 둔 것은 이제 읽는 양을 줄이기 위해서가 아니라, 섹션이
+ * 편집 단위이자 즉시반영·검토 판정 단위이기 때문이다 (`docs/WIKI_MODEL.md`).
  */
 export async function getWikiView(
   positionSlug: string,
   championSlug: string,
-  meSlug: string | null,
 ): Promise<WikiView> {
   const DB = await db();
 
@@ -101,28 +106,21 @@ export async function getWikiView(
   if (!doc) return emptyView();
 
   /*
-   * 내용이 있는 섹션 목록과, 선택된 섹션 본문을 한 번씩 읽는다.
-   * 목록 조회에서 body를 가져오지 않는 이유는 섹션이 길어질 수 있어서다.
+   * 내용이 있는 섹션을 본문까지 한 번에 읽는다. 화면이 문서 전체를 그리므로
+   * 목록과 본문을 나눠 읽을 이유가 없어졌다.
+   *
+   * 빈 섹션을 제외하는 것은 목차를 지키기 위해서다. 챔피언이 170명이라 빈 섹션까지
+   * 실으면 목차가 아무도 읽지 않는 항목으로 뒤덮인다.
    */
-  const [filled, section] = await Promise.all([
-    DB.prepare(
-      `SELECT me_slug FROM wiki_sections
-        WHERE doc_id = ?1 AND TRIM(body) <> ''
-        ORDER BY me_slug`,
-    )
-      .bind(doc.id)
-      .all<{ me_slug: string }>(),
-    meSlug
-      ? DB.prepare(
-          `SELECT s.me_slug, s.body, s.updated_at, u.name AS updated_by_name
-             FROM wiki_sections s
-             LEFT JOIN users u ON u.id = s.updated_by
-            WHERE s.doc_id = ?1 AND s.me_slug = ?2`,
-        )
-          .bind(doc.id, meSlug)
-          .first<SectionRow>()
-      : Promise.resolve(null),
-  ]);
+  const sections = await DB.prepare(
+    `SELECT s.me_slug, s.body, s.updated_at, u.name AS updated_by_name
+       FROM wiki_sections s
+       LEFT JOIN users u ON u.id = s.updated_by
+      WHERE s.doc_id = ?1 AND TRIM(s.body) <> ''
+      ORDER BY s.me_slug`,
+  )
+    .bind(doc.id)
+    .all<SectionRow>();
 
   return {
     exists: true,
@@ -132,15 +130,11 @@ export async function getWikiView(
     editPolicy: doc.edit_policy as EditPolicy,
     updatedAt: doc.updated_at,
     updatedBy: doc.updated_by_name,
-    meSection:
-      section && section.body.trim()
-        ? {
-            championSlug: section.me_slug,
-            body: section.body,
-            updatedAt: section.updated_at,
-            updatedBy: section.updated_by_name,
-          }
-        : null,
-    filledMeSlugs: (filled.results ?? []).map((r) => r.me_slug),
+    meSections: (sections.results ?? []).map((row) => ({
+      championSlug: row.me_slug,
+      body: row.body,
+      updatedAt: row.updated_at,
+      updatedBy: row.updated_by_name,
+    })),
   };
 }

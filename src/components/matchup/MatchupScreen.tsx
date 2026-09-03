@@ -88,7 +88,7 @@ export function MatchupScreen({
         </nav>
       </div>
 
-      {/* ------------------------------------------------- Aside 5열 + Main 7열 */}
+      {/* ------------------------------------------ 좁은 Aside + 넓은 Wiki Main */}
       <div className={`shell ${styles.layout}`}>
         <ChampionAside champion={champion} position={position} patch={patch} />
 

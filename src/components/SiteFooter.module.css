@@ -25,3 +25,20 @@
   line-height: 1.7;
   color: var(--smoke);
 }
+
+.linkList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+}
+
+.linkList a {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkList a:hover {
+  color: var(--acid);
+}

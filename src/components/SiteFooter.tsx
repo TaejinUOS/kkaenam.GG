@@ -1,6 +1,15 @@
+import Link from "next/link";
+
 import { PATCH, SYNCED_AT } from "@/data/champions";
 
 import styles from "./SiteFooter.module.css";
+
+const SITE_LINKS = [
+  { label: "소개", href: "/about" },
+  { label: "이용약관", href: "/terms" },
+  { label: "개인정보처리방침", href: "/privacy" },
+  { label: "문의", href: "/contact" },
+];
 
 /** 마지막 Data Dragon 갱신일 표시 (PRD 14 "패치 갱신 절차와 마지막 갱신일을 표시한다"). */
 function formatSyncedAt(iso: string) {
@@ -21,6 +30,16 @@ export function SiteFooter() {
           <span className="sticker sticker--cobalt">patch {PATCH}</span>
           <span>스킬 데이터 갱신 {formatSyncedAt(SYNCED_AT)}</span>
         </p>
+
+        <nav className={styles.links} aria-label="사이트 정보">
+          <ul className={styles.linkList}>
+            {SITE_LINKS.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href}>{item.label}</Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {/* PRD 16: Riot 정책에 따른 비공식 프로젝트 고지. */}
         <p className={styles.legal}>

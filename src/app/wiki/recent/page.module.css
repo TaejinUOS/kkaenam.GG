@@ -1,0 +1,122 @@
+/*
+ * 공개 최근 변경 피드. `/wiki` 첫 화면과 같은 지면(종이) 위에 놓인다.
+ * 줄은 카드가 아니라 인쇄된 목차 줄이다 (블루프린트 6.3의 Tip 문법).
+ */
+
+.screen {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(20px, 3vw, 40px) clamp(40px, 6vw, 80px);
+  min-height: 60vh;
+}
+
+.screen :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+.crumbs {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.crumbLink:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.title {
+  font-size: clamp(40px, 6.4vw, 88px);
+  margin-top: -0.12em;
+  padding-top: 0.12em;
+}
+
+.lead {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.empty {
+  margin-top: 28px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.list {
+  margin-top: clamp(18px, 2.4vw, 30px);
+  border-top: var(--line);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--paper-line);
+  transition: background var(--t-poster) var(--ease);
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--acid);
+}
+
+.when {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.docTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.section {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.summary {
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.revision {
+  padding: 1px 6px;
+  border: 1px solid var(--paper-line);
+}
+
+@media (max-width: 767px) {
+  .row {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  /* 좁은 폭에서 리비전·작성자는 줄만 먹는다. 문서와 시각이 먼저다. */
+  .meta {
+    display: none;
+  }
+}

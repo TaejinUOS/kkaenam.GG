@@ -1,0 +1,709 @@
+/*
+ * `위키` 첫 화면 — 이 잡지의 목차 페이지.
+ * 설계는 `docs/WIKI_EXPANSION.md`의 "첫 화면", 시각 문법은 `DESIGN_BLUEPRINT.md`.
+ *
+ * 선택 화면(`SelectionScreen`)이 잉크 위에 놓인 표지라면 이쪽은 **펼친 지면**이다.
+ * 그래서 배경이 종이이고, 그 위에서 왼쪽은 인쇄된 것(커버·분류), 오른쪽은 나중에
+ * 덧칠한 메모(검색·최근 변경·일감)로 갈린다.
+ */
+
+.screen {
+  /*
+   * 지면. body의 잉크 위에 종이 한 장을 얹는다. 헤더 아래부터 푸터 위까지 이어지도록
+   * shell 바깥까지 배경을 펼치고, 안쪽 여백은 shell이 맡는다.
+   */
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(20px, 3vw, 40px) clamp(36px, 5vw, 72px);
+  display: grid;
+  gap: clamp(20px, 2.6vw, 36px);
+  /* 종이 위 재단 표식. 인쇄물 지면처럼 가장자리에 옅은 격자를 남긴다. */
+  background-image:
+    linear-gradient(var(--paper-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+  background-size: 96px 96px;
+  background-position: -1px -1px;
+}
+
+/* 종이 위에서는 Acid 아웃라인이 보이지 않는다. globals.css의 `.on-paper` 규칙과 같은 뜻. */
+.screen :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+/* --------------------------------------------------------------- 마스트헤드 */
+
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: clamp(12px, 2vw, 28px);
+  flex-wrap: wrap;
+}
+
+.headline {
+  font-size: clamp(48px, 8vw, 116px);
+  color: var(--ink);
+  /* 선택 화면 헤드라인과 같은 인쇄 인상. 종이 위이므로 그림자는 옅게 둔다. */
+  filter: drop-shadow(4px 4px 0 rgba(16, 16, 20, 0.16));
+  margin-top: -0.12em;
+  padding-top: 0.12em;
+}
+
+/* 바코드 티켓 자리. 여기서는 위키의 크기와 최근 움직임을 담는다. */
+.ticket {
+  align-self: center;
+  padding: 8px 16px;
+  border: var(--line);
+  background: transparent;
+  font-size: clamp(12px, 1.2vw, 15px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+.ticketSlash {
+  margin-inline: 10px;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------------ 두 열 */
+
+/*
+ * 8 / 4. 상대법 화면이 `Aside 3.3 / Main 8.7`이므로 비율을 달리해 두 화면이
+ * 겹쳐 보이지 않게 한다 (`docs/WIKI_EXPANSION.md` "한 화면, 두 열").
+ */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: clamp(20px, 2.4vw, 44px);
+  align-items: start;
+}
+
+.printed {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/*
+ * 구역 번호는 형광펜 자국으로 그린다.
+ *
+ * `.section-index`의 기본색 --smoke는 어두운 배경을 전제로 고른 값이라 종이 위에서는
+ * 대비가 2.25:1까지 떨어져 사실상 읽히지 않는다 (globals.css의 --ink-soft 주석과 같은
+ * 문제다). 왼쪽은 인쇄된 면이므로 Acid, 오른쪽 메모 열은 Gum을 쓴다.
+ */
+.printedIndex {
+  justify-self: start;
+  padding: 3px 8px;
+  color: var(--ink);
+  background: var(--acid);
+}
+
+/* --------------------------------------------------------------- 관문 포스터 */
+
+.posterGroup {
+  --poster-h: clamp(260px, 30vw, 460px);
+  --t-poster-open: 420ms;
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  display: flex;
+  align-items: stretch;
+  gap: clamp(6px, 0.9vw, 14px);
+  /* 라벨이 프레임 밖으로 튀어나오므로 좌우와 위에 여유를 둔다. */
+  padding: 26px 12px 8px;
+  margin-inline: -12px;
+}
+
+/*
+ * 아래 포스터 문법은 `SelectionScreen.module.css`의 카테고리 포스터와 같은 규칙을 쓴다.
+ * 두 화면이 같은 잡지의 다른 지면이어야 하기 때문이다. 지금은 두 벌로 두었고,
+ * 세 번째 화면이 같은 문법을 요구하면 공용 컴포넌트로 뽑는다
+ * (`docs/WIKI_EXPANSION.md` "손대야 하는 곳"의 `src/components/selection/` 항목).
+ */
+.poster {
+  position: relative;
+  flex: var(--w) 1 0%;
+  min-width: 0;
+  display: block;
+  text-align: left;
+  /* 라벨이 뷰포트가 아니라 자기 포스터 폭에 맞춰 커지도록 컨테이너로 삼는다. */
+  container-type: inline-size;
+  transition:
+    flex-grow var(--t-poster-open) var(--ease-inout),
+    transform var(--t-poster) var(--ease);
+}
+
+.posterFrameWrap {
+  position: relative;
+  display: block;
+  height: var(--poster-h);
+  filter: drop-shadow(var(--shadow-cut));
+  transition:
+    filter var(--t-poster) var(--ease),
+    transform var(--t-poster) var(--ease);
+}
+
+.posterFrame {
+  --poster-cut: clamp(20px, 2.2vw, 32px);
+  --poster-border-w: 3px;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--label-bg, var(--ink));
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--poster-cut)) 0,
+    100% var(--poster-cut),
+    100% 100%,
+    var(--poster-cut) 100%,
+    0 calc(100% - var(--poster-cut))
+  );
+  transition: background var(--t-poster) var(--ease);
+}
+
+.posterFrameInner {
+  --poster-cut-inner: calc(var(--poster-cut) - 2px);
+  position: absolute;
+  inset: var(--poster-border-w);
+  background: var(--ink-raised);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--poster-cut-inner)) 0,
+    100% var(--poster-cut-inner),
+    100% 100%,
+    var(--poster-cut-inner) 100%,
+    0 calc(100% - var(--poster-cut-inner))
+  );
+  overflow: hidden;
+}
+
+/*
+ * 커버는 3:2 가로 도해이고 프레임은 세로로 길다. `cover`로 가운데를 잘라 쓴다 —
+ * 도해가 화면 전체에 고르게 그려져 있어 어디를 잘라도 읽히는 그림이다.
+ * 챔피언 아트용 채도 보정(--art-punch)은 걸지 않는다. 이미 인쇄 팔레트로 그려져 있다.
+ */
+.posterImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.posterLabel {
+  position: absolute;
+  top: -22px;
+  left: -10px;
+  z-index: 2;
+  padding: 0.24em 0.21em 0.04em;
+  color: var(--ink);
+  font-size: clamp(28px, 17cqi, 68px);
+  line-height: 1.02;
+  white-space: nowrap;
+  transform: rotate(-1.6deg);
+  transition: transform var(--t-poster) var(--ease);
+  isolation: isolate;
+}
+
+.posterLabel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--label-bg, var(--acid));
+  border: var(--line);
+  filter: url(#zine-torn-1);
+}
+
+.poster:nth-child(2) .posterLabel::before {
+  filter: url(#zine-torn-2);
+}
+
+.poster:nth-child(3) .posterLabel::before {
+  filter: url(#zine-torn-3);
+}
+
+/* 목업의 라벨 색 순서: Acid → Gum → Cobalt */
+.poster:nth-child(1) {
+  --label-bg: var(--acid);
+}
+
+.poster:nth-child(2) {
+  --label-bg: var(--gum);
+}
+
+.poster:nth-child(3) {
+  --label-bg: var(--cobalt);
+}
+
+/* Cobalt 위 Ink는 큰 라벨 글자(3:1)에만 허용된다. 작은 글자는 Paper로 뒤집는다. */
+.poster:nth-child(3) .posterLabel {
+  color: var(--paper);
+}
+
+/*
+ * 라벨 아래 한 줄. 카테고리 포스터에는 없는 줄이고, 이 한 줄이 두 화면을 구분한다
+ * (`docs/WIKI_EXPANSION.md` "조각별로").
+ */
+.posterMeta {
+  display: grid;
+  gap: 2px;
+  padding-top: 10px;
+}
+
+.posterCount {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+
+.posterBlurb {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  /*
+   * 한글은 낱말 안에서 끊지 않는다. 기본값이면 좁아진 포스터에서 `스플릿`이
+   * `스 / 플릿`으로 갈라진다. 가운뎃점으로 이어 놓은 목록이라 낱말 단위로만 접혀야 한다.
+   */
+  word-break: keep-all;
+}
+
+/* 선택된 관문. 강조 그림자는 라벨 스티커와 같은 색을 쓴다. */
+.posterCurrent .posterFrameWrap {
+  filter: drop-shadow(6px 6px 0 var(--label-bg, var(--acid)));
+}
+
+@media (min-width: 768px) {
+  .posterGroup:has(.posterCurrent) .poster:not(.posterCurrent) {
+    flex-grow: calc(var(--w) * 0.68);
+  }
+
+  .posterGroup .posterCurrent {
+    flex-grow: calc(var(--w) * 1.95);
+  }
+}
+
+.poster:hover .posterFrameWrap,
+.poster:focus-visible .posterFrameWrap {
+  filter: drop-shadow(var(--shadow-cut-lg));
+  transform: rotate(-1.2deg);
+}
+
+.poster:hover .posterLabel,
+.poster:focus-visible .posterLabel {
+  transform: rotate(-1.6deg) translateX(8px);
+}
+
+.posterCurrent:hover .posterFrameWrap,
+.posterCurrent:focus-visible .posterFrameWrap {
+  filter: drop-shadow(12px 12px 0 var(--label-bg, var(--acid)));
+}
+
+/* 손으로 적은 안내. 포스터와 펼침 목록 사이를 잇는다. */
+.posterHint {
+  font-size: 22px;
+  color: var(--ink);
+  padding-left: 4px;
+}
+
+/* --------------------------------------------------------------- 분류 펼침 */
+
+.panelAnchor {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.panel {
+  display: grid;
+  gap: 10px;
+  padding: clamp(16px, 2vw, 24px);
+  border: var(--line);
+  background: var(--paper-shade);
+  box-shadow: var(--shadow-cut);
+}
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: var(--line);
+  padding-bottom: 8px;
+}
+
+.panelTitle {
+  font-size: clamp(26px, 3.2vw, 40px);
+}
+
+.panelPath {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.panelEmpty {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------- 오른쪽: 덧칠한 메모 */
+
+.side {
+  min-width: 0;
+  display: grid;
+  gap: clamp(16px, 2vw, 26px);
+  align-content: start;
+  /*
+   * 이 열만 왼쪽과 세로선으로 갈린다. 두 열이 다른 성질이라는 것을 지면에서
+   * 가장 싸게 말하는 방법이 재단선 하나다.
+   */
+  padding-left: clamp(14px, 1.8vw, 28px);
+  border-left: var(--line);
+}
+
+.rail {
+  min-width: 0;
+  display: grid;
+  gap: clamp(16px, 2vw, 26px);
+  align-content: start;
+}
+
+/* 검색은 반복 조작하는 컨트롤이므로 pill을 허용한다 (블루프린트 5장). */
+.searchForm {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: var(--line);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.searchInput::placeholder {
+  color: var(--ink-soft);
+}
+
+.searchInput:focus-visible {
+  background: var(--acid);
+  outline-offset: 2px;
+}
+
+.searchInput:focus-visible::placeholder {
+  color: var(--ink);
+}
+
+/*
+ * 구역 번호는 형광펜 자국으로 그린다. 종이 위에서 --smoke는 대비가 무너지고,
+ * 이 열의 성질(나중에 덧칠한 메모)과도 형광펜이 맞는다.
+ */
+.railIndex {
+  display: inline-block;
+  padding: 3px 8px;
+  color: var(--ink);
+  background: var(--gum);
+  margin-bottom: 8px;
+}
+
+.railEmpty {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+/* 얇은 가로 줄. 카드가 아니라 인쇄된 목차 줄이다 (블루프린트 6.3의 Tip 문법). */
+.rows {
+  display: grid;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--paper-line);
+  transition: background var(--t-poster) var(--ease);
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--acid);
+}
+
+.rowWhen {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.rowTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 섹션 이름은 문서명에 딸린 것이라 눌러 둔다. */
+.rowSection {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.rowBranch {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.railMore {
+  justify-self: end;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cobalt-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------- 손이 필요한 곳 */
+
+/*
+ * 찢어 붙인 메모지 경계. 위 구역과 성질이 달라지는 지점을 잉크 선이 아니라
+ * 뜯긴 자국으로 나눈다.
+ */
+.work {
+  padding-top: clamp(14px, 1.8vw, 22px);
+  border-top: 3px solid var(--gum);
+}
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.counter {
+  display: grid;
+  gap: 2px;
+  padding: 6px 2px;
+}
+
+/* 값을 가진 것은 그림이 아니라 이 숫자다. */
+.counterNumber {
+  font-size: clamp(44px, 5.6vw, 72px);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.counterLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.counter:hover .counterNumber,
+.counter:focus-visible .counterNumber {
+  color: var(--cobalt-ink);
+}
+
+/* ------------------------------------------------------------------ 분류 나무 */
+
+.tree {
+  border-top: var(--line);
+  padding-top: clamp(16px, 2vw, 26px);
+}
+
+.treeIndex {
+  display: inline-block;
+  padding: 3px 8px;
+  color: var(--ink);
+  background: var(--acid);
+  margin-bottom: 14px;
+}
+
+.treeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: clamp(14px, 2vw, 32px);
+}
+
+/* 인쇄된 목차처럼 갈래마다 세로 재단선을 세운다. */
+.branch {
+  padding-left: 14px;
+  border-left: 1px solid var(--paper-line);
+}
+
+.branchLabel {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.branchLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.branchItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.branchItem {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.branchItem:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/*
+ * 아직 문서가 없는 항목. 빨간 링크와 같은 뜻이므로 같은 색을 쓰고, 색을 못 보는
+ * 사람에게도 점선이 단서로 남는다 (globals.css의 --missing-doc 주석과 같은 규칙).
+ */
+.branchItemPending {
+  color: var(--missing-doc);
+  border-bottom: 1px dotted currentColor;
+}
+
+.branchNote {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------- 반응형 */
+
+@media (max-width: 1023px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * 한 열로 접히면 세로 재단선이 뜻을 잃는다. 위쪽 가로선으로 바꿔 두 구역의
+   * 경계는 남긴다.
+   */
+  .side {
+    padding-left: 0;
+    border-left: none;
+    padding-top: clamp(16px, 3vw, 26px);
+    border-top: var(--line);
+  }
+
+  .posterGroup {
+    --poster-h: clamp(230px, 32vw, 340px);
+  }
+}
+
+/*
+ * 모바일에서는 검색 → 관문 → 최근 → 일감 → 나무 순으로 쌓는다
+ * (`docs/WIKI_EXPANSION.md` "한 화면, 두 열"). 검색이 1순위 입구이므로 관문보다 앞선다.
+ */
+@media (max-width: 767px) {
+  .columns {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * 오른쪽 열을 통째로 올리지 않는다. 검색만 맨 위로 가고 최근·일감은 관문 아래에
+   * 남아야 한다. `display: contents`로 열을 풀어 세 덩어리를 따로 세운다.
+   */
+  .side {
+    display: contents;
+  }
+
+  .searchForm {
+    order: -2;
+  }
+
+  .printed {
+    order: -1;
+  }
+
+  .rail {
+    order: 0;
+    padding-top: clamp(16px, 4vw, 24px);
+    border-top: var(--line);
+  }
+
+  /*
+   * 검색 중에는 결과가 관문 위로 올라온다. 검색창 바로 아래에 결과가 없으면
+   * 포스터 세 장을 지나쳐야 찾은 것이 보인다.
+   */
+  .railSearching {
+    order: -2;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .posterGroup {
+    --poster-h: 200px;
+    flex-direction: column;
+    padding-top: 30px;
+    gap: 30px;
+  }
+
+  .poster {
+    flex: none;
+  }
+
+  .posterFrame {
+    --poster-cut: clamp(18px, 4vw, 26px);
+  }
+
+  /* 세로로 쌓이면 포스터가 화면 폭 전체를 차지해 cqi 값이 과해진다. */
+  .posterLabel {
+    font-size: clamp(28px, 11cqi, 46px);
+  }
+
+  .headline {
+    filter: none;
+  }
+
+  .row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  /* 좁은 폭에서 갈래 표시는 줄을 하나 더 먹기만 한다. 시각·문서명이 먼저다. */
+  .rowBranch {
+    display: none;
+  }
+}

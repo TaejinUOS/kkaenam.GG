@@ -1,0 +1,120 @@
+/*
+ * 아직 없는 문서. `/wiki` 첫 화면과 같은 종이 지면 위에 놓인다.
+ * 이름을 빨간 링크 색으로 늘어놓아 "여기가 비었다"가 한눈에 읽히게 한다.
+ */
+
+.screen {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(20px, 3vw, 40px) clamp(40px, 6vw, 80px);
+  min-height: 60vh;
+}
+
+.screen :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+.crumbs {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.crumbLink:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(12px, 2vw, 24px);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: clamp(40px, 6.4vw, 88px);
+  margin-top: -0.12em;
+  padding-top: 0.12em;
+}
+
+/* 이 화면에서 값을 가진 것은 이 숫자다. 줄어드는 것을 보는 것이 목적이다. */
+.total {
+  font-size: clamp(32px, 4.4vw, 56px);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--missing-doc);
+}
+
+.lead {
+  margin-top: 10px;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.empty {
+  margin-top: 28px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.groups {
+  margin-top: clamp(20px, 3vw, 36px);
+  display: grid;
+  gap: clamp(18px, 2.4vw, 30px);
+}
+
+.group {
+  padding-top: 14px;
+  border-top: var(--line);
+}
+
+.groupTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.groupCount {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/*
+ * 빨간 링크. 색을 못 보는 사람에게도 점선 밑줄이 단서로 남는다
+ * (globals.css의 --missing-doc 주석과 같은 규칙).
+ */
+.chip {
+  display: inline-block;
+  padding: 5px 11px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper-shade);
+  color: var(--missing-doc);
+  font-size: 14px;
+  border-bottom-style: dotted;
+  border-bottom-color: currentColor;
+  transition:
+    background var(--t-poster) var(--ease),
+    color var(--t-poster) var(--ease);
+}
+
+.chip:hover,
+.chip:focus-visible {
+  background: var(--missing-doc);
+  color: var(--paper);
+  border-color: var(--missing-doc);
+}

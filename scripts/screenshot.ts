@@ -38,6 +38,10 @@ const PAGES = [
   { name: "07-tip-detail", path: "/matchup/mid/ahri/tips/tip-ahri-1?me=twistedfate" },
   { name: "08-write", path: "/matchup/mid/ahri/write" },
   { name: "09-coming-soon", path: "/records" },
+  { name: "10-wiki-index", path: "/wiki" },
+  { name: "11-wiki-portal", path: `/wiki?${new URLSearchParams({ 분류: "라인전" })}` },
+  { name: "12-wiki-recent", path: "/wiki/recent" },
+  { name: "13-wiki-wanted", path: "/wiki/wanted" },
 ] as const;
 
 async function capture(browser: Browser, viewport: (typeof VIEWPORTS)[number]) {

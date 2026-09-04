@@ -698,12 +698,22 @@
     filter: none;
   }
 
+  /*
+   * 좁은 폭에서도 포지션 칸은 남긴다.
+   *
+   * 목록의 이름은 포지션을 뗀 `럭스 상대법`이고, 럭스는 미드·원딜·서폿 세 문서를
+   * 갖는다. 이 칸을 감추면 세 줄이 똑같아 보여 구분할 수단이 사라진다.
+   * 대신 시각 칸을 줄여 자리를 낸다.
+   */
   .row {
-    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
   }
 
-  /* 좁은 폭에서 갈래 표시는 줄을 하나 더 먹기만 한다. 시각·문서명이 먼저다. */
+  .rowWhen {
+    font-size: 11px;
+  }
+
   .rowBranch {
-    display: none;
+    font-size: 10px;
   }
 }

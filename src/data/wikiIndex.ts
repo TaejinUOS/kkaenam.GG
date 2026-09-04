@@ -8,6 +8,8 @@
  * 읽어야 하는 값은 서버 페이지가 따로 읽어 화면에 넘긴다.
  */
 
+import { matchupDocTitle } from "@/lib/wikiLink";
+
 import { getCategoriesFor, getChampionsInPosition, positions } from "./champions";
 import { coverPortals, shelfPortals, type Portal } from "./portals";
 
@@ -40,11 +42,25 @@ export type TreeItem = {
 
 /** 이름 검색 대상. 지금은 매치업 문서와 관문뿐이고, 일반 문서는 5단계에 더해진다. */
 export type SearchEntry = {
+  /**
+   * 목록에 보이는 이름.
+   *
+   * 매치업 문서의 정식 이름은 `미드 아리 상대법`이지만(`matchupDocTitle`), 목록에는
+   * 포지션을 뗀 `아리 상대법`을 싣는다. 포지션은 바로 옆 `branch` 칸에 서므로 한 줄에
+   * 두 번 적을 이유가 없고, 폭이 좁은 오른쪽 열에서 말줄임이 덜 난다.
+   */
   title: string;
   href: string;
   kind: "matchup" | "portal";
-  /** 어느 갈래의 문서인지. 결과 줄 오른쪽에 흐리게 붙는다. */
+  /** 어느 갈래의 문서인지. 매치업은 포지션, 일반 문서는 분류다. 결과 줄 오른쪽에 붙는다. */
   branch: string;
+  /**
+   * 검색이 실제로 훑는 글자.
+   *
+   * 보이는 이름만 훑으면 `미드 아리`나 `미드/아리`로 찾을 수 없다. 같은 문서를 가리키는
+   * 이름을 전부 담아 두어, 사람이 어느 꼴로 치든 걸리게 한다.
+   */
+  match: string;
 };
 
 export type WikiIndexData = {
@@ -84,10 +100,11 @@ export function buildWikiIndexData(
   for (const position of positions) {
     for (const champion of getChampionsInPosition(position.slug)) {
       search.push({
-        title: `${position.name}/${champion.name}`,
+        title: `${champion.name} 상대법`,
         href: `/matchup/${position.slug}/${champion.slug}`,
         kind: "matchup",
-        branch: "상대법",
+        branch: position.name,
+        match: `${matchupDocTitle(position.name, champion.name)} ${position.name}/${champion.name}`,
       });
     }
   }
@@ -97,6 +114,7 @@ export function buildWikiIndexData(
       href: `/wiki?${new URLSearchParams({ 분류: portal.key })}`,
       kind: "portal",
       branch: "분류",
+      match: `${portal.label} ${portal.blurb}`,
     });
   }
 

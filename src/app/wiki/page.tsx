@@ -39,10 +39,14 @@ export default async function WikiIndexPage() {
   const recent: RecentRow[] = changes.map((change) => {
     const position = getPosition(change.positionSlug);
     const champion = getChampionBySlug(change.championSlug);
-    const title =
-      position && champion
-        ? `${position.name}/${champion.name}`
-        : `${change.positionSlug}/${change.championSlug}`;
+    /*
+     * 목록에는 포지션을 뗀 짧은 이름을 싣고 포지션은 오른쪽 칸에 세운다.
+     * 정식 이름은 `matchupDocTitle`이 짓는 `미드 아리 상대법`이고, 문서 화면의
+     * <title>과 같은 값이다 — 한 문서가 화면마다 다른 이름으로 불리지 않게 한다.
+     */
+    const title = champion
+      ? `${champion.name} 상대법`
+      : `${change.championSlug} 상대법`;
     const section = change.meSlug
       ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
       : null;
@@ -56,7 +60,7 @@ export default async function WikiIndexPage() {
       href: `/matchup/${change.positionSlug}/${change.championSlug}${
         change.meSlug ? `?me=${change.meSlug}` : ""
       }`,
-      branch: "상대법",
+      branch: position?.name ?? change.positionSlug,
     };
   });
 

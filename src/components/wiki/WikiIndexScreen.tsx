@@ -104,7 +104,7 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
   const needle = normalizeQuery(query);
   const results = useMemo(() => {
     if (!needle) return [];
-    return data.search.filter((entry) => matchesName(needle, entry.title)).slice(0, SEARCH_LIMIT);
+    return data.search.filter((entry) => matchesName(needle, entry.match)).slice(0, SEARCH_LIMIT);
   }, [data.search, needle]);
 
   const weights = weightsFor(data.cover.length);

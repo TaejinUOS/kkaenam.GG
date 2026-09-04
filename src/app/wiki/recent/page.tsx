@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getChampionBySlug, getPosition } from "@/data/champions";
 import { relativeTime } from "@/lib/relativeTime";
+import { matchupDocTitle } from "@/lib/wikiLink";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -46,10 +47,14 @@ export default async function WikiRecentPage() {
             {changes.map((change) => {
               const position = getPosition(change.positionSlug);
               const champion = getChampionBySlug(change.championSlug);
+              /*
+               * 이 화면은 폭이 넓고 포지션 칸이 따로 없으므로 **정식 이름을 그대로**
+               * 쓴다. 첫 화면의 좁은 열에서만 포지션을 떼어 옆 칸에 세운다.
+               */
               const title =
                 position && champion
-                  ? `${position.name}/${champion.name}`
-                  : `${change.positionSlug}/${change.championSlug}`;
+                  ? matchupDocTitle(position.name, champion.name)
+                  : matchupDocTitle(change.positionSlug, change.championSlug);
               const section = change.meSlug
                 ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
                 : null;

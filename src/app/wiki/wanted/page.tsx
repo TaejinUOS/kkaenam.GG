@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { allChampions, getClassificationFor, positions } from "@/data/champions";
+import { allChampions } from "@/data/champions";
+import { getTaxonomy } from "@/lib/taxonomyStore";
 import { getWikiIndexStats } from "@/lib/wikiIndexStore";
 
 import styles from "./page.module.css";
@@ -25,15 +26,13 @@ export const metadata: Metadata = {
  * 빨간 링크가 여기 합쳐지고, 많이 걸린 이름부터 보이는 우선순위가 생긴다.
  */
 export default async function WikiWantedPage() {
-  const stats = await getWikiIndexStats();
+  const [stats, taxonomy] = await Promise.all([getWikiIndexStats(), getTaxonomy()]);
   const written = new Set(stats.writtenChampionSlugs);
 
   const wanted = allChampions
     .map((champion) => ({
       champion,
-      where: positions
-        .filter((p) => getClassificationFor(p.slug, champion.slug))
-        .map((p) => p.name),
+      where: taxonomy.placementsOf(champion.slug).map((p) => p.position.name),
     }))
     .filter(({ champion, where }) => where.length > 0 && !written.has(champion.slug));
 

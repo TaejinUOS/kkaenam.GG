@@ -8,7 +8,7 @@
  * 챔피언 데이터를 import하므로 클라이언트 컴포넌트에서 부르지 않는다.
  */
 
-import { allChampions, getClassificationFor, positions } from "@/data/champions";
+import { allChampions, positions } from "@/data/champions";
 import { collectWikiLinkTitles } from "@/lib/wikiMarkup";
 
 /** 문서 이름 -> 주소. 해석되지 않은 이름은 담지 않는다. */
@@ -101,11 +101,15 @@ function stripSuffix(text: string): string {
   return trimmed.endsWith("상대법") ? trimmed.slice(0, -3).trim() : trimmed;
 }
 
-/** 분류 어디에든 있는 챔피언이면 주소를, 아니면 null을 준다. */
+/**
+ * 카탈로그에 있는 챔피언이면 주소를, 아니면 null을 준다.
+ *
+ * 분류 여부는 보지 않는다. 분류는 운영자가 고치는 값이라(마이그레이션 0004), 그것으로
+ * 링크의 생사를 정하면 챔피언을 미드에서 빼는 순간 본문에 걸린 링크가 전부 빨개진다.
+ * 문서는 분류와 무관하게 존재한다.
+ */
 function finish(championSlug: string | undefined): string | null {
   if (!championSlug) return null;
-  const classified = positions.some((p) => getClassificationFor(p.slug, championSlug));
-  if (!classified) return null;
   return `/matchup/${championSlug}`;
 }
 

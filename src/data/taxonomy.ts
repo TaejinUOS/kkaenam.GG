@@ -11,6 +11,20 @@ import type { Category, Classification, Position } from "./types";
 
 export const DEFAULT_POSITION_SLUG = "mid";
 
+export function getPosition(slug: string): Position | undefined {
+  return positions.find((p) => p.slug === slug && p.active);
+}
+
+export function getCategoriesFor(positionSlug: string): Category[] {
+  return categories
+    .filter((c) => c.positionSlug === positionSlug && c.active)
+    .sort((a, b) => a.order - b.order);
+}
+
+export function getCategory(positionSlug: string, categorySlug: string): Category | undefined {
+  return getCategoriesFor(positionSlug).find((c) => c.slug === categorySlug);
+}
+
 export const positions: Position[] = [
   { id: "pos-top", slug: "top", name: "탑", code: "TOP", order: 1, active: true },
   { id: "pos-jungle", slug: "jungle", name: "정글", code: "JUNGLE", order: 2, active: true },
@@ -169,6 +183,10 @@ export const categories: Category[] = [
 /**
  * 포지션·카테고리별 챔피언 명단. 이름은 Data Dragon `ko_KR` 표기와 정확히 일치해야 하며,
  * 일치하지 않으면 `champions.ts`의 조인 단계에서 오류로 잡힌다.
+ *
+ * **이 명단은 이제 초기 데이터일 뿐이다.** 실제 분류는 `champion_placements` 표에 있고
+ * (마이그레이션 0004) 운영자가 `/admin/taxonomy`에서 고친다. 여기를 고쳐도 화면은
+ * 바뀌지 않는다 — 마이그레이션을 만든 근거로만 남는다.
  */
 const roster: Record<string, Record<string, string[]>> = {
   top: {

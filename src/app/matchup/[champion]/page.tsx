@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { MatchupScreen } from "@/components/matchup/MatchupScreen";
-import { PATCH, allChampions, getChampionsInPosition, skillIconUrl } from "@/data/champions";
+import { PATCH, allChampions, skillIconUrl } from "@/data/champions";
 import { getViewer } from "@/lib/authGuard";
 import { eulReul } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
+import { getTaxonomy } from "@/lib/taxonomyStore";
 import { matchupDocTitle, resolveWikiLinks } from "@/lib/wikiLink";
 import { getWikiView } from "@/lib/wikiStore";
 
@@ -17,7 +18,7 @@ export async function generateMetadata({
 }: {
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
-  const resolved = resolveMatchup(await params);
+  const resolved = resolveMatchup(await params, await getTaxonomy());
   if (!resolved) return { title: "찾을 수 없는 상대법" };
 
   const { championData } = resolved;
@@ -35,7 +36,8 @@ export const dynamic = "force-dynamic";
 
 export default async function MatchupPage({ params }: { params: Promise<RouteParams> }) {
   const routeParams = await params;
-  const resolved = resolveMatchup(routeParams);
+  const taxonomy = await getTaxonomy();
+  const resolved = resolveMatchup(routeParams, taxonomy);
   if (!resolved) notFound();
 
   const { championData, placements } = resolved;
@@ -49,7 +51,7 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
    */
   const nearbyChampions = new Map<string, { slug: string; name: string; iconUrl: string }>();
   for (const { position } of placements) {
-    for (const c of getChampionsInPosition(position.slug)) {
+    for (const c of taxonomy.championsInPosition(position.slug)) {
       nearbyChampions.set(c.slug, { slug: c.slug, name: c.name, iconUrl: c.iconUrl });
     }
   }

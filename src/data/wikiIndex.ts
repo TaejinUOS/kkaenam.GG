@@ -8,9 +8,10 @@
  * 읽어야 하는 값은 서버 페이지가 따로 읽어 화면에 넘긴다.
  */
 
+import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
 import { matchupDocTitle } from "@/lib/wikiLink";
 
-import { getCategoriesFor, getChampionsInPosition, positions } from "./champions";
+import { getCategoriesFor, positions } from "./champions";
 import { coverPortals, shelfPortals, type Portal } from "./portals";
 
 export type PortalView = Portal & {
@@ -77,15 +78,12 @@ export type WikiIndexData = {
  * 여러 포지션에 있는 챔피언도 **한 번만** 센다. 럭스를 셋으로 세면 아직 쓸 문서가
  * 실제보다 많아 보이고, 그 숫자가 줄어드는 것을 보는 것이 이 목록의 목적이다.
  */
-export function classifiedChampionSlugs(): string[] {
-  const slugs = new Set<string>();
-  for (const position of positions) {
-    for (const champion of getChampionsInPosition(position.slug)) slugs.add(champion.slug);
-  }
-  return [...slugs];
+export function classifiedChampionSlugs(taxonomy: TaxonomySnapshot): string[] {
+  return taxonomy.classifiedSlugs();
 }
 
 export function buildWikiIndexData(
+  taxonomy: TaxonomySnapshot,
   /** 관문별 일반 문서 수. 4단계에서 `wiki_links`가 채운다. */
   articleCounts: Record<string, number> = {},
 ): WikiIndexData {
@@ -101,7 +99,7 @@ export function buildWikiIndexData(
    */
   const byChampion = new Map<string, { name: string; positions: string[] }>();
   for (const position of positions) {
-    for (const champion of getChampionsInPosition(position.slug)) {
+    for (const champion of taxonomy.championsInPosition(position.slug)) {
       const entry = byChampion.get(champion.slug) ?? { name: champion.name, positions: [] };
       entry.positions.push(position.name);
       byChampion.set(champion.slug, entry);

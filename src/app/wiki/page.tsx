@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { WikiIndexScreen, type RecentRow, type WorkCounter } from "@/components/wiki/WikiIndexScreen";
-import { getChampionBySlug, getClassificationFor, positions } from "@/data/champions";
+import { getChampionBySlug } from "@/data/champions";
 import { buildWikiIndexData, classifiedChampionSlugs } from "@/data/wikiIndex";
 import { relativeTime } from "@/lib/relativeTime";
+import { getTaxonomy } from "@/lib/taxonomyStore";
 import { matchupDocTitle } from "@/lib/wikiLink";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 import { getWikiIndexStats } from "@/lib/wikiIndexStore";
@@ -25,12 +26,13 @@ const RECENT_ON_INDEX = 8;
  * 미분류 문서)은 **가짜 숫자를 두지 않고 비운다** — 블루프린트 6.5의 규칙이다.
  */
 export default async function WikiIndexPage() {
-  const [stats, changes] = await Promise.all([
+  const [stats, changes, taxonomy] = await Promise.all([
     getWikiIndexStats(),
     listRecentChanges(RECENT_ON_INDEX),
+    getTaxonomy(),
   ]);
 
-  const data = buildWikiIndexData();
+  const data = buildWikiIndexData(taxonomy);
 
   /*
    * 상대 시각은 여기서 짓는다. 클라이언트에서 계산하면 수화가 어긋난다.
@@ -46,10 +48,10 @@ export default async function WikiIndexPage() {
     const title = matchupDocTitle(champion?.name ?? change.championSlug);
     /* 오른쪽 칸에는 그 챔피언이 지금 놓인 자리를 적는다. 이름이 아니라 분류다. */
     const branch =
-      positions
-        .filter((p) => getClassificationFor(p.slug, change.championSlug))
-        .map((p) => p.name)
-        .join(" · ") || "상대법";
+      taxonomy
+        .placementsOf(change.championSlug)
+        .map((p) => p.position.name)
+        .join(" · ") || "분류 없음";
     const section = change.meSlug
       ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
       : null;
@@ -72,7 +74,7 @@ export default async function WikiIndexPage() {
    * 지금과 같다: **이미 쓰인 것들이 스스로 "이게 필요하다"고 말해 둔 목록**이다.
    */
   const written = new Set(stats.writtenChampionSlugs);
-  const wantedCount = classifiedChampionSlugs().filter((slug) => !written.has(slug)).length;
+  const wantedCount = classifiedChampionSlugs(taxonomy).filter((slug) => !written.has(slug)).length;
 
   /*
    * 미분류 문서는 아직 셀 것이 없다. 일반 문서와 `[[분류:…]]`가 4단계에 들어와야

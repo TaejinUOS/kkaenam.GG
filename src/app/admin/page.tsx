@@ -22,6 +22,9 @@ export default async function AdminHomePage() {
         <Link href="/admin/wiki/recent" className={`btn ${styles.link}`}>
           최근 변경
         </Link>
+        <Link href="/admin/taxonomy" className={`btn ${styles.link}`}>
+          분류 편집
+        </Link>
       </div>
     </div>
   );

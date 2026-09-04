@@ -5,8 +5,15 @@
  */
 
 import catalog from "./generated/champions.json";
-import { categories, classifications, positions } from "./taxonomy";
-import type { Category, Champion, ChampionCatalog, Position, RawChampion } from "./types";
+import {
+  categories,
+  classifications,
+  getCategoriesFor,
+  getCategory,
+  getPosition,
+  positions,
+} from "./taxonomy";
+import type { Champion, ChampionCatalog, RawChampion } from "./types";
 
 const data = catalog as ChampionCatalog;
 
@@ -83,58 +90,16 @@ if (unresolved.length > 0) {
   );
 }
 
-export function getPosition(slug: string): Position | undefined {
-  return positions.find((p) => p.slug === slug && p.active);
-}
-
-export function getCategoriesFor(positionSlug: string): Category[] {
-  return categories
-    .filter((c) => c.positionSlug === positionSlug && c.active)
-    .sort((a, b) => a.order - b.order);
-}
-
-export function getCategory(positionSlug: string, categorySlug: string): Category | undefined {
-  return getCategoriesFor(positionSlug).find((c) => c.slug === categorySlug);
-}
-
 export function getChampionBySlug(slug: string): Champion | undefined {
   return bySlug.get(slug);
 }
 
-/** 선택한 포지션·카테고리에 속하고 노출 상태인 챔피언만 정렬해 돌려준다. */
-export function getChampionsIn(positionSlug: string, categorySlug: string): Champion[] {
-  return classifications
-    .filter(
-      (c) => c.positionSlug === positionSlug && c.categorySlug === categorySlug && c.visible,
-    )
-    .sort((a, b) => a.order - b.order)
-    .map((c) => byName.get(c.championName))
-    .filter((c): c is Champion => Boolean(c) && c!.active);
-}
+/*
+ * 챔피언이 어느 포지션·카테고리에 속하는지는 **여기서 답하지 않는다.**
+ * 그 값은 패치마다 바뀌므로 D1의 `champion_placements`로 옮겼다 (마이그레이션 0004).
+ * `getTaxonomy()`가 주는 스냅숏에 물어본다 (`src/lib/taxonomyStore.ts`).
+ *
+ * 이 모듈에 남은 것은 Data Dragon 카탈로그, 즉 **바뀌지 않는 사실**뿐이다.
+ */
 
-/** 한 포지션 전체의 챔피언. Me 콤보박스의 기본 검색 대상이다 (PRD 5.3.3). */
-export function getChampionsInPosition(positionSlug: string): Champion[] {
-  const seen = new Set<string>();
-  const result: Champion[] = [];
-  for (const category of getCategoriesFor(positionSlug)) {
-    for (const champion of getChampionsIn(positionSlug, category.slug)) {
-      if (seen.has(champion.slug)) continue;
-      seen.add(champion.slug);
-      result.push(champion);
-    }
-  }
-  return result.sort((a, b) => a.name.localeCompare(b.name, "ko"));
-}
-
-/** 챔피언이 어느 포지션·카테고리에 속하는지. 상대법 페이지의 breadcrumb에 사용한다. */
-export function getClassificationFor(positionSlug: string, championSlug: string) {
-  const champion = bySlug.get(championSlug);
-  if (!champion) return undefined;
-  const match = classifications.find(
-    (c) => c.positionSlug === positionSlug && c.championName === champion.name && c.visible,
-  );
-  if (!match) return undefined;
-  return getCategory(positionSlug, match.categorySlug);
-}
-
-export { categories, positions };
+export { categories, getCategoriesFor, getCategory, getPosition, positions };

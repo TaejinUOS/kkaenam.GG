@@ -7,6 +7,7 @@ import { PATCH } from "@/data/champions";
 import { getViewer } from "@/lib/authGuard";
 import { ro } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
+import { getTaxonomy } from "@/lib/taxonomyStore";
 import { getWikiView } from "@/lib/wikiStore";
 
 type SearchParams = { section?: string };
@@ -47,7 +48,7 @@ export default async function EditSectionPage({
   searchParams: Promise<SearchParams>;
 }) {
   const routeParams = await params;
-  const resolved = resolveMatchup(routeParams);
+  const resolved = resolveMatchup(routeParams, await getTaxonomy());
   if (!resolved) notFound();
 
   const { section } = await searchParams;

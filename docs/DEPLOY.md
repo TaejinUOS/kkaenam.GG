@@ -99,6 +99,16 @@ npx wrangler d1 migrations apply kkaenam-gg --remote
 순서가 중요하다. **스키마를 먼저 적용하고 코드를 배포한다.** 반대로 하면 새 코드가
 아직 없는 표를 읽는 구간이 생긴다.
 
+> **부모 표를 다시 만드는 마이그레이션의 함정.** `wiki_sections`·`wiki_edits`가
+> `ON DELETE CASCADE`로 `wiki_docs`를 참조한다. 외래 키가 켜진 채 부모를 `DROP TABLE`
+> 하면 암묵적 DELETE가 일어나 **자식이 함께 지워진다.** `PRAGMA defer_foreign_keys`는
+> 제약 검사를 미룰 뿐 CASCADE 동작은 막지 못한다 — 0003을 로컬에 처음 적용했을 때
+> 실제로 섹션 6개와 편집 13개가 사라졌다. `migrations/0003_matchup_doc_per_champion.sql`이
+> 자식을 임시 표로 옮겼다 되돌리는 방식을 쓰니, 같은 일을 할 때 그 파일을 본뜬다.
+>
+> **로컬에 먼저 적용하고 행 수를 세어 본다.** `--local`은 되돌릴 수 있지만 `--remote`는
+> 아니다.
+
 적용 상태는 이렇게 확인한다.
 
 ```bash

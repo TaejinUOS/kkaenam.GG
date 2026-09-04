@@ -5,7 +5,9 @@
  * 전환을 지킬 수 없다. 분류 전체가 23KB 남짓이라 첫 응답에 실어 보내고 전환은 클라이언트에서 처리한다.
  */
 
-import { getCategoriesFor, getChampionsIn, positions } from "./champions";
+import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
+
+import { getCategoriesFor, positions } from "./champions";
 
 export type ChampionChip = {
   slug: string;
@@ -36,14 +38,14 @@ export type SelectionData = {
   champions: Record<string, ChampionChip[]>;
 };
 
-export function buildSelectionData(): SelectionData {
+export function buildSelectionData(taxonomy: TaxonomySnapshot): SelectionData {
   const categories: Record<string, CategoryView[]> = {};
   const champions: Record<string, ChampionChip[]> = {};
 
   for (const position of positions) {
     const list = getCategoriesFor(position.slug);
     categories[position.slug] = list.map((category) => {
-      const roster = getChampionsIn(position.slug, category.slug);
+      const roster = taxonomy.championsIn(position.slug, category.slug);
       champions[`${position.slug}/${category.slug}`] = roster.map((c) => ({
         slug: c.slug,
         name: c.name,

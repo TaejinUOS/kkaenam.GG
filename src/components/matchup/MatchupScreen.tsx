@@ -25,7 +25,13 @@ type Viewer = { id: string; name: string; role: "member" | "admin" } | null;
 
 type Props = {
   patch: string;
-  /** 이 챔피언이 지금 놓인 자리 전부. 비어 있지 않다 (`resolveMatchup`이 보장한다). */
+  /**
+   * 이 챔피언이 지금 놓인 자리 전부.
+   *
+   * **비어 있을 수 있다.** 운영자가 분류에서 뺀 챔피언이다 (마이그레이션 0004).
+   * 그래도 문서는 열린다 — 배치는 "어디서 찾을 수 있는가"만 정하고, 이미 쓰인 글이
+   * 분류 변경만으로 사라지는 일은 없어야 한다.
+   */
   placements: PlacementView[];
   champion: ChampionView;
   /** 서버가 D1에서 읽어 온 위키 문서. */
@@ -51,7 +57,8 @@ export function MatchupScreen({
    * 여러 자리에 놓인 챔피언은 그 전부를 보여 준다. 럭스 문서를 열었을 때
    * "미드 · 원딜 · 서폿"이 보이는 편이, 셋 중 하나만 고르는 것보다 정확하다.
    */
-  const positionLabel = placements.map((p) => p.position.name).join(" · ");
+  const positionLabel = placements.map((p) => p.position.name).join(" · ") || "분류 없음";
+  const first = placements[0];
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,34 +81,46 @@ export function MatchupScreen({
       {/* --------------------------------------------------------- 경로 안내 */}
       <div className="shell">
         <nav className={styles.crumbs} aria-label="현재 위치">
-          <Link className={styles.crumbLink} href={`/?position=${placements[0].position.slug}`}>
+          <Link
+            className={styles.crumbLink}
+            href={first ? `/?position=${first.position.slug}` : "/"}
+          >
             상대법
           </Link>
           <span aria-hidden="true">/</span>
           {/*
             자리마다 링크를 하나씩 둔다. 문서는 하나지만 들어온 길은 여럿일 수 있어,
             "이 챔피언이 어디에 속하는가"를 여기서 한 번에 보여 준다.
+
+            하나도 없으면 운영자가 분류에서 뺀 챔피언이다. 그 사실을 적어 준다 —
+            문서를 열었는데 경로가 비어 있으면 잘못 들어온 것처럼 보인다.
           */}
-          {placements.map(({ position, category }, index) => (
-            <span key={`${position.slug}/${category.slug}`}>
-              {index > 0 && <span aria-hidden="true"> · </span>}
-              <Link
-                className={styles.crumbLink}
-                href={`/?position=${position.slug}&category=${category.slug}`}
-              >
-                {position.name} · {category.name}
-              </Link>
-            </span>
-          ))}
+          {placements.length === 0 ? (
+            <span className={styles.crumbUnplaced}>분류 없음</span>
+          ) : (
+            placements.map(({ position, category }, index) => (
+              <span key={`${position.slug}/${category.slug}`}>
+                {index > 0 && <span aria-hidden="true"> · </span>}
+                <Link
+                  className={styles.crumbLink}
+                  href={`/?position=${position.slug}&category=${category.slug}`}
+                >
+                  {position.name} · {category.name}
+                </Link>
+              </span>
+            ))
+          )}
           <span aria-hidden="true">/</span>
           <span className={styles.crumbCurrent}>{champion.name}</span>
 
-          <Link
-            className={`${styles.changeLink} sticker sticker--acid`}
-            href={`/?position=${placements[0].position.slug}&category=${placements[0].category.slug}`}
-          >
-            포지션·카테고리 변경
-          </Link>
+          {first && (
+            <Link
+              className={`${styles.changeLink} sticker sticker--acid`}
+              href={`/?position=${first.position.slug}&category=${first.category.slug}`}
+            >
+              포지션·카테고리 변경
+            </Link>
+          )}
         </nav>
       </div>
 

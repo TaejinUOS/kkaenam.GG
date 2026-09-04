@@ -1,0 +1,163 @@
+/*
+ * 운영 분류 편집. 다른 관리자 화면과 같이 잉크 면 위에 놓인다 — 이 화면들은 읽는
+ * 지면이 아니라 조작하는 도구라, 종이 지면과 구분되는 편이 낫다.
+ */
+
+.screen {
+  display: grid;
+  gap: 18px;
+  padding-block: clamp(32px, 6vw, 64px) clamp(60px, 12vw, 140px);
+}
+
+.title {
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 0.95;
+}
+
+.lead {
+  max-width: 68ch;
+  color: var(--smoke);
+  word-break: keep-all;
+}
+
+.lead strong {
+  color: var(--paper);
+}
+
+.done {
+  padding: 10px 12px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--acid);
+  /* body가 크림색 글자를 물려주므로 밝은 면에서는 글자색을 직접 세운다. */
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.error {
+  padding: 10px 12px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--gum);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------- 포지션 탭 */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------- 배치·이동 폼 */
+
+.placeForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border: var(--line-w) solid rgba(244, 235, 221, 0.3);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  /* 챔피언 이름이 길어도 칸이 줄바꿈으로 도망가지 않게 한다. */
+  flex: 1 1 220px;
+}
+
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--smoke);
+}
+
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--line-paper);
+  border-radius: var(--radius-card);
+  background: var(--ink-sunken);
+  color: var(--paper);
+}
+
+/* ---------------------------------------------------------- 카테고리 목록 */
+
+.categories {
+  display: grid;
+  gap: 16px;
+}
+
+.category {
+  padding: 14px 16px;
+  border: var(--line-w) solid rgba(244, 235, 221, 0.22);
+  border-radius: var(--radius-card);
+}
+
+.categoryTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--smoke);
+}
+
+.empty {
+  color: var(--smoke);
+  font-size: 14px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 칩 하나가 이름 링크와 빼기 버튼을 함께 담는다. */
+.chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(244, 235, 221, 0.34);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+  overflow: hidden;
+}
+
+.chipName {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.chipName:hover {
+  background: var(--acid);
+  color: var(--ink);
+}
+
+.remove {
+  height: 100%;
+  padding: 6px 10px;
+  border-left: 1px solid rgba(244, 235, 221, 0.34);
+  color: var(--smoke);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.remove:hover,
+.remove:focus-visible {
+  background: var(--gum);
+  color: var(--ink);
+}

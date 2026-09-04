@@ -1,0 +1,77 @@
+/*
+ * 형광펜이 깔린 입력칸. 어려운 것은 하나뿐이다 — 형광펜을 그리는 사본(.backdrop)과
+ * 글을 받는 textarea(.input)가 **글자 하나까지 같은 자리에 놓여야** 색이 엉뚱한 글자를
+ * 덮지 않는다. 그래서 둘은 .text 하나를 함께 쓰고, 치수를 바꿀 때도 함께 바꾼다.
+ *
+ * `DiffText.module.css`의 .text와도 같은 값이다. 그쪽은 나란히 놓이는 왼쪽 면이라,
+ * 값이 갈리면 같은 문장이 좌우에서 다른 줄 수로 접힌다.
+ */
+
+.wrap {
+  position: relative;
+  /* 높이는 쓰는 쪽이 정한다. 화면마다 내줄 수 있는 높이가 다르다. */
+  height: 100%;
+}
+
+.wrap:focus-within {
+  outline: 3px solid var(--cobalt);
+  outline-offset: -3px;
+}
+
+.text {
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  /*
+   * globals.css의 리셋에 이미 있지만 여기서 다시 세운다. content-box가 되면 textarea만
+   * `width: 100%` + 여백만큼 넓어져 사본보다 32px 넓은 상자가 되고, 같은 문장이 두 겹에서
+   * 다른 자리에 접힌다. 이 화면에서는 리셋에 기대면 안 되는 값이다.
+   */
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.75;
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 2;
+  /* 스크롤 막대가 한쪽에서만 폭을 먹으면 줄바꿈 위치가 달라진다. */
+  scrollbar-gutter: stable;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+.addMark {
+  background: var(--diff-add);
+  border-radius: 2px;
+  /*
+   * 밑줄을 box-shadow로 긋는다. text-decoration은 글자색을 따라가는데 여기 글자는
+   * 투명이라 아무것도 그려지지 않고, border는 좌우 폭을 먹어 정렬을 무너뜨린다.
+   */
+  box-shadow: inset 0 -2px 0 var(--diff-add-line);
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  caret-color: var(--ink);
+}
+
+.input:focus-visible {
+  /* 테두리는 .wrap이 그린다. 여기서 또 그리면 선이 두 겹으로 보인다. */
+  outline: none;
+}

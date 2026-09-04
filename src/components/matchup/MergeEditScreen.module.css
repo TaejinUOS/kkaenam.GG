@@ -136,84 +136,12 @@
 
 /* ------------------------------------------------------- 오른쪽 편집 상자 */
 
-.editWrap {
-  position: relative;
+/*
+ * 형광펜 입힌 입력칸 자체는 `HighlightedEditor`가 그린다 (사본과 입력칸의 치수를
+ * 맞추는 까다로운 부분이 거기 모여 있다). 여기서는 높이만 준다.
+ */
+.editBox {
   height: var(--pane-h);
-}
-
-.editWrap:focus-within {
-  outline: 3px solid var(--cobalt);
-  outline-offset: -3px;
-}
-
-/*
- * 사본과 입력칸이 함께 쓰는 치수. 하나라도 어긋나면 같은 문장이 서로 다른 줄에서
- * 접혀 형광펜이 옆 글자로 밀린다. scrollbar-gutter까지 맞추는 것은 스크롤 막대가
- * 한쪽에서만 폭을 먹으면 줄바꿈 위치가 달라지기 때문이다.
- *
- * `DiffText.module.css`의 .text와도 같은 값이다 — 좌우가 나란히 놓이는 화면이라
- * 한쪽만 다르면 같은 문장이 다른 줄 수로 접힌다.
- */
-.text {
-  margin: 0;
-  padding: 14px 16px;
-  border: 0;
-  /*
-   * globals.css의 리셋에 이미 있지만 여기서 다시 세운다. content-box가 되면 textarea만
-   * `width: 100%` + 여백만큼 넓어져 사본보다 32px 넓은 상자가 되고, 같은 문장이 두 겹에서
-   * 다른 자리에 접힌다. 이 화면에서는 리셋에 기대면 안 되는 값이다.
-   */
-  box-sizing: border-box;
-  font-family: var(--font-ui);
-  font-size: 15px;
-  line-height: 1.75;
-  letter-spacing: normal;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  word-break: normal;
-  tab-size: 2;
-  scrollbar-gutter: stable;
-}
-
-/*
- * 형광펜을 그리는 사본. 글자는 투명하고 배경만 남는다 — 실제로 읽히는 글자는
- * 언제나 위에 놓인 textarea의 것이다. 글자를 겹쳐 그리면 한글 조합 중인 글자가
- * 사라지고, 치수가 조금만 틀어져도 이중으로 번져 보인다.
- */
-.backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  color: transparent;
-  pointer-events: none;
-  user-select: none;
-}
-
-.addMark {
-  background: var(--diff-add);
-  border-radius: 2px;
-  /*
-   * 밑줄을 box-shadow로 긋는다. text-decoration은 글자색을 따라가는데 여기 글자는
-   * 투명이라 아무것도 그려지지 않고, border는 좌우 폭을 먹어 정렬을 무너뜨린다.
-   */
-  box-shadow: inset 0 -2px 0 var(--diff-add-line);
-}
-
-.input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  resize: none;
-  background: transparent;
-  color: var(--ink);
-  caret-color: var(--ink);
-}
-
-.input:focus-visible {
-  /* 테두리는 .editWrap이 그린다. 여기서 또 그리면 선이 두 겹으로 보인다. */
-  outline: none;
 }
 
 /* ------------------------------------------------------------------ 나머지 */

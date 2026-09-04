@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DiffText } from "@/components/wiki/DiffText";
+import { ReviewMergeForm } from "@/components/admin/ReviewMergeForm";
 import { getChampionBySlug, getPosition } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { approveEditAction, rejectEditAction } from "@/lib/actions/wikiEditActions";
-import { diffStats, diffWords } from "@/lib/wikiDiff";
 import { getEditForReview } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -41,14 +40,6 @@ export default async function ReviewDetailPage({
   const sectionLabel = detail.meSlug ? (getChampionBySlug(detail.meSlug)?.name ?? detail.meSlug) : "공통";
   const stale = detail.baseRevision !== detail.currentRevision;
 
-  /*
-   * 검토가 필요한 제안은 이제 전부 "지운 것이 있는" 편집이다 (WIKI_MODEL.md "편집에는
-   * 두 갈래가 있다"). 그래서 검토자가 가장 먼저 봐야 할 것은 **무엇이 사라지는가**이고,
-   * 그것은 마크다운으로 그린 결과가 아니라 원문에 친 형광펜에서만 보인다.
-   */
-  const ops = diffWords(detail.currentBody, detail.body);
-  const stats = diffStats(ops);
-
   const boundApprove = approveEditAction.bind(null, detail.id, detail.positionSlug, detail.championSlug);
   const boundReject = rejectEditAction.bind(null, detail.id);
 
@@ -78,49 +69,18 @@ export default async function ReviewDetailPage({
         </details>
       )}
 
-      <div className={styles.compare}>
-        <section className={styles.pane}>
-          <h2 className={styles.paneTitle}>
-            현재 문서
-            <span className={`mono ${styles.countRemove}`}>−{stats.removed}자</span>
-          </h2>
-          <DiffText ops={ops} side="before" className={styles.body} />
-        </section>
-        <section className={styles.pane}>
-          <h2 className={styles.paneTitle}>
-            제안된 내용
-            <span className={`mono ${styles.countAdd}`}>+{stats.added}자</span>
-          </h2>
-          <DiffText
-            ops={ops}
-            side="after"
-            className={styles.body}
-            placeholder="(비어 있음 — 삭제 제안)"
-          />
-          {detail.summary && <p className={styles.summary}>편집 요약: {detail.summary}</p>}
-        </section>
-      </div>
-
-      <form className={styles.reviewForm}>
-        <label className={styles.field}>
-          <span className={styles.label}>반영할 내용 (필요하면 고쳐서 반영)</span>
-          <textarea name="body" className={styles.textarea} defaultValue={detail.body} rows={12} />
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.label}>검토 메모 (거절 시 필수, 사유를 남긴다)</span>
-          <textarea name="reviewNote" className={styles.textarea} rows={3} />
-        </label>
-
-        <div className={styles.actions}>
-          <button type="submit" formAction={boundApprove} className="btn btn--acid">
-            그대로/고쳐서 반영
-          </button>
-          <button type="submit" formAction={boundReject} className="btn">
-            거절
-          </button>
-        </div>
-      </form>
+      {/*
+        * 좌우 두 면과 `반영할 내용` 입력칸은 한 덩어리다. 검토자가 오른쪽을 고칠 때마다
+        * 양쪽 형광펜이 다시 칠해져야 하므로 클라이언트에서 산다. 서버 액션은 그대로
+        * 바인딩해 내려보낸다 — 인증과 권한 검증은 여전히 서버가 한다.
+        */}
+      <ReviewMergeForm
+        currentBody={detail.currentBody}
+        proposedBody={detail.body}
+        summary={detail.summary}
+        approveAction={boundApprove}
+        rejectAction={boundReject}
+      />
 
       <Link href="/admin/wiki/review" className={styles.back}>
         대기열로 돌아가기

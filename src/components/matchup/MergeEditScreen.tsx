@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { DiffText } from "@/components/wiki/DiffText";
+import { HighlightedEditor } from "@/components/wiki/HighlightedEditor";
 import { MAX_BODY_LENGTH, MAX_SUMMARY_LENGTH } from "@/data/wiki";
 import { submitEditAction, type ActionState } from "@/lib/actions/wikiEditActions";
 import { diffStats, diffWords, hasRemoval } from "@/lib/wikiDiff";
@@ -65,8 +66,6 @@ export function MergeEditScreen({
    * 여기 상태는 형광펜과 안내 문구를 그리는 데만 쓰고, 실제 값은 textarea가 갖는다.
    */
   const [body, setBody] = useState(currentBody);
-
-  const backdropRef = useRef<HTMLDivElement>(null);
 
   const ops = useMemo(() => diffWords(currentBody, body), [currentBody, body]);
   const removing = hasRemoval(ops);
@@ -129,43 +128,15 @@ export function MergeEditScreen({
                 </span>
               </div>
 
-              {/*
-               * 형광펜은 textarea 뒤에 깔린 사본이 그린다. 글자는 투명하게 두고 배경만
-               * 남겨, 실제로 읽히는 글자는 언제나 textarea 자신의 것이다 — 글자를
-               * 겹쳐 그리면 한글 조합 중인 글자가 사라져 버린다.
-               */}
-              <div className={styles.editWrap}>
-                <div className={`${styles.text} ${styles.backdrop}`} ref={backdropRef} aria-hidden="true">
-                  {ops
-                    .filter((op) => op.type !== "remove")
-                    .map((op, index) =>
-                      op.type === "add" ? (
-                        <mark key={index} className={styles.addMark}>
-                          {op.text}
-                        </mark>
-                      ) : (
-                        <span key={index}>{op.text}</span>
-                      ),
-                    )}
-                  {"\n"}
-                </div>
-
-                <textarea
-                  name="body"
-                  className={`${styles.text} ${styles.input}`}
-                  defaultValue={currentBody}
-                  maxLength={MAX_BODY_LENGTH}
-                  spellCheck={false}
-                  aria-label={`${sectionTitle} 본문`}
-                  onChange={(e) => setBody(e.currentTarget.value)}
-                  onScroll={(e) => {
-                    const backdrop = backdropRef.current;
-                    if (!backdrop) return;
-                    backdrop.scrollTop = e.currentTarget.scrollTop;
-                    backdrop.scrollLeft = e.currentTarget.scrollLeft;
-                  }}
-                />
-              </div>
+              <HighlightedEditor
+                name="body"
+                defaultValue={currentBody}
+                ops={ops}
+                onChange={setBody}
+                maxLength={MAX_BODY_LENGTH}
+                ariaLabel={`${sectionTitle} 본문`}
+                className={styles.editBox}
+              />
             </section>
           </div>
 

@@ -50,7 +50,9 @@
 | 편집 화면 | [`src/app/matchup/[position]/[champion]/edit/page.tsx`](../src/app/matchup/[position]/[champion]/edit/page.tsx) + [`MergeEditScreen.tsx`](../src/components/matchup/MergeEditScreen.tsx) — `?section=general` / `?section=me:<슬러그>`. 문서 화면 안 인라인 패널이 아니라 별도 주소다 |
 | 편집 진입점 | [`src/components/matchup/WikiPanel.tsx`](../src/components/matchup/WikiPanel.tsx) — 섹션 제목 줄의 `편집` 링크가 위 주소로 보낸다 |
 | 차이 계산 | [`src/lib/wikiDiff.ts`](../src/lib/wikiDiff.ts) — **클라이언트와 서버가 함께 쓴다.** `server-only`를 넣지 말 것 |
-| 형광펜 렌더 | [`src/components/wiki/DiffText.tsx`](../src/components/wiki/DiffText.tsx) — 편집 화면 왼쪽과 검토 화면이 함께 쓴다 |
+| 형광펜 렌더 | [`src/components/wiki/DiffText.tsx`](../src/components/wiki/DiffText.tsx) — 읽기 전용(좌측 면). 편집 화면과 검토 화면이 함께 쓴다 |
+| 형광펜 입력칸 | [`src/components/wiki/HighlightedEditor.tsx`](../src/components/wiki/HighlightedEditor.tsx) — 사본과 textarea의 치수를 맞추는 까다로운 부분이 여기 모여 있다. **두 화면이 한 벌을 쓴다** |
+| 검토 화면 | [`src/components/admin/ReviewMergeForm.tsx`](../src/components/admin/ReviewMergeForm.tsx) — 오른쪽 면이 곧 `반영할 내용` 입력칸이다. 형광펜 기준은 제안 원문이 아니라 지금 문서 |
 | 마크다운 렌더러 | [`src/components/wiki/MarkdownBody.tsx`](../src/components/wiki/MarkdownBody.tsx) — `markdown-to-jsx`, `disableParsingRawHTML: true` |
 | 관리자 화면 | `src/app/admin/**` (`/admin`, `/admin/wiki/review`, `/admin/wiki/review/[editId]`, `/admin/wiki/recent`) |
 | 문서 역사(공개) | `src/app/matchup/[position]/[champion]/history/page.tsx` |

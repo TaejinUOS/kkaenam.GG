@@ -1,0 +1,124 @@
+/*
+ * 검토 화면의 좌우 병합 편집기. 배치만 둔다 — 형광펜 색은 globals.css의 --diff-*,
+ * 사본과 입력칸의 정렬은 `HighlightedEditor.module.css`가 맡는다.
+ */
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.panes {
+  /*
+   * 검토는 문서 전체를 읽어야 하는 일이라 두 면을 화면 높이에 맞춰 크게 잡는다.
+   * 편집 화면(`MergeEditScreen`)과 같은 계산이되, 위에 뒤처짐 안내가 붙을 수 있어
+   * 조금 더 여유를 둔다.
+   */
+  --pane-h: clamp(300px, calc(100dvh - 460px), 700px);
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .panes {
+    grid-template-columns: 1fr;
+    --pane-h: clamp(240px, 46dvh, 440px);
+  }
+}
+
+.pane {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  /* body가 크림색 글자를 물려주므로 밝은 면에서는 글자색을 직접 세운다. */
+  color: var(--ink);
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: var(--line);
+  background: var(--paper-shade);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.count {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.countAdd {
+  color: var(--diff-add-line);
+}
+
+.countRemove {
+  color: var(--diff-remove-line);
+}
+
+/* 왼쪽은 읽기만 한다. DiffText가 자기 치수를 갖고 있어 스크롤만 얹는다. */
+.paneBody {
+  height: var(--pane-h);
+  overflow: auto;
+}
+
+.editBox {
+  height: var(--pane-h);
+}
+
+/* ------------------------------------------------------------------ 아래 */
+
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--smoke);
+}
+
+.summary {
+  color: var(--paper);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--smoke);
+}
+
+.note {
+  padding: 10px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.note:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gum);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

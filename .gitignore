@@ -39,3 +39,8 @@ Thumbs.db
 # Cloudflare 배포 산출물
 /.open-next/
 /.wrangler/
+
+# D1 덤프. 계정 이메일과 소셜 고유번호가 들어 있어 저장소에 두지 않는다.
+*.sql.bak
+backup-*.sql
+d1-backup*.sql

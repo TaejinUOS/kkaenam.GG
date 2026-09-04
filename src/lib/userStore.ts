@@ -10,6 +10,7 @@ import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import type { UserRole } from "@/data/wiki";
+import { NAME_CHANGE_COOLDOWN_DAYS, normalizeName } from "@/lib/nickname";
 
 async function db() {
   const { env } = await getCloudflareContext({ async: true });
@@ -58,48 +59,13 @@ export async function upsertUser(input: {
 
 // ------------------------------------------------------------------ 프로필
 
-/** 닉네임 최소·최대 길이. 한 글자는 사람을 구별하지 못하고, 스무 자를 넘으면 목록이 깨진다. */
-export const MIN_NAME_LENGTH = 2;
-export const MAX_NAME_LENGTH = 20;
-
-/** 닉네임을 다시 바꾸기까지 기다려야 하는 날. */
-export const NAME_CHANGE_COOLDOWN_DAYS = 30;
-
-/**
- * 운영자를 사칭하는 이름은 막는다.
- *
- * 이 사이트에서 이름은 편집 기록 옆에 남는 유일한 신원 표시라, `운영자`라고 적힌
- * 이름이 남긴 편집은 실제 운영자의 판단처럼 읽힌다.
- */
-const RESERVED = ["운영자", "관리자", "admin", "administrator", "깨남"];
-
-export type NameCheck = { ok: true; name: string } | { ok: false; reason: string };
-
-/**
- * 닉네임을 다듬고 검사한다. **저장 직전에 서버에서 부른다** — 화면의 검사는 편의일 뿐이다.
- *
- * 앞뒤 공백을 버리고 연속 공백을 하나로 줄인다. `홍  길동`과 `홍 길동`이 다른 사람으로
- * 보이면 안 되고, 보이지 않는 문자로 남을 흉내 내는 이름도 막아야 한다.
- */
-export function normalizeName(raw: string): NameCheck {
-  /* 제어 문자와 눈에 보이지 않는 공백류를 먼저 걷어낸다. */
-  const cleaned = raw
-    .replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2060\ufeff]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (cleaned.length < MIN_NAME_LENGTH) {
-    return { ok: false, reason: `닉네임은 ${MIN_NAME_LENGTH}자 이상이어야 합니다.` };
-  }
-  if (cleaned.length > MAX_NAME_LENGTH) {
-    return { ok: false, reason: `닉네임은 ${MAX_NAME_LENGTH}자를 넘을 수 없습니다.` };
-  }
-  const folded = cleaned.toLowerCase().replace(/\s/g, "");
-  if (RESERVED.some((word) => folded.includes(word))) {
-    return { ok: false, reason: "운영자로 오해할 수 있는 낱말은 쓸 수 없습니다." };
-  }
-  return { ok: true, name: cleaned };
-}
+export {
+  MAX_NAME_LENGTH,
+  MIN_NAME_LENGTH,
+  NAME_CHANGE_COOLDOWN_DAYS,
+  normalizeName,
+  type NameCheck,
+} from "./nickname";
 
 export type Profile = {
   id: string;

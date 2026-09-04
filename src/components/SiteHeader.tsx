@@ -29,7 +29,7 @@ const NAV: NavItem[] = [
   { label: "강의", href: "/lessons", soon: true },
 ];
 
-const MY_PAGE: NavItem = { label: "마이페이지", href: "/my", soon: true };
+const MY_PAGE: NavItem = { label: "마이페이지", href: "/my" };
 
 function isCurrent(pathname: string, item: NavItem) {
   if (item.href === "/") {
@@ -92,7 +92,6 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
             <span className={styles.avatar} aria-hidden="true" />
             {/* 좁은 화면에서 숨길 수 있도록 레이블을 감싼다. 아바타만 남는다. */}
             <span className={styles.myPageLabel}>{MY_PAGE.label}</span>
-            <span className="sr-only">(추후 개발)</span>
           </Link>
 
           {children}

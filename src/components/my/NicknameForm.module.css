@@ -1,0 +1,75 @@
+/* 닉네임 변경 폼. 마이페이지의 잉크 면 위에 놓인다. */
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--smoke);
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border: var(--line-paper);
+  border-radius: var(--radius-card);
+  background: var(--ink-sunken);
+  color: var(--paper);
+  font-size: 16px;
+}
+
+.input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 안내와 결과는 두 칸을 가로지른다. 입력 칸 폭에 갇히면 문장이 잘게 접힌다. */
+.help,
+.ok,
+.error {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.help {
+  color: var(--smoke);
+}
+
+.ok {
+  color: var(--ink);
+  background: var(--acid);
+  padding: 8px 10px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  font-weight: 600;
+}
+
+.error {
+  color: var(--ink);
+  background: var(--gum);
+  padding: 8px 10px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

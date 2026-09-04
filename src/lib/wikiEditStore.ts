@@ -660,3 +660,51 @@ export async function listRecentChanges(limit = 50): Promise<RecentChangeRow[]> 
     createdAt: r.created_at,
   }));
 }
+
+// ------------------------------------------------------------- 내 기여 요약
+
+export type MyContribution = {
+  /** 반영된 편집 수. 이 사람이 실제로 문서를 바꾼 횟수다. */
+  accepted: number;
+  /** 검토 대기 중. */
+  pending: number;
+  /** 거절됨. */
+  rejected: number;
+  /** 반영된 편집이 닿은 문서 수. 몇 개 문서에 기여했는지. */
+  docs: number;
+};
+
+/**
+ * 내 기여 요약 (마이페이지).
+ *
+ * 위키에서 마이페이지의 본체는 프로필이 아니라 **기여 기록**이다. 얼마나 썼는지,
+ * 지금 무엇이 검토를 기다리는지가 다시 들어올 이유가 된다.
+ *
+ * 네 값을 한 번에 세는 이유는 화면이 넷을 나란히 보여 주기 때문이다. 따로 세면
+ * 그 사이 편집이 승인되어 "대기 1, 반영 0" 같은 앞뒤가 안 맞는 줄이 나올 수 있다.
+ */
+export async function getMyContribution(authorId: string): Promise<MyContribution> {
+  const DB = await db();
+  const row = await DB.prepare(
+    `SELECT
+       SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) AS accepted,
+       SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected,
+       COUNT(DISTINCT CASE WHEN status = 'accepted' THEN doc_id END) AS docs
+     FROM wiki_edits WHERE author = ?1`,
+  )
+    .bind(authorId)
+    .first<{
+      accepted: number | null;
+      pending: number | null;
+      rejected: number | null;
+      docs: number | null;
+    }>();
+
+  return {
+    accepted: row?.accepted ?? 0,
+    pending: row?.pending ?? 0,
+    rejected: row?.rejected ?? 0,
+    docs: row?.docs ?? 0,
+  };
+}

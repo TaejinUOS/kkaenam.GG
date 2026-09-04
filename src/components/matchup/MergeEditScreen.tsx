@@ -14,8 +14,6 @@ import { diffStats, diffWords, hasRemoval } from "@/lib/wikiDiff";
 import styles from "./MergeEditScreen.module.css";
 
 type Props = {
-  positionSlug: string;
-  positionName: string;
   championSlug: string;
   championName: string;
   patch: string;
@@ -46,8 +44,6 @@ type Props = {
  * (`docs/WIKI_MODEL.md` "판정은 서버가 한다").
  */
 export function MergeEditScreen({
-  positionSlug,
-  positionName,
   championSlug,
   championName,
   patch,
@@ -83,7 +79,7 @@ export function MergeEditScreen({
       <header className={styles.head}>
         <div>
           <p className="section-index">
-            {positionName} · {championName} 상대법 편집
+            {championName} 상대법 편집
           </p>
           <h1 className={`display ${styles.title}`}>{sectionTitle}</h1>
         </div>
@@ -98,7 +94,6 @@ export function MergeEditScreen({
         <SaveResult message={state.message} returnHref={returnHref} />
       ) : (
         <form action={formAction} className={styles.form}>
-          <input type="hidden" name="positionSlug" value={positionSlug} />
           <input type="hidden" name="championSlug" value={championSlug} />
           <input type="hidden" name="patch" value={patch} />
           {meSlug && <input type="hidden" name="meSlug" value={meSlug} />}

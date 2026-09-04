@@ -5,15 +5,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { hasFinePointer } from "@/lib/motion";
 
 import styles from "./ChampionAside.module.css";
-import type { ChampionView, PositionView, SkillView } from "./types";
+import type { ChampionView, SkillView } from "./types";
 
 type Props = {
   champion: ChampionView;
-  position: PositionView;
+  /** `미드` 또는 `미드 · 원딜 · 서폿`. 이 챔피언이 놓인 자리를 이어 붙인 것. */
+  positionLabel: string;
   patch: string;
 };
 
-export function ChampionAside({ champion, position, patch }: Props) {
+export function ChampionAside({ champion, positionLabel, patch }: Props) {
   /** 한 번에 하나만 열린다 (PRD 9). */
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [illustrationFailed, setIllustrationFailed] = useState(false);
@@ -90,7 +91,7 @@ export function ChampionAside({ champion, position, patch }: Props) {
         <div className={styles.nameplate}>
           <h1 className={styles.name}>{champion.name}</h1>
           <p className={`mono ${styles.title}`}>{champion.title}</p>
-          <p className={`sticker sticker--gum ${styles.positionTag}`}>{position.name}</p>
+          <p className={`sticker sticker--gum ${styles.positionTag}`}>{positionLabel}</p>
         </div>
 
         <p className={`mono sticker ${styles.patchTag}`}>patch {patch}</p>

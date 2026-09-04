@@ -9,10 +9,11 @@ import type { ChampionOption } from "./types";
 
 type Props = {
   /** 현재 포지션의 챔피언. 기본 검색 대상이다 (PRD 5.3.3). */
-  positionChampions: ChampionOption[];
+  nearbyChampions: ChampionOption[];
   /** 포지션 밖 챔피언까지 찾을 수 있도록 전체 목록도 함께 받는다. */
   allChampions: ChampionOption[];
-  positionName: string;
+  /** `미드` 또는 `미드 · 원딜 · 서폿`. 첫 묶음의 이름표에 쓴다. */
+  nearbyLabel: string;
   value: string | null;
   onChange: (slug: string | null) => void;
   /** 제목 줄에 끼워 넣을 때. 라벨을 화면에서 감추고 폭을 줄인다. */
@@ -22,9 +23,9 @@ type Props = {
 type Group = { label: string; options: ChampionOption[] };
 
 export function MeCombobox({
-  positionChampions,
+  nearbyChampions,
   allChampions,
-  positionName,
+  nearbyLabel,
   value,
   onChange,
   compact = false,
@@ -43,25 +44,25 @@ export function MeCombobox({
     [allChampions, value],
   );
 
-  const positionSlugs = useMemo(
-    () => new Set(positionChampions.map((c) => c.slug)),
-    [positionChampions],
+  const nearbySlugs = useMemo(
+    () => new Set(nearbyChampions.map((c) => c.slug)),
+    [nearbyChampions],
   );
 
   /** 현재 포지션을 먼저 보여 주고, 검색어가 있을 때만 다른 포지션까지 넓힌다. */
   const groups: Group[] = useMemo(() => {
     const needle = normalizeQuery(term);
-    const inPosition = positionChampions.filter((c) => matchesName(needle, c.name, c.slug));
-    const result: Group[] = [{ label: `${positionName} 챔피언`, options: inPosition }];
+    const nearby = nearbyChampions.filter((c) => matchesName(needle, c.name, c.slug));
+    const result: Group[] = [{ label: `${nearbyLabel} 챔피언`, options: nearby }];
 
     if (needle) {
       const outside = allChampions.filter(
-        (c) => !positionSlugs.has(c.slug) && matchesName(needle, c.name, c.slug),
+        (c) => !nearbySlugs.has(c.slug) && matchesName(needle, c.name, c.slug),
       );
       if (outside.length > 0) result.push({ label: "다른 포지션", options: outside.slice(0, 20) });
     }
     return result.filter((g) => g.options.length > 0);
-  }, [term, positionChampions, allChampions, positionSlugs, positionName]);
+  }, [term, nearbyChampions, allChampions, nearbySlugs, nearbyLabel]);
 
   const flat = useMemo(() => groups.flatMap((g) => g.options), [groups]);
 

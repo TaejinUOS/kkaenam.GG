@@ -48,11 +48,14 @@ function joinBodies(parts: { heading?: string; body: string }[]): string {
     .join("\n\n");
 }
 
+/**
+ * 챔피언 슬러그. 문서는 챔피언당 하나다 (마이그레이션 0003).
+ * 한 챔피언의 Tip이 여러 포지션에 흩어져 있으면 한 문서로 합쳐진다.
+ */
 type DocKey = string;
 const docs = new Map<
   DocKey,
   {
-    positionSlug: string;
     championSlug: string;
     patch: string;
     generals: { heading: string; body: string }[];
@@ -62,11 +65,10 @@ const docs = new Map<
 >();
 
 for (const tip of seedTips as Tip[]) {
-  const key = `${tip.positionSlug}/${tip.championSlug}`;
+  const key = tip.championSlug;
   let doc = docs.get(key);
   if (!doc) {
     doc = {
-      positionSlug: tip.positionSlug,
       championSlug: tip.championSlug,
       patch: tip.patch,
       generals: [],
@@ -99,13 +101,13 @@ let sectionCount = 0;
 let editCount = 0;
 
 for (const [key, doc] of [...docs.entries()].sort()) {
-  const docId = `doc-${doc.positionSlug}-${doc.championSlug}`;
+  const docId = `doc-c-${doc.championSlug}`;
   const general = joinBodies(doc.generals);
 
   lines.push(`-- ${key} — Tip ${doc.generals.length}개, Me 섹션 ${doc.meBodies.size}개`);
   lines.push(
-    `INSERT INTO wiki_docs (id, position_slug, champion_slug, general, revision, patch, edit_policy, created_at, updated_at, updated_by)`,
-    `VALUES (${sql(docId)}, ${sql(doc.positionSlug)}, ${sql(doc.championSlug)}, ${sql(general)}, 1, ${sql(doc.patch)}, 'guarded', ${sql(MIGRATED_AT)}, ${sql(MIGRATED_AT)}, ${sql(SYSTEM_USER_ID)});`,
+    `INSERT INTO wiki_docs (id, champion_slug, general, revision, patch, edit_policy, created_at, updated_at, updated_by)`,
+    `VALUES (${sql(docId)}, ${sql(doc.championSlug)}, ${sql(general)}, 1, ${sql(doc.patch)}, 'guarded', ${sql(MIGRATED_AT)}, ${sql(MIGRATED_AT)}, ${sql(SYSTEM_USER_ID)});`,
   );
   docCount += 1;
 

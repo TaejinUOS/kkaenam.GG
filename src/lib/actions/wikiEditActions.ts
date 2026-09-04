@@ -19,8 +19,8 @@ import {
 
 export type ActionState = { ok: boolean; message: string } | null;
 
-function matchupPath(positionSlug: string, championSlug: string) {
-  return `/matchup/${positionSlug}/${championSlug}`;
+function matchupPath(championSlug: string) {
+  return `/matchup/${championSlug}`;
 }
 
 export async function submitEditAction(
@@ -30,7 +30,6 @@ export async function submitEditAction(
   const auth = await requireActionUser();
   if (!auth.ok) return { ok: false, message: "로그인이 필요합니다." };
 
-  const positionSlug = String(formData.get("positionSlug") ?? "");
   const championSlug = String(formData.get("championSlug") ?? "");
   const meSlugRaw = String(formData.get("meSlug") ?? "");
   const meSlug = meSlugRaw ? meSlugRaw : null;
@@ -38,7 +37,7 @@ export async function submitEditAction(
   const summary = String(formData.get("summary") ?? "");
   const patch = String(formData.get("patch") ?? "");
 
-  if (!positionSlug || !championSlug) return { ok: false, message: "잘못된 요청입니다." };
+  if (!championSlug) return { ok: false, message: "잘못된 요청입니다." };
   if (body.length > MAX_BODY_LENGTH) {
     return { ok: false, message: `본문은 ${MAX_BODY_LENGTH}자를 넘을 수 없습니다.` };
   }
@@ -47,7 +46,6 @@ export async function submitEditAction(
   }
 
   const result = await submitEdit({
-    positionSlug,
     championSlug,
     meSlug,
     body,
@@ -67,8 +65,11 @@ export async function submitEditAction(
     };
   }
 
-  revalidatePath(matchupPath(positionSlug, championSlug));
-  revalidatePath(`${matchupPath(positionSlug, championSlug)}/history`);
+  revalidatePath(matchupPath(championSlug));
+  revalidatePath(`${matchupPath(championSlug)}/history`);
+  revalidatePath("/wiki");
+  revalidatePath("/wiki/recent");
+  revalidatePath("/wiki/wanted");
   revalidatePath("/admin/wiki/review");
   revalidatePath("/admin/wiki/recent");
   revalidatePath("/my/edits");
@@ -89,7 +90,6 @@ export async function submitEditAction(
  */
 export async function approveEditAction(
   editId: string,
-  positionSlug: string,
   championSlug: string,
   formData: FormData,
 ): Promise<void> {
@@ -107,8 +107,10 @@ export async function approveEditAction(
 
   if (!result.ok) redirect(`/admin/wiki/review/${editId}?error=approve_failed`);
 
-  revalidatePath(matchupPath(positionSlug, championSlug));
-  revalidatePath(`${matchupPath(positionSlug, championSlug)}/history`);
+  revalidatePath(matchupPath(championSlug));
+  revalidatePath(`${matchupPath(championSlug)}/history`);
+  revalidatePath("/wiki");
+  revalidatePath("/wiki/recent");
   revalidatePath("/admin/wiki/recent");
   revalidatePath("/my/edits");
 
@@ -131,19 +133,20 @@ export async function rejectEditAction(editId: string, formData: FormData): Prom
 
 /** `useActionState`용 액션. state/formData는 안 쓰지만 그 훅의 호출 규약상 자리는 있어야 한다. */
 export async function revertDocAction(
-  positionSlug: string,
   championSlug: string,
   targetRevision: number,
 ): Promise<ActionState> {
   const auth = await requireActionAdmin();
   if (!auth.ok) return { ok: false, message: "권한이 없습니다." };
 
-  const result = await revertDoc(positionSlug, championSlug, targetRevision, auth.viewer.id);
+  const result = await revertDoc(championSlug, targetRevision, auth.viewer.id);
   if (!result.ok) return { ok: false, message: "되돌릴 수 없습니다." };
   if (result.changedSections === 0) return { ok: true, message: "이미 그 상태와 같습니다." };
 
-  revalidatePath(matchupPath(positionSlug, championSlug));
-  revalidatePath(`${matchupPath(positionSlug, championSlug)}/history`);
+  revalidatePath(matchupPath(championSlug));
+  revalidatePath(`${matchupPath(championSlug)}/history`);
+  revalidatePath("/wiki");
+  revalidatePath("/wiki/recent");
   revalidatePath("/admin/wiki/recent");
 
   return { ok: true, message: `되돌렸습니다 (섹션 ${result.changedSections}개 변경).` };

@@ -22,8 +22,8 @@ export type WikiIndexStats = {
   docCount: number;
   /** 최근 7일간 반영된 편집 수. 이 위키가 살아 있는지를 말하는 숫자다. */
   weekEditCount: number;
-  /** 이미 쓰인 매치업 문서의 키. `${포지션}/${챔피언}` 꼴. */
-  writtenMatchupKeys: string[];
+  /** 이미 문서가 있는 챔피언의 슬러그. 챔피언당 문서 하나다 (마이그레이션 0003). */
+  writtenChampionSlugs: string[];
 };
 
 /**
@@ -44,7 +44,7 @@ export async function getWikiIndexStats(): Promise<WikiIndexStats> {
     DB.prepare(
       `SELECT COUNT(*) AS n FROM wiki_edits WHERE status = 'accepted' AND created_at >= ?1`,
     ).bind(since),
-    DB.prepare(`SELECT position_slug, champion_slug FROM wiki_docs`),
+    DB.prepare(`SELECT champion_slug FROM wiki_docs WHERE champion_slug IS NOT NULL`),
   ]);
 
   const first = (result: { results?: Record<string, unknown>[] }) =>
@@ -53,8 +53,6 @@ export async function getWikiIndexStats(): Promise<WikiIndexStats> {
   return {
     docCount: first(docs),
     weekEditCount: first(edits),
-    writtenMatchupKeys: (written.results ?? []).map(
-      (row) => `${row.position_slug as string}/${row.champion_slug as string}`,
-    ),
+    writtenChampionSlugs: (written.results ?? []).map((row) => row.champion_slug as string),
   };
 }

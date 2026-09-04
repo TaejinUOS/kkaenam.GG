@@ -20,27 +20,25 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const resolved = resolveMatchup(await params);
   if (!resolved) return { title: "찾을 수 없는 문서 역사" };
-  return { title: `${resolved.positionData.name} ${resolved.championData.name} 문서 역사` };
+  return { title: `${resolved.championData.name} 상대법 문서 역사` };
 }
 
 /** 문서 역사 열람 (FR-29). 공개 화면 — 로그인 불필요. 되돌리기만 관리자 전용 (FR-30). */
 export default async function DocHistoryPage({ params }: { params: Promise<MatchupRouteParams> }) {
   const resolved = resolveMatchup(await params);
   if (!resolved) notFound();
-  const { positionData, championData } = resolved;
+  const { championData } = resolved;
 
   const [history, viewer] = await Promise.all([
-    listDocHistory(positionData.slug, championData.slug),
+    listDocHistory(championData.slug),
     getViewer(),
   ]);
 
   return (
     <div className={`shell ${styles.screen}`}>
       <p className="section-index">문서 역사</p>
-      <h1 className={`display ${styles.title}`}>
-        {positionData.name} {championData.name} 상대법
-      </h1>
-      <Link href={`/matchup/${positionData.slug}/${championData.slug}`} className={styles.back}>
+      <h1 className={`display ${styles.title}`}>{championData.name} 상대법</h1>
+      <Link href={`/matchup/${championData.slug}`} className={styles.back}>
         문서로 돌아가기
       </Link>
 
@@ -66,7 +64,6 @@ export default async function DocHistoryPage({ params }: { params: Promise<Match
                   <HistoryBody editId={entry.id} />
                   {viewer?.role === "admin" && (
                     <RevertButton
-                      positionSlug={positionData.slug}
                       championSlug={championData.slug}
                       targetRevision={entry.revision}
                     />

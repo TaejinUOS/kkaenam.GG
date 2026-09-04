@@ -93,7 +93,7 @@ export function ContactSheet({ positionSlug, positionName, category, champions }
                 type="button"
                 className={styles.pick}
                 onClick={(event) =>
-                  navigate(`/matchup/${positionSlug}/${champion.slug}`, event.currentTarget)
+                  navigate(`/matchup/${champion.slug}`, event.currentTarget)
                 }
               >
                 <span className={styles.pickFrame}>

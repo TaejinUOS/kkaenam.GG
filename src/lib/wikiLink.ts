@@ -44,70 +44,55 @@ export function resolveWikiTitle(title: string): string | null {
   return resolveMatchupTitle(title);
 }
 
-/** 매치업 문서의 정식 이름. 화면과 링크가 같은 말을 쓰게 하는 단일 원본이다. */
-export function matchupDocTitle(positionName: string, championName: string): string {
-  return `${positionName} ${championName} 상대법`;
-}
-
-/** 챔피언 슬러그 → 그 챔피언이 속한 포지션 슬러그들. 포지션을 생략한 이름을 풀 때 쓴다. */
-const championPositions = new Map<string, string[]>();
-for (const position of positions) {
-  for (const champion of allChampions) {
-    if (!getClassificationFor(position.slug, champion.slug)) continue;
-    championPositions.set(champion.slug, [
-      ...(championPositions.get(champion.slug) ?? []),
-      position.slug,
-    ]);
-  }
+/**
+ * 매치업 문서의 정식 이름. 화면과 링크가 같은 말을 쓰게 하는 단일 원본이다.
+ *
+ * 포지션이 들어가지 않는다. 챔피언 하나당 문서 하나이므로(마이그레이션 0003)
+ * `럭스 상대법`이 가리킬 문서는 언제나 하나뿐이고, 포지션은 패치마다 바뀌는 분류라
+ * 이름에 박아 두면 이름이 흔들린다.
+ */
+export function matchupDocTitle(championName: string): string {
+  return `${championName} 상대법`;
 }
 
 /**
  * 매치업 문서를 가리키는 이름을 주소로 바꾼다.
  *
- * 세 가지 꼴을 모두 받는다. 화면이 `미드 아리 상대법`이라고 부르는 문서를 편집자가
- * 그대로 `[[미드 아리 상대법]]`이라고 적었을 때 빨간 링크가 되면, 이름과 링크가 따로
- * 노는 것이고 그건 사람이 지킬 규칙이 아니다 (`docs/WIKI_EXPANSION.md` "이름이 곧 주소다").
+ * 정식 이름은 `아리 상대법`이고, 그 밖에 사람들이 실제로 적을 만한 꼴을 함께 받는다.
+ * 화면이 부르는 이름을 그대로 적었는데 빨간 링크가 되면 이름과 링크가 따로 노는
+ * 것이고, 그건 사람이 지킬 규칙이 아니다.
  *
- *   미드/아리          — 주소를 그대로 옮긴 짧은 꼴
- *   미드 아리 상대법    — 정식 이름. 화면이 쓰는 것과 같다
- *   아리 상대법        — 포지션 생략. 그 챔피언이 한 포지션에만 있을 때만 풀린다
+ *   아리 상대법        — 정식 이름
+ *   미드 아리 상대법    — 포지션을 앞에 붙인 꼴. 포지션은 이제 장식이라 무시한다
+ *   미드/아리          — 통일 이전에 쓰인 링크. 옛 본문에 남아 있으므로 계속 받는다
  *
- * 마지막 꼴은 **모호하면 일부러 풀지 않는다.** `럭스 상대법`은 미드·원딜·서폿 세
- * 문서를 가리킬 수 있어, 아무 데나 걸면 독자를 엉뚱한 문서로 보낸다. 빨간 링크로
- * 남겨 편집자가 포지션을 적게 하는 편이 낫다.
+ * 접미사 `상대법`을 요구하는 것은 `[[아리]]`가 실수로 링크가 되지 않게 하기 위해서다.
+ * 챔피언 이름은 본문에 수없이 나오고, 그 전부가 문서 링크인 것은 아니다.
  *
- * 분류에 없는 조합(`미드/가렌`)도 null이다. 그 주소는 어차피 404이므로, 링크로 만들어
+ * 분류 어디에도 없는 챔피언은 null이다. 그 주소는 어차피 404이므로, 링크로 만들어
  * 독자를 막다른 길로 보내는 것보다 빨간 링크로 남기는 편이 낫다 (PRD FR-07).
  */
 function resolveMatchupTitle(title: string): string | null {
   const slash = title.indexOf("/");
   if (slash >= 0) {
-    /* `미드/아리` 그리고 `미드/아리 상대법`. 뒤에 붙은 `상대법`은 떼고 본다. */
-    return finish(
-      positionIndex.get(normalize(title.slice(0, slash))),
-      championIndex.get(normalize(stripSuffix(title.slice(slash + 1)))),
-    );
+    /* `미드/아리`와 `미드/아리 상대법`. 앞의 포지션은 확인만 하고 버린다. */
+    if (!positionIndex.has(normalize(title.slice(0, slash)))) return null;
+    return finish(championIndex.get(normalize(stripSuffix(title.slice(slash + 1)))));
   }
 
   const bare = stripSuffix(title);
-  /* 접미사 `상대법`이 없으면 매치업 문서를 가리키는 이름이 아니다. */
+  /* 접미사가 없으면 매치업 문서를 가리키는 이름이 아니다. */
   if (bare === title.trim()) return null;
 
-  /* `미드 아리 상대법` — 첫 낱말이 포지션이면 나머지가 챔피언이다. */
-  const space = bare.indexOf(" ");
-  if (space > 0) {
-    const positionSlug = positionIndex.get(normalize(bare.slice(0, space)));
-    if (positionSlug) {
-      return finish(positionSlug, championIndex.get(normalize(bare.slice(space + 1))));
-    }
-  }
+  const direct = championIndex.get(normalize(bare));
+  if (direct) return finish(direct);
 
-  /* `아리 상대법` — 포지션이 생략됐다. 한 곳에만 있는 챔피언일 때만 풀린다. */
-  const championSlug = championIndex.get(normalize(bare));
-  if (!championSlug) return null;
-  const owners = championPositions.get(championSlug);
-  if (owners?.length !== 1) return null;
-  return finish(owners[0], championSlug);
+  /* `미드 아리 상대법` — 첫 낱말이 포지션이면 떼고 다시 본다. */
+  const space = bare.indexOf(" ");
+  if (space > 0 && positionIndex.has(normalize(bare.slice(0, space)))) {
+    return finish(championIndex.get(normalize(bare.slice(space + 1))));
+  }
+  return null;
 }
 
 /** 이름 끝의 `상대법`을 뗀다. 없으면 그대로 돌려준다. */
@@ -116,10 +101,12 @@ function stripSuffix(text: string): string {
   return trimmed.endsWith("상대법") ? trimmed.slice(0, -3).trim() : trimmed;
 }
 
-function finish(positionSlug: string | undefined, championSlug: string | undefined): string | null {
-  if (!positionSlug || !championSlug) return null;
-  if (!getClassificationFor(positionSlug, championSlug)) return null;
-  return `/matchup/${positionSlug}/${championSlug}`;
+/** 분류 어디에든 있는 챔피언이면 주소를, 아니면 null을 준다. */
+function finish(championSlug: string | undefined): string | null {
+  if (!championSlug) return null;
+  const classified = positions.some((p) => getClassificationFor(p.slug, championSlug));
+  if (!classified) return null;
+  return `/matchup/${championSlug}`;
 }
 
 /** 본문 여러 개에 적힌 위키링크를 한 번에 해석한다. 해석되지 않은 이름은 담지 않는다. */

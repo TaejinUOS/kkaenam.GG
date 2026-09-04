@@ -82,15 +82,14 @@ function emptyView(): WikiView {
 }
 
 /**
- * 매치업 문서를 통째로 읽는다.
+ * 매치업 문서를 통째로 읽는다. **챔피언 하나당 문서 하나다** (마이그레이션 0003).
+ * 포지션은 분류일 뿐이라 문서를 찾는 데 쓰지 않는다.
+ *
  *
  * `wiki_sections`를 별도 표로 둔 것은 이제 읽는 양을 줄이기 위해서가 아니라, 섹션이
  * 편집 단위이자 즉시반영·검토 판정 단위이기 때문이다 (`docs/WIKI_MODEL.md`).
  */
-export async function getWikiView(
-  positionSlug: string,
-  championSlug: string,
-): Promise<WikiView> {
+export async function getWikiView(championSlug: string): Promise<WikiView> {
   const DB = await db();
 
   const doc = await DB.prepare(
@@ -98,9 +97,9 @@ export async function getWikiView(
             u.name AS updated_by_name
        FROM wiki_docs d
        LEFT JOIN users u ON u.id = d.updated_by
-      WHERE d.position_slug = ?1 AND d.champion_slug = ?2`,
+      WHERE d.champion_slug = ?1`,
   )
-    .bind(positionSlug, championSlug)
+    .bind(championSlug)
     .first<DocRow>();
 
   if (!doc) return emptyView();

@@ -11,19 +11,20 @@ import { buildQuery } from "@/lib/url";
 
 import { type DocSection, WikiDocument } from "../wiki/WikiDocument";
 import { MeCombobox } from "./MeCombobox";
-import type { ChampionOption, ChampionView, PositionView } from "./types";
+import type { ChampionOption, ChampionView } from "./types";
 import styles from "./WikiPanel.module.css";
 
 type Viewer = { id: string; name: string; role: "member" | "admin" } | null;
 
 type Props = {
-  position: PositionView;
+  /** `미드` 또는 `미드 · 원딜 · 서폿`. 이 챔피언이 놓인 자리를 이어 붙인 것. */
+  positionLabel: string;
   champion: ChampionView;
   /** 서버가 D1에서 읽어 온 문서. 내용이 있는 섹션이 모두 담겨 있다. */
   wiki: WikiView;
   /** 본문에 적힌 `[[...]]`를 서버가 미리 풀어 둔 결과. */
   wikiLinks: WikiLinkMap;
-  positionChampions: ChampionOption[];
+  nearbyChampions: ChampionOption[];
   allChampions: ChampionOption[];
   viewer: Viewer;
 };
@@ -48,11 +49,11 @@ const meId = (slug: string) => `me-${slug}`;
  * (`/matchup/…/edit?section=…`), 여기서는 그 화면으로 보내기만 한다.
  */
 export function WikiPanel({
-  position,
+  positionLabel,
   champion,
   wiki,
   wikiLinks,
-  positionChampions,
+  nearbyChampions,
   allChampions,
   viewer,
 }: Props) {
@@ -86,7 +87,7 @@ export function WikiPanel({
    * 넓게 벌린 병합 편집기가 문서 폭 안에 들어갈 수 없기 때문이다.
    */
   const editHref = (target: "general" | `me:${string}`) =>
-    `/matchup/${position.slug}/${champion.slug}/edit?section=${target}`;
+    `/matchup/${champion.slug}/edit?section=${target}`;
 
   const resolveLink = useCallback((target: string) => wikiLinks[target] ?? null, [wikiLinks]);
 
@@ -116,9 +117,9 @@ export function WikiPanel({
        */
       tools: (
         <MeCombobox
-          positionChampions={positionChampions}
+          nearbyChampions={nearbyChampions}
           allChampions={allChampions}
-          positionName={position.name}
+          nearbyLabel={positionLabel}
           value={meSlug}
           onChange={setMe}
           compact
@@ -126,7 +127,7 @@ export function WikiPanel({
       ),
       empty: (
         <p className={styles.empty}>
-          {position.name}에서 {champion.name}
+          {champion.name}
           {eulReul(champion.name)} 상대하는 공통 상대법이 아직 없습니다.
         </p>
       ),
@@ -186,13 +187,12 @@ export function WikiPanel({
   }, [
     wiki,
     allChampions,
-    positionChampions,
+    nearbyChampions,
     meChampion,
     meSlug,
     setMe,
     viewer,
-    position.slug,
-    position.name,
+    positionLabel,
     champion.slug,
     champion.name,
   ]);
@@ -200,7 +200,7 @@ export function WikiPanel({
   return (
     <div className={styles.panel}>
       <header className={styles.documentHeader}>
-        <p className={`mono ${styles.documentKicker}`}>{position.name} MATCHUP WIKI</p>
+        <p className={`mono ${styles.documentKicker}`}>{positionLabel} MATCHUP WIKI</p>
         <h2 className={styles.documentTitle}>{champion.name} 상대법</h2>
       </header>
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug, getPosition } from "@/data/champions";
+import { getChampionBySlug } from "@/data/champions";
 import { ACCEPTED_VIA_LABEL, isUnreviewed } from "@/data/wiki";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { listRecentChanges } from "@/lib/wikiEditStore";
@@ -29,7 +29,6 @@ export default async function RecentChangesPage() {
       ) : (
         <ul className={styles.list}>
           {changes.map((change) => {
-            const position = getPosition(change.positionSlug);
             const champion = getChampionBySlug(change.championSlug);
             const sectionLabel = change.meSlug
               ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
@@ -43,16 +42,16 @@ export default async function RecentChangesPage() {
                     {ACCEPTED_VIA_LABEL[change.acceptedVia] ?? change.acceptedVia}
                   </span>
                   <span className="mono">r{change.revision}</span>
-                  {position && champion ? (
+                  {champion ? (
                     <Link
-                      href={`/matchup/${position.slug}/${champion.slug}${change.meSlug ? `?me=${change.meSlug}` : ""}`}
+                      href={`/matchup/${champion.slug}${change.meSlug ? `?me=${change.meSlug}` : ""}`}
                       className={styles.target}
                     >
-                      {position.name} · {champion.name} · {sectionLabel}
+                      {champion.name} 상대법 · {sectionLabel}
                     </Link>
                   ) : (
                     <span className={styles.target}>
-                      {change.positionSlug} · {change.championSlug} · {sectionLabel}
+                      {change.championSlug} 상대법 · {sectionLabel}
                     </span>
                   )}
                 </div>

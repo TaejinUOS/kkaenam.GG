@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionsInPosition, positions } from "@/data/champions";
+import { allChampions, getClassificationFor, positions } from "@/data/champions";
 import { getWikiIndexStats } from "@/lib/wikiIndexStore";
 
 import styles from "./page.module.css";
@@ -17,21 +17,25 @@ export const metadata: Metadata = {
  * **빈 위키에서 값이 가장 큰 목록이다.** 빈 위키의 문제는 "무엇을 쓸지 모르겠다"인데,
  * 이 목록은 이미 있는 분류가 스스로 "이게 필요하다"고 말해 둔 것이다.
  *
+ * 챔피언당 한 줄이다. 문서가 챔피언당 하나이므로(마이그레이션 0003) 여러 포지션에
+ * 있는 챔피언도 한 번만 나온다 — 럭스를 셋으로 세면 남은 일이 실제보다 많아 보인다.
+ * 대신 그 챔피언이 놓인 자리를 이름 아래 적어, 어느 라인에서 쓸 문서인지 알 수 있게 한다.
+ *
  * 지금 담기는 것은 매치업 문서뿐이다. 4단계에서 `wiki_links`가 들어오면 일반 문서의
  * 빨간 링크가 여기 합쳐지고, 많이 걸린 이름부터 보이는 우선순위가 생긴다.
  */
 export default async function WikiWantedPage() {
   const stats = await getWikiIndexStats();
-  const written = new Set(stats.writtenMatchupKeys);
+  const written = new Set(stats.writtenChampionSlugs);
 
-  const groups = positions.map((position) => ({
-    position,
-    champions: getChampionsInPosition(position.slug).filter(
-      (champion) => !written.has(`${position.slug}/${champion.slug}`),
-    ),
-  }));
-
-  const total = groups.reduce((sum, group) => sum + group.champions.length, 0);
+  const wanted = allChampions
+    .map((champion) => ({
+      champion,
+      where: positions
+        .filter((p) => getClassificationFor(p.slug, champion.slug))
+        .map((p) => p.name),
+    }))
+    .filter(({ champion, where }) => where.length > 0 && !written.has(champion.slug));
 
   return (
     <div className={styles.screen}>
@@ -46,40 +50,26 @@ export default async function WikiWantedPage() {
 
         <div className={styles.head}>
           <h1 className={`display ${styles.title}`}>아직 없는 문서</h1>
-          <p className={`mono ${styles.total}`}>{total}</p>
+          <p className={`mono ${styles.total}`}>{wanted.length}</p>
         </div>
         <p className={styles.lead}>
           분류에는 있는데 아직 아무도 쓰지 않은 문서입니다. 누르면 그 문서의 빈 자리로
           갑니다 — 위키에서 빈 문서는 막다른 길이 아니라 초대입니다.
         </p>
 
-        {total === 0 ? (
+        {wanted.length === 0 ? (
           <p className={styles.empty}>분류에 있는 문서를 전부 썼습니다.</p>
         ) : (
-          <div className={styles.groups}>
-            {groups.map(({ position, champions }) =>
-              champions.length === 0 ? null : (
-                <section key={position.slug} className={styles.group}>
-                  <h2 className={styles.groupTitle}>
-                    {position.name}
-                    <span className={`mono ${styles.groupCount}`}>{champions.length}</span>
-                  </h2>
-                  <ul className={styles.chips}>
-                    {champions.map((champion) => (
-                      <li key={champion.slug}>
-                        <Link
-                          href={`/matchup/${position.slug}/${champion.slug}`}
-                          className={styles.chip}
-                        >
-                          {champion.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ),
-            )}
-          </div>
+          <ul className={styles.chips}>
+            {wanted.map(({ champion, where }) => (
+              <li key={champion.slug}>
+                <Link href={`/matchup/${champion.slug}`} className={styles.chip}>
+                  <span className={styles.chipName}>{champion.name} 상대법</span>
+                  <span className={`mono ${styles.chipWhere}`}>{where.join(" · ")}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

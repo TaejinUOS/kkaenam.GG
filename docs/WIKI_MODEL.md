@@ -1,7 +1,7 @@
 # 상대법 위키 데이터 모델 (제안)
 
 > 상태: **승인됨** (2026-09-02). 2026-09-03에 "문서 구조"와 "본문 문법"을,
-> 2026-09-04에 "편집에는 두 갈래가 있다"와 "편집 화면"을 개정했다.
+> 2026-09-04에 "편집에는 두 갈래가 있다"·"편집 화면"과 **문서 식별자**를 개정했다.
 > `docs/PRD.md` v1.0이 이 모델을 반영했다.
 > 이 문서는 PRD의 부속 설계이며, 둘이 어긋나면 PRD가 기준이다.
 
@@ -9,7 +9,7 @@
 
 ## 왜 바꾸는가
 
-게시판은 같은 지식이 여러 글에 흩어진다. `미드 아리 상대법`을 열 명이 쓰면 열 개의
+게시판은 같은 지식이 여러 글에 흩어진다. `아리 상대법`을 열 명이 쓰면 열 개의
 비슷한 글이 좋아요 수로 경쟁하고, 읽는 사람은 열 번 읽어야 한다. 위키는 그 열 개를
 한 문서로 모으고, 틀린 부분은 다음 사람이 고친다.
 
@@ -17,7 +17,8 @@
 
 | 항목 | 결정 |
 | --- | --- |
-| 문서 단위 | 매치업당 문서 1개 — `(포지션, 상대 챔피언)`이 곧 문서 식별자 |
+| 문서 단위 | **상대 챔피언당 문서 1개** — `champion_slug`가 곧 문서 식별자 |
+| 포지션 | 문서의 식별자가 아니라 **분류**다. 한 문서가 여러 포지션에 걸릴 수 있다 (럭스: 미드·원딜·서폿) |
 | 내 챔피언별 상대법 | 문서 안의 섹션. 별도 문서로 쪼개지 않는다 |
 | 편집 방식 | **지운 것이 없으면 바로 반영, 지우거나 고쳤으면 검토 후 반영** |
 | 검토자 | 초기에는 운영자 1인. 나중에 확대 |
@@ -317,7 +318,7 @@ revision이 그 사이 달라졌으면 다시 읽어 다시 판정한다.
 
 ### 새 문법은 파싱 전에 치환한다
 
-markdown-to-jsx에는 문법을 추가하는 플러그인 API가 없다. 그래서 `[^가]`와 `[[미드/아리]]`는
+markdown-to-jsx에는 문법을 추가하는 플러그인 API가 없다. 그래서 `[^가]`와 `[[아리 상대법]]`은
 **파싱하기 전에 표준 마크다운으로 바꾼다.** 그 덕분에 렌더러는 `disableParsingRawHTML: true`를
 유지할 수 있다 — 원시 HTML을 허용하지 않는다는 PRD 10의 결정에 구멍을 내지 않고 문법을 늘리는
 유일한 방법이다.
@@ -464,8 +465,9 @@ CREATE TABLE users (
 
 CREATE TABLE wiki_docs (
   id            TEXT PRIMARY KEY,
-  position_slug TEXT NOT NULL,
-  champion_slug TEXT NOT NULL,          -- 상대 챔피언
+  -- 상대 챔피언. **문서의 유일한 식별자다** (마이그레이션 0003).
+  -- NULL 허용인 것은 1단계의 일반 문서(룬·정글 동선) 때문이다.
+  champion_slug TEXT,
   general       TEXT NOT NULL DEFAULT '',
   revision      INTEGER NOT NULL DEFAULT 0,
   patch         TEXT NOT NULL,
@@ -475,8 +477,7 @@ CREATE TABLE wiki_docs (
   edit_policy   TEXT NOT NULL DEFAULT 'guarded',
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL,
-  updated_by    TEXT REFERENCES users(id),
-  UNIQUE (position_slug, champion_slug)
+  updated_by    TEXT REFERENCES users(id)
 );
 
 CREATE TABLE wiki_sections (
@@ -508,7 +509,7 @@ CREATE TABLE wiki_edits (
   revision      INTEGER                 -- 승인된 경우에만 채워진다
 );
 
-CREATE INDEX idx_docs_lookup    ON wiki_docs (position_slug, champion_slug);
+CREATE UNIQUE INDEX idx_docs_champion ON wiki_docs (champion_slug);
 -- 검토 대기열: 오래된 제안부터
 CREATE INDEX idx_edits_pending  ON wiki_edits (status, created_at);
 -- 문서 역사: 최신 리비전부터

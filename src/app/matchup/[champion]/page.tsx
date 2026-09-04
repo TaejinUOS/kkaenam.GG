@@ -7,7 +7,7 @@ import { PATCH, allChampions, getChampionsInPosition, skillIconUrl } from "@/dat
 import { getViewer } from "@/lib/authGuard";
 import { eulReul } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
-import { resolveWikiLinks } from "@/lib/wikiLink";
+import { matchupDocTitle, resolveWikiLinks } from "@/lib/wikiLink";
 import { getWikiView } from "@/lib/wikiStore";
 
 type RouteParams = MatchupRouteParams;
@@ -20,10 +20,10 @@ export async function generateMetadata({
   const resolved = resolveMatchup(await params);
   if (!resolved) return { title: "찾을 수 없는 상대법" };
 
-  const { positionData, championData } = resolved;
+  const { championData } = resolved;
   return {
-    title: `${positionData.name} ${championData.name} 상대법`,
-    description: `${positionData.name}에서 ${championData.name}${eulReul(championData.name)} 상대하는 방법. 보편 상대법 General과 내 챔피언 전용 상대법 Me를 함께 확인하세요.`,
+    title: matchupDocTitle(championData.name),
+    description: `${championData.name}${eulReul(championData.name)} 상대하는 방법. 보편 상대법 General과 내 챔피언 전용 상대법 Me를 함께 확인하세요.`,
   };
 }
 
@@ -38,20 +38,31 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
   const resolved = resolveMatchup(routeParams);
   if (!resolved) notFound();
 
-  const { positionData, championData, category } = resolved;
+  const { championData, placements } = resolved;
+
+  /*
+   * Me 콤보박스의 기본 검색 대상 (PRD 5.3.3).
+   *
+   * 예전에는 "현재 포지션의 챔피언"이었는데, 주소에 포지션이 없어졌으므로 **이 챔피언이
+   * 놓인 모든 포지션의 챔피언**을 합친다. 럭스(미드·원딜·서폿)를 상대하는 사람은 그 셋
+   * 중 어느 포지션에서든 올 수 있고, 어느 쪽이든 자기 챔피언이 목록 앞쪽에 있어야 한다.
+   */
+  const nearbyChampions = new Map<string, { slug: string; name: string; iconUrl: string }>();
+  for (const { position } of placements) {
+    for (const c of getChampionsInPosition(position.slug)) {
+      nearbyChampions.set(c.slug, { slug: c.slug, name: c.name, iconUrl: c.iconUrl });
+    }
+  }
 
   /*
    * 문서를 통째로 읽는다. 상대법이 목차 하나를 가진 한 문서로 합쳐지면서 `?me=`는
    * 걸러내기가 아니라 문서 안 이동이 되었고, 그래서 서버가 읽는 내용이 선택과
    * 무관해졌다 (PRD FR-12, FR-13, `docs/WIKI_MODEL.md` "문서 구조").
    */
-  const [wiki, viewer] = await Promise.all([
-    getWikiView(positionData.slug, championData.slug),
-    getViewer(),
-  ]);
+  const [wiki, viewer] = await Promise.all([getWikiView(championData.slug), getViewer()]);
 
   /*
-   * 본문에 적힌 `[[미드/아리]]`를 여기서 미리 풀어 둔다. 해석에 필요한 챔피언
+   * 본문에 적힌 `[[아리 상대법]]`을 여기서 미리 풀어 둔다. 해석에 필요한 챔피언
    * 카탈로그와 운영 분류를 클라이언트로 내려보내지 않기 위해서다.
    */
   const wikiLinks = resolveWikiLinks([wiki.general, ...wiki.meSections.map((s) => s.body)]);
@@ -60,12 +71,10 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
     <Suspense fallback={<div style={{ minHeight: "70vh" }} />}>
       <MatchupScreen
         patch={PATCH}
-        position={{
-          slug: positionData.slug,
-          name: positionData.name,
-          code: positionData.code,
-        }}
-        category={{ slug: category.slug, name: category.name }}
+        placements={placements.map(({ position, category }) => ({
+          position: { slug: position.slug, name: position.name, code: position.code },
+          category: { slug: category.slug, name: category.name },
+        }))}
         champion={{
           slug: championData.slug,
           name: championData.name,
@@ -87,12 +96,9 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
         wiki={wiki}
         wikiLinks={wikiLinks}
         viewer={viewer}
-        /* Me 콤보박스는 현재 포지션의 챔피언을 기본 검색 대상으로 한다 (PRD 5.3.3). */
-        positionChampions={getChampionsInPosition(positionData.slug).map((c) => ({
-          slug: c.slug,
-          name: c.name,
-          iconUrl: c.iconUrl,
-        }))}
+        nearbyChampions={[...nearbyChampions.values()].sort((a, b) =>
+          a.name.localeCompare(b.name, "ko"),
+        )}
         allChampions={allChampions.map((c) => ({
           slug: c.slug,
           name: c.name,

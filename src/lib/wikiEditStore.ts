@@ -32,14 +32,20 @@ function newEditId(): string {
   return `edit-${crypto.randomUUID()}`;
 }
 
-function docId(positionSlug: string, championSlug: string): string {
-  return `doc-${positionSlug}-${championSlug}`;
+/**
+ * 새 매치업 문서의 id.
+ *
+ * 통일 이전(마이그레이션 0003)에 만들어진 문서는 `doc-mid-ahri` 꼴을 그대로 갖고
+ * 있다. 자식 표가 전부 이 값을 참조하고 있어 옮기지 않았다. 그래서 **이 함수의 값으로
+ * 기존 문서를 찾으면 안 된다** — 만들 때만 쓰고, 찾을 때는 champion_slug로 다시 읽는다.
+ */
+function newDocId(championSlug: string): string {
+  return `doc-c-${championSlug}`;
 }
 
 // ---------------------------------------------------------------- 제출 (FR-24~27, 32)
 
 export type SubmitEditInput = {
-  positionSlug: string;
   championSlug: string;
   /** null이면 공통 섹션. */
   meSlug: string | null;
@@ -91,16 +97,24 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
     return { ok: false, error: "rate_limited" };
   }
 
-  const id = docId(input.positionSlug, input.championSlug);
-
   // 문서가 없으면 만든다. 이미 있으면 손대지 않는다.
   await DB.prepare(
-    `INSERT INTO wiki_docs (id, position_slug, champion_slug, general, revision, patch, edit_policy, created_at, updated_at, updated_by)
-       VALUES (?1, ?2, ?3, '', 0, ?4, 'guarded', ?5, ?5, NULL)
-     ON CONFLICT (position_slug, champion_slug) DO NOTHING`,
+    `INSERT INTO wiki_docs (id, champion_slug, general, revision, patch, edit_policy, created_at, updated_at, updated_by)
+       VALUES (?1, ?2, '', 0, ?3, 'guarded', ?4, ?4, NULL)
+     ON CONFLICT (champion_slug) DO NOTHING`,
   )
-    .bind(id, input.positionSlug, input.championSlug, input.patch, now)
+    .bind(newDocId(input.championSlug), input.championSlug, input.patch, now)
     .run();
+
+  /*
+   * id를 계산해 쓰지 않고 다시 읽는다. 통일 이전에 만들어진 문서는 id가 `doc-mid-ahri`
+   * 꼴이라, 계산한 `doc-c-ahri`로 찾으면 없는 문서가 되고 새로 만들려다 유일 인덱스에 걸린다.
+   */
+  const created = await DB.prepare(`SELECT id FROM wiki_docs WHERE champion_slug = ?1`)
+    .bind(input.championSlug)
+    .first<{ id: string }>();
+  if (!created) return { ok: false, error: "validation" };
+  const id = created.id;
 
   const editId = newEditId();
   const isDelete = isEmptyBody(body);
@@ -198,7 +212,6 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
 
 export type MyEditRow = {
   id: string;
-  positionSlug: string;
   championSlug: string;
   meSlug: string | null;
   summary: string;
@@ -211,7 +224,7 @@ export type MyEditRow = {
 export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.position_slug, d.champion_slug, e.me_slug, e.summary, e.status,
+    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, e.status,
             e.created_at, e.reviewed_at, e.review_note
        FROM wiki_edits e JOIN wiki_docs d ON d.id = e.doc_id
       WHERE e.author = ?1
@@ -220,7 +233,6 @@ export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
     .bind(authorId)
     .all<{
       id: string;
-      position_slug: string;
       champion_slug: string;
       me_slug: string | null;
       summary: string;
@@ -232,7 +244,6 @@ export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    positionSlug: r.position_slug,
     championSlug: r.champion_slug,
     meSlug: r.me_slug,
     summary: r.summary,
@@ -247,7 +258,6 @@ export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
 
 export type PendingEditRow = {
   id: string;
-  positionSlug: string;
   championSlug: string;
   meSlug: string | null;
   summary: string;
@@ -260,7 +270,7 @@ export type PendingEditRow = {
 export async function getPendingQueue(): Promise<PendingEditRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.position_slug, d.champion_slug, e.me_slug, e.summary, e.created_at,
+    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, e.created_at,
             e.base_revision, d.revision AS current_revision, u.name AS author_name
        FROM wiki_edits e
        JOIN wiki_docs d ON d.id = e.doc_id
@@ -269,7 +279,6 @@ export async function getPendingQueue(): Promise<PendingEditRow[]> {
       ORDER BY e.created_at ASC`,
   ).all<{
     id: string;
-    position_slug: string;
     champion_slug: string;
     me_slug: string | null;
     summary: string;
@@ -281,7 +290,6 @@ export async function getPendingQueue(): Promise<PendingEditRow[]> {
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    positionSlug: r.position_slug,
     championSlug: r.champion_slug,
     meSlug: r.me_slug,
     summary: r.summary,
@@ -302,7 +310,6 @@ export type StaleChange = {
 
 export type EditReviewDetail = {
   id: string;
-  positionSlug: string;
   championSlug: string;
   meSlug: string | null;
   body: string;
@@ -319,7 +326,7 @@ export type EditReviewDetail = {
 export async function getEditForReview(editId: string): Promise<EditReviewDetail | null> {
   const DB = await db();
   const row = await DB.prepare(
-    `SELECT e.id, d.id AS doc_id, d.position_slug, d.champion_slug, e.me_slug, e.body, e.summary,
+    `SELECT e.id, d.id AS doc_id, d.champion_slug, e.me_slug, e.body, e.summary,
             e.created_at, e.base_revision, d.revision AS current_revision, d.general,
             u.name AS author_name
        FROM wiki_edits e
@@ -331,7 +338,6 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
     .first<{
       id: string;
       doc_id: string;
-      position_slug: string;
       champion_slug: string;
       me_slug: string | null;
       body: string;
@@ -364,7 +370,6 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
 
   return {
     id: row.id,
-    positionSlug: row.position_slug,
     championSlug: row.champion_slug,
     meSlug: row.me_slug,
     body: row.body,
@@ -476,7 +481,7 @@ export type HistoryRow = {
   reviewedAt: string | null;
 };
 
-export async function listDocHistory(positionSlug: string, championSlug: string): Promise<HistoryRow[]> {
+export async function listDocHistory(championSlug: string): Promise<HistoryRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
     `SELECT e.id, e.me_slug, e.summary, u.name AS author_name, e.revision, e.accepted_via,
@@ -484,10 +489,10 @@ export async function listDocHistory(positionSlug: string, championSlug: string)
        FROM wiki_edits e
        JOIN wiki_docs d ON d.id = e.doc_id
        LEFT JOIN users u ON u.id = e.author
-      WHERE d.position_slug = ?1 AND d.champion_slug = ?2 AND e.status = 'accepted'
+      WHERE d.champion_slug = ?1 AND e.status = 'accepted'
       ORDER BY e.revision DESC`,
   )
-    .bind(positionSlug, championSlug)
+    .bind(championSlug)
     .all<{
       id: string;
       me_slug: string | null;
@@ -531,7 +536,6 @@ export type RevertResult = { ok: true; changedSections: number } | { ok: false; 
  * 되돌리기 한 번이 여러 개의 새 리비전 번호를 만들 수 있다 — 의도된 동작이다.
  */
 export async function revertDoc(
-  positionSlug: string,
   championSlug: string,
   targetRevision: number,
   adminId: string,
@@ -540,9 +544,9 @@ export async function revertDoc(
   const now = new Date().toISOString();
 
   const doc = await DB.prepare(
-    `SELECT id, revision, general FROM wiki_docs WHERE position_slug = ?1 AND champion_slug = ?2`,
+    `SELECT id, revision, general FROM wiki_docs WHERE champion_slug = ?1`,
   )
-    .bind(positionSlug, championSlug)
+    .bind(championSlug)
     .first<{ id: string; revision: number; general: string }>();
   if (!doc) return { ok: false, error: "not_found" };
 
@@ -612,7 +616,6 @@ export async function revertDoc(
 
 export type RecentChangeRow = {
   id: string;
-  positionSlug: string;
   championSlug: string;
   meSlug: string | null;
   summary: string;
@@ -625,7 +628,7 @@ export type RecentChangeRow = {
 export async function listRecentChanges(limit = 50): Promise<RecentChangeRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.position_slug, d.champion_slug, e.me_slug, e.summary, u.name AS author_name,
+    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, u.name AS author_name,
             e.accepted_via, e.revision, e.created_at
        FROM wiki_edits e
        JOIN wiki_docs d ON d.id = e.doc_id
@@ -637,7 +640,6 @@ export async function listRecentChanges(limit = 50): Promise<RecentChangeRow[]> 
     .bind(limit)
     .all<{
       id: string;
-      position_slug: string;
       champion_slug: string;
       me_slug: string | null;
       summary: string;
@@ -649,7 +651,6 @@ export async function listRecentChanges(limit = 50): Promise<RecentChangeRow[]> 
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    positionSlug: r.position_slug,
     championSlug: r.champion_slug,
     meSlug: r.me_slug,
     summary: r.summary,

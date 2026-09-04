@@ -29,6 +29,19 @@ const nextConfig: NextConfig = {
         destination: `https://${SITE_HOST}/:path+`,
         permanent: true,
       },
+      /*
+       * 매치업 문서가 챔피언당 하나로 통일되면서 주소에서 포지션이 빠졌다
+       * (마이그레이션 0003). 밖으로 나간 링크가 죽지 않게 옛 주소를 넘겨준다.
+       *
+       * 포지션 슬러그를 하나하나 적은 것은 `/matchup/ahri/edit`처럼 **두 세그먼트인
+       * 새 주소**가 여기 걸리지 않게 하기 위해서다. `:position`을 열어 두면 `edit`이
+       * 챔피언으로 해석되어 편집 화면이 통째로 리다이렉트된다.
+       */
+      {
+        source: "/matchup/:position(top|jungle|mid|adc|support)/:champion",
+        destination: "/matchup/:champion",
+        permanent: true,
+      },
     ];
   },
   images: {

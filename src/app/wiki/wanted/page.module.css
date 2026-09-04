@@ -99,8 +99,9 @@
  * (globals.css의 --missing-doc 주석과 같은 규칙).
  */
 .chip {
-  display: inline-block;
-  padding: 5px 11px;
+  display: grid;
+  gap: 1px;
+  padding: 6px 11px;
   border: 1px solid var(--paper-line);
   background: var(--paper-shade);
   color: var(--missing-doc);
@@ -117,4 +118,24 @@
   background: var(--missing-doc);
   color: var(--paper);
   border-color: var(--missing-doc);
+}
+
+/* 챔피언이 놓인 자리. 이름이 아니라 분류라 눌러 둔다. */
+.chipName {
+  font-weight: 600;
+}
+
+.chipWhere {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+/*
+ * 문서가 챔피언당 하나가 되면서 목록에 `상대법`과 포지션이 함께 붙어 칩이 길어졌다.
+ * 한 줄에 여러 개를 욱여넣기보다 자동 격자로 폭을 맞춘다.
+ */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug, getPosition } from "@/data/champions";
+import { getChampionBySlug } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { getPendingQueue } from "@/lib/wikiEditStore";
 
@@ -36,7 +36,6 @@ export default async function ReviewQueuePage({
       ) : (
         <ul className={styles.list}>
           {queue.map((item) => {
-            const position = getPosition(item.positionSlug);
             const champion = getChampionBySlug(item.championSlug);
             const sectionLabel = item.meSlug ? (getChampionBySlug(item.meSlug)?.name ?? item.meSlug) : "공통";
             const stale = item.baseRevision !== item.currentRevision;
@@ -48,8 +47,7 @@ export default async function ReviewQueuePage({
                     <span className="sticker sticker--gum">대기</span>
                     {stale && <span className="sticker">뒤처짐</span>}
                     <span className={styles.target}>
-                      {position?.name ?? item.positionSlug} · {champion?.name ?? item.championSlug} ·{" "}
-                      {sectionLabel}
+                      {champion?.name ?? item.championSlug} 상대법 · {sectionLabel}
                     </span>
                   </div>
                   {item.summary && <p className={styles.summary}>{item.summary}</p>}

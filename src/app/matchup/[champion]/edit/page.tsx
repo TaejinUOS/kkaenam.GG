@@ -54,10 +54,10 @@ export default async function EditSectionPage({
   const parsed = parseSection(section);
   if (!parsed) notFound();
 
-  const { positionData, championData } = resolved;
+  const { championData } = resolved;
   const { meSlug } = parsed;
 
-  const editHref = `/matchup/${positionData.slug}/${championData.slug}/edit?section=${
+  const editHref = `/matchup/${championData.slug}/edit?section=${
     meSlug ? `me:${meSlug}` : "general"
   }`;
 
@@ -68,7 +68,7 @@ export default async function EditSectionPage({
   const viewer = await getViewer();
   if (!viewer) redirect(`/login?callbackUrl=${encodeURIComponent(editHref)}`);
 
-  const wiki = await getWikiView(positionData.slug, championData.slug);
+  const wiki = await getWikiView(championData.slug);
   const currentBody = meSlug
     ? (wiki.meSections.find((s) => s.championSlug === meSlug)?.body ?? "")
     : wiki.general;
@@ -81,13 +81,11 @@ export default async function EditSectionPage({
    * 섹션을 고른 상태로 열린다 — 편집 전에 보고 있던 그 화면이다.
    */
   const returnHref = meSlug
-    ? `/matchup/${positionData.slug}/${championData.slug}?me=${meSlug}#me-${meSlug}`
-    : `/matchup/${positionData.slug}/${championData.slug}#general`;
+    ? `/matchup/${championData.slug}?me=${meSlug}#me-${meSlug}`
+    : `/matchup/${championData.slug}#general`;
 
   return (
     <MergeEditScreen
-      positionSlug={positionData.slug}
-      positionName={positionData.name}
       championSlug={championData.slug}
       championName={championData.name}
       patch={PATCH}

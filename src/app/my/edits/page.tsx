@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug, getPosition } from "@/data/champions";
+import { getChampionBySlug } from "@/data/champions";
 import { requirePageUser } from "@/lib/authGuard";
 import { listMyEdits } from "@/lib/wikiEditStore";
 
@@ -31,7 +31,6 @@ export default async function MyEditsPage() {
       ) : (
         <ul className={styles.list}>
           {edits.map((edit) => {
-            const position = getPosition(edit.positionSlug);
             const champion = getChampionBySlug(edit.championSlug);
             const sectionLabel = edit.meSlug
               ? (getChampionBySlug(edit.meSlug)?.name ?? edit.meSlug)
@@ -45,13 +44,13 @@ export default async function MyEditsPage() {
                   >
                     {STATUS_LABEL[edit.status] ?? edit.status}
                   </span>
-                  {position && champion ? (
-                    <Link href={`/matchup/${position.slug}/${champion.slug}`} className={styles.target}>
-                      {position.name} · {champion.name} · {sectionLabel}
+                  {champion ? (
+                    <Link href={`/matchup/${champion.slug}`} className={styles.target}>
+                      {champion.name} 상대법 · {sectionLabel}
                     </Link>
                   ) : (
                     <span className={styles.target}>
-                      {edit.positionSlug} · {edit.championSlug} · {sectionLabel}
+                      {edit.championSlug} 상대법 · {sectionLabel}
                     </span>
                   )}
                 </div>

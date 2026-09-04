@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { WikiIndexScreen, type RecentRow, type WorkCounter } from "@/components/wiki/WikiIndexScreen";
-import { getChampionBySlug, getPosition } from "@/data/champions";
-import { allMatchupKeys, buildWikiIndexData } from "@/data/wikiIndex";
+import { getChampionBySlug, getClassificationFor, positions } from "@/data/champions";
+import { buildWikiIndexData, classifiedChampionSlugs } from "@/data/wikiIndex";
 import { relativeTime } from "@/lib/relativeTime";
+import { matchupDocTitle } from "@/lib/wikiLink";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 import { getWikiIndexStats } from "@/lib/wikiIndexStore";
 
@@ -37,16 +38,18 @@ export default async function WikiIndexPage() {
    */
   const now = Date.now();
   const recent: RecentRow[] = changes.map((change) => {
-    const position = getPosition(change.positionSlug);
     const champion = getChampionBySlug(change.championSlug);
     /*
-     * 목록에는 포지션을 뗀 짧은 이름을 싣고 포지션은 오른쪽 칸에 세운다.
-     * 정식 이름은 `matchupDocTitle`이 짓는 `미드 아리 상대법`이고, 문서 화면의
-     * <title>과 같은 값이다 — 한 문서가 화면마다 다른 이름으로 불리지 않게 한다.
+     * 문서 이름은 `matchupDocTitle`이 짓는 하나뿐이다. 챔피언당 문서가 하나이므로
+     * 포지션이 이름에 들어가지 않는다 (마이그레이션 0003).
      */
-    const title = champion
-      ? `${champion.name} 상대법`
-      : `${change.championSlug} 상대법`;
+    const title = matchupDocTitle(champion?.name ?? change.championSlug);
+    /* 오른쪽 칸에는 그 챔피언이 지금 놓인 자리를 적는다. 이름이 아니라 분류다. */
+    const branch =
+      positions
+        .filter((p) => getClassificationFor(p.slug, change.championSlug))
+        .map((p) => p.name)
+        .join(" · ") || "상대법";
     const section = change.meSlug
       ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
       : null;
@@ -57,10 +60,8 @@ export default async function WikiIndexPage() {
       at: change.createdAt,
       title,
       section,
-      href: `/matchup/${change.positionSlug}/${change.championSlug}${
-        change.meSlug ? `?me=${change.meSlug}` : ""
-      }`,
-      branch: position?.name ?? change.positionSlug,
+      href: `/matchup/${change.championSlug}${change.meSlug ? `?me=${change.meSlug}` : ""}`,
+      branch,
     };
   });
 
@@ -70,8 +71,8 @@ export default async function WikiIndexPage() {
    * 4단계에서 `wiki_links`가 들어오면 여기에 일반 문서의 빨간 링크가 더해진다. 뜻은
    * 지금과 같다: **이미 쓰인 것들이 스스로 "이게 필요하다"고 말해 둔 목록**이다.
    */
-  const written = new Set(stats.writtenMatchupKeys);
-  const wantedCount = allMatchupKeys().filter((key) => !written.has(key)).length;
+  const written = new Set(stats.writtenChampionSlugs);
+  const wantedCount = classifiedChampionSlugs().filter((slug) => !written.has(slug)).length;
 
   /*
    * 미분류 문서는 아직 셀 것이 없다. 일반 문서와 `[[분류:…]]`가 4단계에 들어와야

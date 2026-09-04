@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ReviewMergeForm } from "@/components/admin/ReviewMergeForm";
-import { getChampionBySlug, getPosition } from "@/data/champions";
+import { getChampionBySlug } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { approveEditAction, rejectEditAction } from "@/lib/actions/wikiEditActions";
 import { getEditForReview } from "@/lib/wikiEditStore";
@@ -35,19 +35,18 @@ export default async function ReviewDetailPage({
   const detail = await getEditForReview(editId);
   if (!detail) notFound();
 
-  const position = getPosition(detail.positionSlug);
   const champion = getChampionBySlug(detail.championSlug);
   const sectionLabel = detail.meSlug ? (getChampionBySlug(detail.meSlug)?.name ?? detail.meSlug) : "공통";
   const stale = detail.baseRevision !== detail.currentRevision;
 
-  const boundApprove = approveEditAction.bind(null, detail.id, detail.positionSlug, detail.championSlug);
+  const boundApprove = approveEditAction.bind(null, detail.id, detail.championSlug);
   const boundReject = rejectEditAction.bind(null, detail.id);
 
   return (
     <div className={`shell ${styles.screen}`}>
       <p className="section-index">관리자</p>
       <h1 className={`display ${styles.title}`}>
-        {position?.name ?? detail.positionSlug} · {champion?.name ?? detail.championSlug} · {sectionLabel}
+        {champion?.name ?? detail.championSlug} 상대법 · {sectionLabel}
       </h1>
       <p className="mono">{detail.authorName ?? "탈퇴 계정"} · r{detail.baseRevision} 기준 제출</p>
 

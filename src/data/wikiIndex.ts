@@ -71,20 +71,18 @@ export type WikiIndexData = {
 };
 
 /**
- * 분류에 있는 모든 매치업 문서의 키. `${포지션}/${챔피언}` 꼴이다.
+ * 분류 어딘가에 있는 챔피언 전부. 중복은 없다.
  *
- * "아직 없는 문서"를 세는 근거다. 분류에 있으나 아직 아무도 쓰지 않은 매치업이
- * 곧 빨간 링크와 같은 뜻이고, 빈 위키에서 값이 가장 큰 목록이다
- * (`docs/WIKI_EXPANSION.md` "아직 없는 문서 목록").
+ * "아직 없는 문서"를 세는 근거다. 문서가 챔피언당 하나이므로(마이그레이션 0003)
+ * 여러 포지션에 있는 챔피언도 **한 번만** 센다. 럭스를 셋으로 세면 아직 쓸 문서가
+ * 실제보다 많아 보이고, 그 숫자가 줄어드는 것을 보는 것이 이 목록의 목적이다.
  */
-export function allMatchupKeys(): string[] {
-  const keys: string[] = [];
+export function classifiedChampionSlugs(): string[] {
+  const slugs = new Set<string>();
   for (const position of positions) {
-    for (const champion of getChampionsInPosition(position.slug)) {
-      keys.push(`${position.slug}/${champion.slug}`);
-    }
+    for (const champion of getChampionsInPosition(position.slug)) slugs.add(champion.slug);
   }
-  return keys;
+  return [...slugs];
 }
 
 export function buildWikiIndexData(
@@ -96,17 +94,30 @@ export function buildWikiIndexData(
     docCount: articleCounts[portal.key] ?? 0,
   });
 
-  const search: SearchEntry[] = [];
+  /*
+   * 챔피언당 한 줄이다. 포지션마다 담으면 럭스가 결과에 세 번 나오는데, 그 셋은
+   * 전부 같은 문서라 고르는 사람에게 아무 도움이 안 된다. 포지션은 대신 오른쪽 칸에
+   * 모아 적고, 검색어로도 걸리도록 `match`에 함께 넣는다.
+   */
+  const byChampion = new Map<string, { name: string; positions: string[] }>();
   for (const position of positions) {
     for (const champion of getChampionsInPosition(position.slug)) {
-      search.push({
-        title: `${champion.name} 상대법`,
-        href: `/matchup/${position.slug}/${champion.slug}`,
-        kind: "matchup",
-        branch: position.name,
-        match: `${matchupDocTitle(position.name, champion.name)} ${position.name}/${champion.name}`,
-      });
+      const entry = byChampion.get(champion.slug) ?? { name: champion.name, positions: [] };
+      entry.positions.push(position.name);
+      byChampion.set(champion.slug, entry);
     }
+  }
+
+  const search: SearchEntry[] = [];
+  for (const [slug, { name, positions: where }] of byChampion) {
+    const title = matchupDocTitle(name);
+    search.push({
+      title,
+      href: `/matchup/${slug}`,
+      kind: "matchup",
+      branch: where.join(" · "),
+      match: `${title} ${where.join(" ")} ${where.map((w) => `${w}/${name}`).join(" ")}`,
+    });
   }
   for (const portal of [...coverPortals(), ...shelfPortals()]) {
     search.push({

@@ -1,5 +1,5 @@
 import styles from "./VideoPanel.module.css";
-import type { ChampionView, PositionView } from "./types";
+import type { ChampionView } from "./types";
 
 /**
  * 영상 탭.
@@ -11,10 +11,10 @@ import type { ChampionView, PositionView } from "./types";
  */
 export function VideoPanel({
   champion,
-  position,
+  positionLabel,
 }: {
   champion: ChampionView;
-  position: PositionView;
+  positionLabel: string;
 }) {
   return (
     <div className={styles.panel}>
@@ -22,7 +22,7 @@ export function VideoPanel({
 
       <div className={styles.empty}>
         <p className={styles.title}>
-          {position.name} {champion.name} 상대법 영상을 준비하고 있습니다.
+          {positionLabel} {champion.name} 상대법 영상을 준비하고 있습니다.
         </p>
         <p className={styles.body}>
           &lsquo;롤깨남&rsquo; 채널의 상대법 영상을 운영자가 검수해 등록할 예정입니다. 등록 전까지는

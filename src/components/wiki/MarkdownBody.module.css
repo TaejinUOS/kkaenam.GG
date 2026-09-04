@@ -4,11 +4,24 @@
  * markdown-to-jsx가 만든 문단들은 한 wrapper 안에 들어간다. 바깥 문서의 grid gap은
  * 그 안까지 닿지 않으므로 여기에서 문단 리듬과 읽기 폭을 직접 책임진다.
  */
+
+/*
+ * 읽기 폭을 쓰는 쪽이 정할 수 있게 열어 둔다.
+ *
+ * 기본값 52rem은 이 wrapper가 자기보다 훨씬 넓은 면에 놓일 때를 위한 것이다 — 문서
+ * 역사 화면이 그렇다. 거기서는 상자가 shell 전체 폭이라, 묶지 않으면 한 줄이 1500px가
+ * 된다.
+ *
+ * 반대로 매치업 문서에서는 단 자체가 이미 읽기 폭이다. 거기서 또 묶으면 본문만 단보다
+ * 좁아져 **제목 구분선은 끝까지 가는데 글은 그보다 172px 앞에서 멈춘다.** 그 어긋남이
+ * 문단마다 오른쪽에 죽은 띠를 만든다. 그래서 문서 쪽에서 `--prose-measure: none`으로
+ * 이 빗장을 푼다 (`WikiDocument.module.css`의 .body).
+ */
 .prose {
   display: grid;
   gap: 14px;
   width: 100%;
-  max-width: 52rem;
+  max-width: var(--prose-measure, 52rem);
   min-width: 0;
 }
 

@@ -10,7 +10,6 @@ import { eulReul, ro } from "@/lib/josa";
 import { buildQuery } from "@/lib/url";
 
 import { type DocSection, WikiDocument } from "../wiki/WikiDocument";
-import { EditSectionPanel } from "./EditSectionPanel";
 import { MeCombobox } from "./MeCombobox";
 import type { ChampionOption, ChampionView, PositionView } from "./types";
 import styles from "./WikiPanel.module.css";
@@ -20,7 +19,6 @@ type Viewer = { id: string; name: string; role: "member" | "admin" } | null;
 type Props = {
   position: PositionView;
   champion: ChampionView;
-  patch: string;
   /** 서버가 D1에서 읽어 온 문서. 내용이 있는 섹션이 모두 담겨 있다. */
   wiki: WikiView;
   /** 본문에 적힌 `[[...]]`를 서버가 미리 풀어 둔 결과. */
@@ -46,12 +44,12 @@ const meId = (slug: string) => `me-${slug}`;
  * 부르지 않고 `history.replaceState`로 주소만 갱신한다 — 주소를 공유하면 상대도 같은
  * 자리에서 문서를 열게 되지만, 고르는 동안 왕복이 끼어들지는 않는다.
  *
- * 편집기는 모달이 아니라 `?edit=general` / `?edit=me:<슬러그>` URL 상태로 연다.
+ * 편집은 이 화면 안에서 하지 않는다. 좌우로 벌린 병합 편집기가 따로 있고
+ * (`/matchup/…/edit?section=…`), 여기서는 그 화면으로 보내기만 한다.
  */
 export function WikiPanel({
   position,
   champion,
-  patch,
   wiki,
   wikiLinks,
   positionChampions,
@@ -63,10 +61,6 @@ export function WikiPanel({
 
   const meSlug = searchParams.get("me");
   const meChampion = allChampions.find((c) => c.slug === meSlug) ?? null;
-
-  const editParam = searchParams.get("edit");
-  const editingGeneral = editParam === "general";
-  const editingMe = meSlug !== null && editParam === `me:${meSlug}`;
 
   /** 같은 챔피언을 다시 골라도 그 자리로 다시 옮겨 가도록 세는 값. */
   const [focusNonce, setFocusNonce] = useState(0);
@@ -80,15 +74,19 @@ export function WikiPanel({
       window.history.replaceState(
         null,
         "",
-        `${pathname}${buildQuery(searchParams.toString(), { me: slug, edit: null })}`,
+        `${pathname}${buildQuery(searchParams.toString(), { me: slug })}`,
       );
       setFocusNonce((n) => n + 1);
     },
     [pathname, searchParams],
   );
 
+  /**
+   * 편집 화면의 주소. 문서 안 상태(`?edit=`)가 아니라 **다른 화면**이다 — 좌우로
+   * 넓게 벌린 병합 편집기가 문서 폭 안에 들어갈 수 없기 때문이다.
+   */
   const editHref = (target: "general" | `me:${string}`) =>
-    `${pathname}${buildQuery(searchParams.toString(), { edit: target })}`;
+    `/matchup/${position.slug}/${champion.slug}/edit?section=${target}`;
 
   const resolveLink = useCallback((target: string) => wikiLinks[target] ?? null, [wikiLinks]);
 
@@ -139,6 +137,8 @@ export function WikiPanel({
       .map<DocSection>((c) => ({
         id: meId(c.slug),
         title: `${c.name}${ro(c.name)} 상대할 때`,
+        badge: <span className="sticker sticker--gum">me / {c.name}</span>,
+        badgePosition: "after",
         body: byChampion.get(c.slug)?.body ?? "",
         current: c.slug === meSlug,
         action: (
@@ -158,6 +158,8 @@ export function WikiPanel({
       filled.push({
         id: meId(meChampion.slug),
         title: `${meChampion.name}${ro(meChampion.name)} 상대할 때`,
+        badge: <span className="sticker sticker--gum">me / {meChampion.name}</span>,
+        badgePosition: "after",
         body: "",
         current: true,
         action: (
@@ -179,7 +181,7 @@ export function WikiPanel({
     }
 
     return [general, ...filled];
-    // editHref는 searchParams에서 파생되므로 그 값만 의존성으로 둔다.
+    // editHref는 슬러그 두 개에서만 나온다. 그 둘을 직접 의존성으로 둔다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     wiki,
@@ -189,10 +191,10 @@ export function WikiPanel({
     meSlug,
     setMe,
     viewer,
+    position.slug,
     position.name,
+    champion.slug,
     champion.name,
-    searchParams,
-    pathname,
   ]);
 
   return (
@@ -209,33 +211,6 @@ export function WikiPanel({
         focusId={meChampion ? meId(meChampion.slug) : null}
         focusNonce={focusNonce}
       />
-
-      {/* -------------------------------------------------------------- 편집기 */}
-      {editingGeneral && viewer && (
-        <EditSectionPanel
-          positionSlug={position.slug}
-          championSlug={champion.slug}
-          patch={patch}
-          meSlug={null}
-          sectionTitle="공통 상대법"
-          currentBody={wiki.general}
-          isEmpty={!wiki.general.trim()}
-          isAdmin={viewer.role === "admin"}
-        />
-      )}
-
-      {editingMe && viewer && meChampion && (
-        <EditSectionPanel
-          positionSlug={position.slug}
-          championSlug={champion.slug}
-          patch={patch}
-          meSlug={meChampion.slug}
-          sectionTitle={`${meChampion.name} 전용 상대법`}
-          currentBody={wiki.meSections.find((s) => s.championSlug === meChampion.slug)?.body ?? ""}
-          isEmpty={!wiki.meSections.some((s) => s.championSlug === meChampion.slug)}
-          isAdmin={viewer.role === "admin"}
-        />
-      )}
 
       {/* ------------------------------------------------------------ 문서 정보 */}
       {wiki.exists && (

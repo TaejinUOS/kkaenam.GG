@@ -6,17 +6,12 @@ import { MarkdownBody } from "@/components/wiki/MarkdownBody";
 import { resolveWikiTitle } from "@/lib/wikiLink";
 import { RevertButton } from "@/components/wiki/RevertButton";
 import { getChampionBySlug } from "@/data/champions";
+import { ACCEPTED_VIA_LABEL, isUnreviewed } from "@/data/wiki";
 import { getViewer } from "@/lib/authGuard";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
 import { getHistoryEntryBody, listDocHistory } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
-
-const ACCEPTED_VIA_LABEL: Record<string, string> = {
-  empty_section: "무검토 게시",
-  review: "검토 승인",
-  admin: "관리자",
-};
 
 export async function generateMetadata({
   params,
@@ -61,7 +56,7 @@ export default async function DocHistoryPage({ params }: { params: Promise<Match
                   <span className="sticker">
                     {entry.meSlug ? (getChampionBySlug(entry.meSlug)?.name ?? entry.meSlug) : "공통"}
                   </span>
-                  <span className={`sticker ${entry.acceptedVia === "empty_section" ? "sticker--gum" : "sticker--acid"}`}>
+                  <span className={`sticker ${isUnreviewed(entry.acceptedVia) ? "sticker--gum" : "sticker--acid"}`}>
                     {ACCEPTED_VIA_LABEL[entry.acceptedVia] ?? entry.acceptedVia}
                   </span>
                   <span>{entry.summary || "(요약 없음)"}</span>

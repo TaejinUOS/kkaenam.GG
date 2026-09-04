@@ -59,12 +59,29 @@ export type EditStatus = "pending" | "accepted" | "rejected" | "withdrawn";
  * 검토를 거치지 않은 승인을 구분할 수 없으면 도배를 걸러 볼 수 없다.
  */
 export type AcceptedVia =
-  /** 빈 섹션이라 검토 없이 즉시 반영됨. */
+  /** 빈 섹션을 처음 채운 것이라 검토 없이 즉시 반영됨. */
   | "empty_section"
+  /** 이미 쓰인 섹션에 지운 것 없이 더하기만 해서 즉시 반영됨. */
+  | "addition_only"
   /** 운영자가 검토해 승인함. */
   | "review"
   /** 운영자 본인의 편집이라 제출과 동시에 반영됨. */
   | "admin";
+
+/** 사람의 검토를 거치지 않고 게시된 경로. 최근 변경 피드가 이 목록을 눈에 띄게 만든다. */
+export const UNREVIEWED_VIA: readonly AcceptedVia[] = ["empty_section", "addition_only"];
+
+export function isUnreviewed(via: AcceptedVia): boolean {
+  return UNREVIEWED_VIA.includes(via);
+}
+
+/** 최근 변경 피드와 문서 역사가 함께 쓰는 이름표. 두 화면이 다른 말을 쓰면 안 된다. */
+export const ACCEPTED_VIA_LABEL: Record<AcceptedVia, string> = {
+  empty_section: "빈 곳 채움",
+  addition_only: "더하기만",
+  review: "검토 승인",
+  admin: "관리자",
+};
 
 /**
  * 편집 제안. 승인된 제안이 그대로 문서의 역사가 된다.

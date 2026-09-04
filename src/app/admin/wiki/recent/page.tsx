@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getChampionBySlug, getPosition } from "@/data/champions";
+import { ACCEPTED_VIA_LABEL, isUnreviewed } from "@/data/wiki";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 
@@ -9,15 +10,10 @@ import styles from "./page.module.css";
 
 export const metadata: Metadata = { title: "최근 변경" };
 
-const ACCEPTED_VIA_LABEL: Record<string, string> = {
-  empty_section: "무검토 게시",
-  review: "검토 승인",
-  admin: "관리자",
-};
-
 /**
- * 최근 반영된 편집 피드 (FR-31). 즉시 반영(`empty_section`) 항목을 눈에 띄게 구분한다 —
- * 검토 없이 게시된 것이라 운영자가 훑어봐야 하는 항목이다 (WIKI_MODEL.md "즉시 반영의 대가").
+ * 최근 반영된 편집 피드 (FR-31). 검토를 거치지 않고 게시된 항목(`빈 곳 채움`,
+ * `더하기만`)을 눈에 띄게 구분한다 — 사람 눈을 거치지 않은 글이라 운영자가 훑어봐야
+ * 하는 항목이다 (WIKI_MODEL.md "즉시 반영의 대가").
  */
 export default async function RecentChangesPage() {
   await requirePageAdmin();
@@ -38,7 +34,7 @@ export default async function RecentChangesPage() {
             const sectionLabel = change.meSlug
               ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
               : "공통";
-            const unreviewed = change.acceptedVia === "empty_section";
+            const unreviewed = isUnreviewed(change.acceptedVia);
 
             return (
               <li key={change.id} className={`${styles.row} ${unreviewed ? styles.rowUnreviewed : ""}`}>

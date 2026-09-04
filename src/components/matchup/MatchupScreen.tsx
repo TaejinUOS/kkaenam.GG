@@ -128,7 +128,6 @@ export function MatchupScreen({
               <WikiPanel
                 position={position}
                 champion={champion}
-                patch={patch}
                 wiki={wiki}
                 wikiLinks={wikiLinks}
                 positionChampions={positionChampions}

@@ -45,7 +45,10 @@
   border-bottom-color: var(--ink-soft);
 }
 
-/* 선택한 Me는 스티커 없이 배경과 텍스트 두 단서로 현재 위치를 알려 준다. */
+/*
+ * me 스티커는 섹션마다 늘 붙어 있어 어느 것이 고른 것인지 가리지 못한다.
+ * 현재 선택은 배경과 "현재 선택" 글자, 두 단서가 따로 알려 준다.
+ */
 .node[data-level="1"][data-current="true"] > .head {
   padding: 7px 8px 7px 10px;
   border-left: 4px solid var(--cobalt);

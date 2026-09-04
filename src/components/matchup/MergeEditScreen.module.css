@@ -1,0 +1,332 @@
+/*
+ * 병합 편집 화면 — 왼쪽 지금 문서, 오른쪽 내가 쓰는 글.
+ *
+ * 이 화면의 어려운 부분은 오른쪽 하나뿐이다. 형광펜을 그리는 사본(.backdrop)과 글을
+ * 받는 textarea(.input)가 **글자 하나까지 같은 자리에 놓여야** 색이 엉뚱한 글자를
+ * 덮지 않는다. 그래서 둘은 .text 하나를 함께 쓰고, 치수를 바꿀 때도 함께 바꾼다.
+ */
+
+.screen {
+  display: grid;
+  gap: 14px;
+  padding-block: clamp(24px, 4vw, 44px) clamp(48px, 9vw, 110px);
+}
+
+/* ------------------------------------------------------------------ 머리말 */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: clamp(26px, 4vw, 42px);
+  line-height: 1.05;
+}
+
+.back {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.back:hover {
+  color: var(--acid);
+}
+
+/* ------------------------------------------------------------------ 안내 */
+
+.notice {
+  padding: 10px 14px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.noticeInstant {
+  background: var(--acid);
+}
+
+.noticePending {
+  background: var(--gum);
+}
+
+/* 아직 아무것도 안 한 상태. 색을 쓰지 않는다 — 알릴 것이 없을 때는 조용해야 한다. */
+.noticeIdle {
+  background: var(--paper-shade);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------------ 좌우 */
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.panes {
+  /*
+   * 두 화면의 높이를 화면에 맞춰 크게 잡는다. 상대법 본문은 몇 문단씩 되는 글이라
+   * 열 줄짜리 상자에서는 고친 자리가 스크롤 밖으로 밀려 보이지 않는다.
+   */
+  --pane-h: clamp(300px, calc(100dvh - 420px), 760px);
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .panes {
+    grid-template-columns: 1fr;
+    --pane-h: clamp(240px, 46dvh, 440px);
+  }
+}
+
+.pane {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  /* body가 크림색 글자를 물려주므로 밝은 면에서는 글자색을 직접 세운다. */
+  color: var(--ink);
+  box-shadow: var(--shadow-cut);
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: var(--line);
+  background: var(--paper-shade);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.count {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.countAdd {
+  color: var(--diff-add-line);
+}
+
+.countRemove {
+  color: var(--diff-remove-line);
+}
+
+/* 왼쪽: 읽기만 하는 면. DiffText가 자기 치수를 갖고 있어 스크롤만 얹는다. */
+.paneBody {
+  height: var(--pane-h);
+  overflow: auto;
+}
+
+/* ------------------------------------------------------- 오른쪽 편집 상자 */
+
+.editWrap {
+  position: relative;
+  height: var(--pane-h);
+}
+
+.editWrap:focus-within {
+  outline: 3px solid var(--cobalt);
+  outline-offset: -3px;
+}
+
+/*
+ * 사본과 입력칸이 함께 쓰는 치수. 하나라도 어긋나면 같은 문장이 서로 다른 줄에서
+ * 접혀 형광펜이 옆 글자로 밀린다. scrollbar-gutter까지 맞추는 것은 스크롤 막대가
+ * 한쪽에서만 폭을 먹으면 줄바꿈 위치가 달라지기 때문이다.
+ *
+ * `DiffText.module.css`의 .text와도 같은 값이다 — 좌우가 나란히 놓이는 화면이라
+ * 한쪽만 다르면 같은 문장이 다른 줄 수로 접힌다.
+ */
+.text {
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  /*
+   * globals.css의 리셋에 이미 있지만 여기서 다시 세운다. content-box가 되면 textarea만
+   * `width: 100%` + 여백만큼 넓어져 사본보다 32px 넓은 상자가 되고, 같은 문장이 두 겹에서
+   * 다른 자리에 접힌다. 이 화면에서는 리셋에 기대면 안 되는 값이다.
+   */
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.75;
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 2;
+  scrollbar-gutter: stable;
+}
+
+/*
+ * 형광펜을 그리는 사본. 글자는 투명하고 배경만 남는다 — 실제로 읽히는 글자는
+ * 언제나 위에 놓인 textarea의 것이다. 글자를 겹쳐 그리면 한글 조합 중인 글자가
+ * 사라지고, 치수가 조금만 틀어져도 이중으로 번져 보인다.
+ */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+.addMark {
+  background: var(--diff-add);
+  border-radius: 2px;
+  /*
+   * 밑줄을 box-shadow로 긋는다. text-decoration은 글자색을 따라가는데 여기 글자는
+   * 투명이라 아무것도 그려지지 않고, border는 좌우 폭을 먹어 정렬을 무너뜨린다.
+   */
+  box-shadow: inset 0 -2px 0 var(--diff-add-line);
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  caret-color: var(--ink);
+}
+
+.input:focus-visible {
+  /* 테두리는 .editWrap이 그린다. 여기서 또 그리면 선이 두 겹으로 보인다. */
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ 나머지 */
+
+.limit {
+  font-size: 12px;
+  color: var(--smoke);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  max-width: 520px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--smoke);
+}
+
+.summaryInput {
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.summaryInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gum);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error {
+  padding: 8px 12px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--gum);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.done {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  padding: 20px;
+  border: var(--line-paper);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+}
+
+.doneMessage {
+  font-size: 16px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+/* ------------------------------------------------------------- 문법 안내 */
+
+.help {
+  border: var(--line-paper);
+  border-radius: var(--radius-card);
+  font-size: 13px;
+}
+
+.helpSummary {
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.helpSummary:hover {
+  background: var(--acid);
+  color: var(--ink);
+}
+
+.helpList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 12px 12px;
+  line-height: 1.7;
+}
+
+.helpList dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.helpList dd {
+  margin: 0;
+  color: var(--smoke);
+  word-break: keep-all;
+}
+
+.helpList code {
+  padding: 1px 5px;
+  border-radius: var(--radius-card);
+  background: var(--ink-sunken);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}

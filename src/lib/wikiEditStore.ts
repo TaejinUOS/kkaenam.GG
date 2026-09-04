@@ -21,6 +21,7 @@ import {
   type AcceptedVia,
   type EditStatus,
 } from "@/data/wiki";
+import { isAdditionOnly } from "@/lib/wikiDiff";
 
 async function db() {
   const { env } = await getCloudflareContext({ async: true });
@@ -57,12 +58,17 @@ export type SubmitEditResult =
  * 편집 제안을 제출한다. 즉시반영/검토대기 판정은 저장 시점에 서버가 실제 값으로
  * 한다 (WIKI_MODEL.md "판정은 서버가 한다") — 편집기를 열 때의 상태를 신뢰하지 않는다.
  *
- * 분기 로직 (docs/HANDOFF.md 계획과 동일):
- *   accept      = isAdmin || (!isDelete && wasEmpty)
- *   acceptedVia = !accept ? null : isAdmin ? "admin" : "empty_section"
+ * 분기 로직:
+ *   accept      = isAdmin || (!isDelete && isAdditionOnly(현재 본문, 낸 본문))
+ *   acceptedVia = !accept ? null : isAdmin ? "admin" : wasEmpty ? "empty_section" : "addition_only"
+ *
+ * **지운 것이 없으면 검토를 건너뛴다.** 편집기의 빨간 형광펜과 같은 판정이며, 같은
+ * 함수(`isAdditionOnly`)를 쓴다 — 화면에 초록만 보이는데 대기열로 가는 일이 없어야 한다.
+ * 남이 쓴 글은 그대로 두고 덧붙이기만 하는 편집은 잃을 것이 없다는 것이 근거다
+ * (WIKI_MODEL.md "편집에는 두 갈래가 있다").
  *
  * 관리자 본인 편집은 삭제라도 즉시 반영된다 (자기 글을 자기가 검토하지 않음).
- * 일반 사용자의 삭제(빈 본문 제출)는 원래 상태와 무관하게 항상 검토 대기다 (FR-26).
+ * 빈 본문 제출은 섹션 전부를 지우는 것이라 언제나 검토 대기다 (FR-26).
  */
 export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResult> {
   const body = input.body;
@@ -96,75 +102,96 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
     .bind(id, input.positionSlug, input.championSlug, input.patch, now)
     .run();
 
-  // 저장 시점의 실제 값을 다시 읽는다 — 편집기를 연 시점의 상태는 신뢰하지 않는다.
-  const doc = await DB.prepare(`SELECT id, revision, general FROM wiki_docs WHERE id = ?1`)
-    .bind(id)
-    .first<{ id: string; revision: number; general: string }>();
-  if (!doc) return { ok: false, error: "validation" };
-
-  const currentBody = input.meSlug
-    ? ((
-        await DB.prepare(`SELECT body FROM wiki_sections WHERE doc_id = ?1 AND me_slug = ?2`)
-          .bind(id, input.meSlug)
-          .first<{ body: string }>()
-      )?.body ?? "")
-    : doc.general;
-
-  const isDelete = isEmptyBody(body);
-  const wasEmpty = isEmptyBody(currentBody);
-  const accept = input.isAdmin || (!isDelete && wasEmpty);
-  const acceptedVia: AcceptedVia | null = !accept ? null : input.isAdmin ? "admin" : "empty_section";
-
   const editId = newEditId();
+  const isDelete = isEmptyBody(body);
 
-  if (!accept) {
-    await DB.prepare(
-      `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?8)`,
+  /*
+   * revision을 먼저 올려 이 편집이 문서를 쥐고 쓴다.
+   *
+   * 승인된 편집은 어느 섹션이든 revision을 1 올리므로, `WHERE revision = 읽은 값`이
+   * 0건이면 그 사이 누군가 반영했다는 뜻이다. 그때는 **바뀐 본문으로 다시 판정한다** —
+   * 뒤늦게 닿은 편집이 앞사람 글을 못 본 채 덮어쓰는 일을 막고, 앞사람이 쓴 글을
+   * 지우게 되는 편집이라면 그제야 검토 대기로 보낸다.
+   *
+   * 세 번까지만 다시 시도한다. 그보다 붐비는 문서라면 사람이 한 번 보는 편이 낫다.
+   */
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // 저장 시점의 실제 값을 다시 읽는다 — 편집기를 연 시점의 상태는 신뢰하지 않는다.
+    const doc = await DB.prepare(`SELECT id, revision, general FROM wiki_docs WHERE id = ?1`)
+      .bind(id)
+      .first<{ id: string; revision: number; general: string }>();
+    if (!doc) return { ok: false, error: "validation" };
+
+    const currentBody = input.meSlug
+      ? ((
+          await DB.prepare(`SELECT body FROM wiki_sections WHERE doc_id = ?1 AND me_slug = ?2`)
+            .bind(id, input.meSlug)
+            .first<{ body: string }>()
+        )?.body ?? "")
+      : doc.general;
+
+    const wasEmpty = isEmptyBody(currentBody);
+    const accept = input.isAdmin || (!isDelete && isAdditionOnly(currentBody, body));
+
+    if (!accept) {
+      await DB.prepare(
+        `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?8)`,
+      )
+        .bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now)
+        .run();
+      return { ok: true, status: "pending" };
+    }
+
+    const acceptedVia: AcceptedVia = input.isAdmin
+      ? "admin"
+      : wasEmpty
+        ? "empty_section"
+        : "addition_only";
+    const newRevision = doc.revision + 1;
+
+    const claimed = await DB.prepare(
+      `UPDATE wiki_docs SET revision = ?1 WHERE id = ?2 AND revision = ?3`,
     )
-      .bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now)
+      .bind(newRevision, id, doc.revision)
       .run();
-    return { ok: true, status: "pending" };
+    if ((claimed.meta.changes ?? 0) === 0) continue;
+
+    /*
+     * 문서를 쥐었으니 본문을 쓴다. 여기서부터는 조건 없이 덮어써도 된다 — 같은
+     * revision을 쥔 사람은 하나뿐이다.
+     */
+    const applyStmt = input.meSlug
+      ? DB.prepare(
+          `INSERT INTO wiki_sections (doc_id, me_slug, body, updated_at, updated_by)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+           ON CONFLICT (doc_id, me_slug) DO UPDATE SET
+             body = excluded.body, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+        ).bind(id, input.meSlug, body, now, input.authorId)
+      : DB.prepare(
+          `UPDATE wiki_docs SET general = ?1, updated_at = ?2, updated_by = ?3 WHERE id = ?4`,
+        ).bind(body, now, input.authorId, id);
+
+    const recordStmt = DB.prepare(
+      `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at, accepted_via, revision)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'accepted', ?7, ?8, ?9, ?10)`,
+    ).bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now, acceptedVia, newRevision);
+
+    await DB.batch([applyStmt, recordStmt]);
+    return { ok: true, status: "accepted" };
   }
 
-  const newRevision = doc.revision + 1;
-  const applyStmt = input.meSlug
-    ? DB.prepare(
-        `INSERT INTO wiki_sections (doc_id, me_slug, body, updated_at, updated_by)
-           VALUES (?1, ?2, ?3, ?4, ?5)
-         ON CONFLICT (doc_id, me_slug) DO UPDATE SET
-           body = excluded.body, updated_at = excluded.updated_at, updated_by = excluded.updated_by
-         WHERE ?6 = 1 OR TRIM(wiki_sections.body) = ''`,
-      ).bind(id, input.meSlug, body, now, input.authorId, input.isAdmin ? 1 : 0)
-    : DB.prepare(
-        `UPDATE wiki_docs SET general = ?1, updated_at = ?2, updated_by = ?3
-          WHERE id = ?4 AND (?5 = 1 OR TRIM(general) = '')`,
-      ).bind(body, now, input.authorId, id, input.isAdmin ? 1 : 0);
-
-  const bumpStmt = DB.prepare(
-    `UPDATE wiki_docs SET revision = ?1 WHERE id = ?2 AND revision = ?3`,
-  ).bind(newRevision, id, doc.revision);
-
-  const recordStmt = DB.prepare(
-    `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at, accepted_via, revision)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'accepted', ?7, ?8, ?9, ?10)`,
-  ).bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now, acceptedVia, newRevision);
-
-  const [applyResult, bumpResult] = await DB.batch([applyStmt, bumpStmt, recordStmt]);
-
-  // 두 사람이 같은 빈 섹션에 동시에 제출하면 먼저 닿은 쪽만 적용된다. 늦은 쪽은
-  // 여기서 0건으로 확인되므로, 이미 만든 wiki_edits 행을 검토 대기로 되돌린다
-  // (WIKI_MODEL.md "나중 쪽은 검토 대기로 간다").
-  if ((applyResult.meta.changes ?? 0) === 0 || (bumpResult.meta.changes ?? 0) === 0) {
-    await DB.prepare(
-      `UPDATE wiki_edits SET status = 'pending', accepted_via = NULL, revision = NULL WHERE id = ?1`,
-    )
-      .bind(editId)
-      .run();
-    return { ok: true, status: "pending" };
-  }
-
-  return { ok: true, status: "accepted" };
+  // 세 번 다 다른 편집에 밀렸다. 사람이 한 번 보게 한다.
+  const doc = await DB.prepare(`SELECT revision FROM wiki_docs WHERE id = ?1`)
+    .bind(id)
+    .first<{ revision: number }>();
+  await DB.prepare(
+    `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?8)`,
+  )
+    .bind(editId, id, input.meSlug, doc?.revision ?? 0, body, summary, input.authorId, now)
+    .run();
+  return { ok: true, status: "pending" };
 }
 
 // ---------------------------------------------------------------- 내 편집 (FR-33)

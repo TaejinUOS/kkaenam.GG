@@ -1,0 +1,44 @@
+/*
+ * 형광펜 친 원문. 색은 globals.css의 --diff-* 토큰이고, 여기에는 배치만 둔다.
+ *
+ * 글자 치수(글꼴·크기·행간·줄바꿈 규칙)는 병합 편집기 오른쪽의 textarea와 같은 값으로
+ * 맞춰 둔다 (`MergeEditScreen.module.css`의 `.text`). 좌우가 나란히 놓이는 화면이라
+ * 한쪽만 다르면 같은 문장이 다른 줄 수로 접힌다.
+ */
+.text {
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 2;
+}
+
+/*
+ * 형광펜은 배경색과 선을 함께 쓴다. 색만으로 구별하면 적록색약인 사람에게 이 화면은
+ * 아무 정보도 주지 못한다. 취소선·밑줄은 줄 높이를 건드리지 않아 좌우 정렬도 지킨다.
+ */
+.add,
+.remove {
+  color: inherit;
+  border-radius: 2px;
+}
+
+.add {
+  background: var(--diff-add);
+  text-decoration: underline;
+  text-decoration-color: var(--diff-add-line);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.remove {
+  background: var(--diff-remove);
+  text-decoration: line-through;
+  text-decoration-color: var(--diff-remove-line);
+  text-decoration-thickness: 2px;
+}

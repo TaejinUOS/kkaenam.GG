@@ -75,7 +75,10 @@ export async function submitEditAction(
 
   return {
     ok: true,
-    message: result.status === "accepted" ? "저장되어 바로 반영되었습니다." : "저장되었습니다. 운영자 검토 후 반영됩니다.",
+    message:
+      result.status === "accepted"
+        ? "저장되어 문서에 바로 반영되었습니다."
+        : "저장했습니다. 지운 부분이 있어 운영자 검토를 거쳐 반영되며, 진행 상황은 「내 편집」에서 볼 수 있습니다.",
   };
 }
 

@@ -2,8 +2,8 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 기준일 | 2026-09-03 (4단계 편집·검토 구현 반영) |
-| 대상 | `docs/PRD.md` v0.8 / `docs/DESIGN_BLUEPRINT.md` v0.6 / `docs/WIKI_MODEL.md` |
+| 기준일 | 2026-09-04 (병합 편집 화면과 "지운 것이 있는가" 판정 반영) |
+| 대상 | `docs/PRD.md` v1.0 / `docs/DESIGN_BLUEPRINT.md` v0.6 / `docs/WIKI_MODEL.md` |
 | 구현 범위 | MVP 프런트엔드 (Next.js 15 App Router, TypeScript) |
 | Data Dragon | `16.17.1` / `ko_KR` — 챔피언 173명, 분류 166명 |
 
@@ -47,7 +47,10 @@
 | 쓰기 계층 (D1) | [`src/lib/wikiEditStore.ts`](../src/lib/wikiEditStore.ts) — 제출·승인·거절·되돌리기·역사·최근변경·내편집 |
 | 서버 액션 | [`src/lib/actions/wikiEditActions.ts`](../src/lib/actions/wikiEditActions.ts) |
 | 권한 게이팅 | [`src/lib/authGuard.ts`](../src/lib/authGuard.ts) — `requirePageAdmin`/`requirePageUser`(페이지), `requireActionAdmin`/`requireActionUser`(액션) |
-| 편집 UI 진입점 | [`src/components/matchup/WikiPanel.tsx`](../src/components/matchup/WikiPanel.tsx) — `?edit=general` / `?edit=me:<슬러그>` URL 상태로 인라인 패널을 연다 (모달 아님) |
+| 편집 화면 | [`src/app/matchup/[position]/[champion]/edit/page.tsx`](../src/app/matchup/[position]/[champion]/edit/page.tsx) + [`MergeEditScreen.tsx`](../src/components/matchup/MergeEditScreen.tsx) — `?section=general` / `?section=me:<슬러그>`. 문서 화면 안 인라인 패널이 아니라 별도 주소다 |
+| 편집 진입점 | [`src/components/matchup/WikiPanel.tsx`](../src/components/matchup/WikiPanel.tsx) — 섹션 제목 줄의 `편집` 링크가 위 주소로 보낸다 |
+| 차이 계산 | [`src/lib/wikiDiff.ts`](../src/lib/wikiDiff.ts) — **클라이언트와 서버가 함께 쓴다.** `server-only`를 넣지 말 것 |
+| 형광펜 렌더 | [`src/components/wiki/DiffText.tsx`](../src/components/wiki/DiffText.tsx) — 편집 화면 왼쪽과 검토 화면이 함께 쓴다 |
 | 마크다운 렌더러 | [`src/components/wiki/MarkdownBody.tsx`](../src/components/wiki/MarkdownBody.tsx) — `markdown-to-jsx`, `disableParsingRawHTML: true` |
 | 관리자 화면 | `src/app/admin/**` (`/admin`, `/admin/wiki/review`, `/admin/wiki/review/[editId]`, `/admin/wiki/recent`) |
 | 문서 역사(공개) | `src/app/matchup/[position]/[champion]/history/page.tsx` |
@@ -58,15 +61,25 @@
 ```
 isDelete = isEmptyBody(제출 본문)
 wasEmpty = isEmptyBody(현재 실제 값)   // 저장 시점에 서버가 새로 읽음
-accept      = isAdmin || (!isDelete && wasEmpty)
-acceptedVia = !accept ? null : isAdmin ? "admin" : "empty_section"
+accept      = isAdmin || (!isDelete && isAdditionOnly(현재 실제 값, 제출 본문))
+acceptedVia = !accept ? null : isAdmin ? "admin" : wasEmpty ? "empty_section" : "addition_only"
 ```
 
-관리자 본인 편집은 삭제라도 즉시 반영된다(자기 글을 자기가 검토하지 않음). 일반
-사용자의 삭제는 원래 상태와 무관하게 항상 검토 대기다(FR-26). 동시 제출 경쟁은
-`ON CONFLICT ... DO UPDATE ... WHERE (관리자 OR TRIM(body)='')` SQL 가드로 막고,
-늦게 도착해 가드에 걸린 제출은 `DB.batch()` 직후 `meta.changes`를 확인해 자동으로
-`pending`으로 되돌린다.
+**기준은 "섹션이 비었는가"가 아니라 "이 편집이 지우는 글자가 있는가"다** (2026-09-04
+개정, WIKI_MODEL.md "편집에는 두 갈래가 있다"). 남의 글을 그대로 두고 덧붙이기만 하면
+이미 쓰인 섹션이라도 즉시 반영된다. 공백·줄바꿈만 달라진 것은 지운 것으로 세지 않는다.
+
+`isAdditionOnly`는 편집 화면의 빨간 형광펜과 **같은 함수**다. 둘이 갈리면 화면에
+초록만 보이는데 대기열로 가는 일이 생기므로, `wikiDiff.ts`를 고칠 때는 양쪽 영향을
+함께 본다.
+
+관리자 본인 편집은 삭제라도 즉시 반영된다(자기 글을 자기가 검토하지 않음). 빈 본문
+제출은 섹션 전체를 지우는 것이라 항상 검토 대기다(FR-26).
+
+동시 제출 경쟁은 **`wiki_docs.revision`을 먼저 올려 문서를 쥐는 방식**으로 막는다.
+`UPDATE ... WHERE revision = 읽은 값`이 0건이면 그 사이 누군가 반영했다는 뜻이므로,
+바뀐 본문을 다시 읽어 다시 판정한다(세 번까지). 앞사람 글을 지우게 되는 편집이라면
+그제야 검토 대기로 간다.
 
 **되돌리기(FR-30)는 문서 전체가 아니라 섹션별로 재구성한다** —
 `wiki_edits.revision`이 섹션 하나가 바뀔 때마다 1씩 오르는 카운터라 문서 전체
@@ -114,13 +127,16 @@ npx wrangler d1 execute kkaenam-gg --remote --command \
   "UPDATE users SET role='admin' WHERE id='...';"
 ```
 
-> **즉시 반영 판정은 서버에서** 한다(`submitEdit`이 저장 시점에 실제 값을 다시 읽는다).
-> 빈 섹션은 바로 반영되고 이미 쓰인 섹션은 검토를 거치며, 섹션을 비우는 편집은 언제나
-> 검토 대기다. PRD 5.4.1과 10장, WIKI_MODEL.md대로 구현했다.
+> **즉시 반영 판정은 서버에서** 한다(`submitEdit`이 저장 시점에 실제 값을 다시 읽어
+> `isAdditionOnly`로 비교한다). 지운 것이 없으면 바로 반영되고, 지우거나 고쳤으면
+> 검토를 거치며, 섹션을 비우는 편집은 언제나 검토 대기다. PRD 5.4.1과 10장,
+> WIKI_MODEL.md대로 구현했다.
 
 > 즉시 반영 경로의 안전장치인 **최근 변경 화면, 한 번에 되돌리기, 제출 수 제한**
 > 셋 다 구현했다(2.1 참고). 실제 서비스에 배포하기 전에 셋이 모두 동작하는지
-> 다시 한 번 확인할 것.
+> 다시 한 번 확인할 것. **판정 기준을 바꾸면서 즉시 반영되는 면이 크게 넓어졌다** —
+> 예전에는 빈 섹션만 열려 있었지만 이제 모든 섹션이 덧붙이기에 열려 있다.
+> 최근 변경 피드를 실제로 훑는 운영이 이 정책의 전제다.
 
 ### 2.2 영상 탭
 
@@ -389,7 +405,8 @@ http://localhost:3000/matchup/mid/ahri?me=twistedfate   Me 노출 확인
 | 상대법 문서 기본 표시, 영상 탭 상태 복원 | 완료 |
 | Me 미선택 시 공통만, 트페 선택 시 전용 내용만 | 완료 (검증함) |
 | 구글·카카오 로그인 | **완료** (2026-09-03) — 2.1 참고. 실제 OAuth 왕복은 로컬에서 수동 확인 필요 |
-| 빈 섹션 즉시 반영 / 쓰인 섹션 검토 대기 | **구현 완료** (2026-09-03) — 로컬 D1에 실제 SQL로 분기 검증함, 2.1 참고 |
+| 지운 것 없는 편집 즉시 반영 / 지운 편집 검토 대기 | **구현 완료** (2026-09-04) — `wikiDiff`의 판정을 단위 수준으로 검증함. 로컬 D1 왕복은 재검증 필요 |
+| 편집 화면 좌우 형광펜 (FR-48) | **구현 완료** (2026-09-04) — 브라우저에서 한글 조합 입력 중 형광펜 정렬을 눈으로 확인할 것 |
 | 섹션 비우기가 검토 대기로 가는지 (우회로 없음) | **구현 완료** — 검증함 |
 | 문서 역사 · 되돌리기 · 최근 변경 · 제출 제한 | **구현 완료** — 되돌리기의 섹션별 재구성과 제출 제한 카운트 쿼리를 D1에서 직접 검증함 |
 | 관리자 분류 화면, 재배포 없는 반영 | **미구현** — 4장 |

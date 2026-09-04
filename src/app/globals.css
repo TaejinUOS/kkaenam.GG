@@ -40,6 +40,17 @@
   /* 아직 없는 문서. 종이 위에서 7.5:1이라 색을 못 보는 사람에게도 점선이 함께 남는다. */
   --missing-doc: #8a261f;
 
+  /*
+   * 편집 형광펜. 더한 곳은 초록, 지운 곳은 빨강이다 (`docs/WIKI_MODEL.md` "편집에는
+   * 두 갈래가 있다"). 종이 위 --ink 글자에 대해 각각 14:1, 13:1이라 형광펜 위에서도
+   * 본문이 그대로 읽힌다. --line 값은 밑줄·취소선 색이며, 색을 못 보는 사람에게
+   * 배경색 대신 남는 단서다.
+   */
+  --diff-add: #b7f0c8;
+  --diff-add-line: #1f6d3a;
+  --diff-remove: #ffc4cd;
+  --diff-remove-line: #b3261e;
+
   --line-w: 2px;
   --line: var(--line-w) solid var(--ink);
   --line-paper: var(--line-w) solid var(--paper);

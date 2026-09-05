@@ -361,6 +361,15 @@ function SyntaxHelp() {
         </dd>
 
         <dt>
+          <code>[[분류:라인전]]</code>
+        </dt>
+        <dd>
+          이 문서를 &quot;라인전&quot; 분류에 넣는다. 본문에는 안 보이고 문서 아래에 태그로
+          따로 붙는다. &quot;분류:웨이브&quot;라는 문서를 만들어 그 안에{" "}
+          <code>[[분류:라인전]]</code>을 적으면, 웨이브가 라인전의 하위 분류가 된다.
+        </dd>
+
+        <dt>
           <code>**굵게**</code> <code>- 목록</code> <code>&gt; 인용</code>{" "}
           <code>[글](https://…)</code>
         </dt>

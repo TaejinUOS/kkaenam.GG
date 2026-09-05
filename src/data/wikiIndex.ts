@@ -10,6 +10,7 @@
 
 import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
 import { matchupDocTitle } from "@/lib/wikiLink";
+import { CATEGORY_PREFIX } from "@/lib/wikiMarkup";
 import type { CategoryMember, CategoryView } from "@/lib/wikiStore";
 import { articleHref } from "@/lib/wikiTitle";
 
@@ -45,6 +46,8 @@ export type TreeItem = {
   href?: string;
   /** 아직 문서가 없는 항목. 빨간 링크와 같은 뜻으로 흐리게 그린다. */
   pending?: boolean;
+  /** 이 항목 아래의 하위분류. 지금은 관문의 하위분류 한 단계까지만 채워진다. */
+  children?: TreeItem[];
 };
 
 /**
@@ -167,7 +170,8 @@ export function buildWikiIndexData(
   /*
    * 나무는 두 갈래를 함께 보여 준다 (`docs/WIKI_EXPANSION.md` "나무").
    * 상대법 갈래는 `taxonomy.ts`에서 자동으로 나오고, 일반 문서 갈래는 관문에서 나온다.
-   * 관문 아래의 하위 분류는 편집자가 `[[분류:…]]`로 만드는 것이라 4단계에 채워진다.
+   * 관문 아래의 하위 분류는 편집자가 `[[분류:…]]`로 만드는 것이고, 그 목록이
+   * `TreeItem.children`으로 한 단계 중첩되어 보인다.
    */
   const tree: TreeBranch[] = [
     {
@@ -180,11 +184,23 @@ export function buildWikiIndexData(
     },
     {
       label: "일반 문서",
-      items: [...coverPortals(), ...shelfPortals()].map((portal) => ({
-        label: portal.label,
-        href: `/wiki?${new URLSearchParams({ 분류: portal.key })}`,
-        pending: countOf(categoryViews[portal.key]) === 0,
-      })),
+      items: [...coverPortals(), ...shelfPortals()].map((portal) => {
+        const view = categoryViews[portal.key];
+        return {
+          label: portal.label,
+          href: `/wiki?${new URLSearchParams({ 분류: portal.key })}`,
+          pending: countOf(view) === 0,
+          /*
+           * 하위분류는 한 단계만 보여준다 — `getCategoryView`가 그 깊이까지만 읽는다
+           * (`docs/WIKI_EXPANSION.md` "분류"). 이름은 "분류:웨이브" 문서의 주소로 간다.
+           */
+          children: (view?.subcategories ?? []).map((sub) => ({
+            label: sub.name,
+            href: articleHref(`${CATEGORY_PREFIX}${sub.name}`),
+            pending: sub.docs.length === 0,
+          })),
+        };
+      }),
     },
     {
       label: "기타",

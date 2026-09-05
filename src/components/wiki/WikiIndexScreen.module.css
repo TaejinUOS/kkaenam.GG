@@ -630,6 +630,27 @@
   border-bottom: 1px dotted currentColor;
 }
 
+/* 하위분류. 관문 이름 바로 아래, 세로선으로 한 단 들여 그린다. */
+.branchChildren {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  margin: 4px 0 2px 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--paper-line);
+}
+
+.branchChildItem {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.branchChildItem:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .branchNote {
   margin-top: 6px;
   font-size: 12px;

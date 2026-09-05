@@ -416,6 +416,34 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
                           {item.label}
                         </span>
                       )}
+
+                      {/* 하위분류. 관문 밑에 한 단계만 중첩되어 보인다(`getCategoryView`가 그 깊이까지만 읽는다). */}
+                      {item.children && item.children.length > 0 && (
+                        <ul className={styles.branchChildren}>
+                          {item.children.map((child) => (
+                            <li key={child.label}>
+                              {child.href ? (
+                                <Link
+                                  href={child.href}
+                                  className={`${styles.branchChildItem} ${
+                                    child.pending ? styles.branchItemPending : ""
+                                  }`}
+                                >
+                                  {child.label}
+                                </Link>
+                              ) : (
+                                <span
+                                  className={`${styles.branchChildItem} ${
+                                    child.pending ? styles.branchItemPending : ""
+                                  }`}
+                                >
+                                  {child.label}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ul>

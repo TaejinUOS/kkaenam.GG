@@ -3,11 +3,13 @@ import { Suspense } from "react";
 
 import { WikiIndexScreen, type RecentRow, type WorkCounter } from "@/components/wiki/WikiIndexScreen";
 import { buildWikiIndexData, classifiedChampionSlugs } from "@/data/wikiIndex";
+import { coverPortals, shelfPortals } from "@/data/portals";
 import { relativeTime } from "@/lib/relativeTime";
 import { getTaxonomy } from "@/lib/taxonomyStore";
 import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 import { countWantedArticles, getWikiIndexStats, listArticleTitles } from "@/lib/wikiIndexStore";
+import { getCategoryView, type CategoryView } from "@/lib/wikiStore";
 
 export const metadata: Metadata = {
   title: "위키",
@@ -21,19 +23,24 @@ const RECENT_ON_INDEX = 8;
  * `위키` 첫 화면 (`docs/WIKI_EXPANSION.md` "첫 화면").
  *
  * 이 화면의 숫자는 전부 실제 값이다. 블루프린트의 `DOCS 128 / 7D 24`는 조판 확인용
- * 예시였고, 여기서는 D1이 실제로 가진 값을 읽는다. 아직 셀 수 없는 것(관문별 문서 수,
- * 미분류 문서)은 **가짜 숫자를 두지 않고 비운다** — 블루프린트 6.5의 규칙이다.
+ * 예시였고, 여기서는 D1이 실제로 가진 값을 읽는다. 관문별 문서 수는 `wiki_links`로
+ * 세지만(`getCategoryView`), 아직 셀 수 없는 것(미분류 문서)은 **가짜 숫자를 두지
+ * 않고 비운다** — 블루프린트 6.5의 규칙이다.
  */
 export default async function WikiIndexPage() {
-  const [stats, changes, taxonomy, articles, wantedArticleCount] = await Promise.all([
+  const portalKeys = [...coverPortals(), ...shelfPortals()].map((p) => p.key);
+
+  const [stats, changes, taxonomy, articles, wantedArticleCount, categoryViewEntries] = await Promise.all([
     getWikiIndexStats(),
     listRecentChanges(RECENT_ON_INDEX),
     getTaxonomy(),
     listArticleTitles(),
     countWantedArticles(),
+    Promise.all(portalKeys.map(async (key) => [key, await getCategoryView(key)] as const)),
   ]);
+  const categoryViews: Record<string, CategoryView> = Object.fromEntries(categoryViewEntries);
 
-  const data = buildWikiIndexData(taxonomy, {}, articles);
+  const data = buildWikiIndexData(taxonomy, categoryViews, articles);
 
   /*
    * 상대 시각은 여기서 짓는다. 클라이언트에서 계산하면 수화가 어긋난다.

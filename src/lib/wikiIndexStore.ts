@@ -12,6 +12,11 @@ import "server-only";
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+import { CATEGORY_PREFIX } from "@/lib/wikiMarkup";
+
+/** `wiki_links.target_key`에서 분류 태그를 걸러내는 LIKE 패턴. */
+const CATEGORY_LIKE = `${CATEGORY_PREFIX}%`;
+
 async function db() {
   const { env } = await getCloudflareContext({ async: true });
   return env.DB;
@@ -93,13 +98,16 @@ export async function countWantedArticles(): Promise<number> {
   const row = await DB.prepare(
     `SELECT COUNT(*) AS n FROM (
        SELECT l.target_key FROM wiki_links l
-        WHERE NOT EXISTS (
+        WHERE l.target_key NOT LIKE ?1
+          AND NOT EXISTS (
           SELECT 1 FROM wiki_docs d
            WHERE d.kind = 'article' AND d.doc_status = 'published' AND d.title_key = l.target_key
         )
         GROUP BY l.target_key
      )`,
-  ).first<{ n: number }>();
+  )
+    .bind(CATEGORY_LIKE)
+    .first<{ n: number }>();
   return row?.n ?? 0;
 }
 
@@ -113,7 +121,8 @@ export type WantedArticle = {
 /**
  * 위키링크로 걸렸지만 아직 없는 일반 문서 (4단계, `docs/WIKI_EXPANSION.md` "아직 없는
  * 문서 목록"). `wiki_links`는 매치업으로 풀리는 이름을 담지 않으므로 여기 남는 것은
- * 전부 일반 문서의 후보다 (`wikiEditStore.ts`의 `linkStatements`).
+ * 전부 일반 문서의 후보다 (`wikiEditStore.ts`의 `linkStatements`) — 다만 분류
+ * (`분류:이름`)는 문서가 아니라 태그이므로 따로 뺀다.
  *
  * 이미 게시된 문서는 뺀다 — 링크가 걸린 시점과 문서가 게시된 시점 사이에는 그 문서를
  * 가리키는 링크가 있어도 더 이상 "아직 없는" 것이 아니다.
@@ -123,15 +132,16 @@ export async function getWantedArticles(limit = 30): Promise<WantedArticle[]> {
   const rows = await DB.prepare(
     `SELECT l.target_key, MAX(l.target_title) AS title, COUNT(DISTINCT l.source_doc) AS n
        FROM wiki_links l
-      WHERE NOT EXISTS (
+      WHERE l.target_key NOT LIKE ?1
+        AND NOT EXISTS (
         SELECT 1 FROM wiki_docs d
          WHERE d.kind = 'article' AND d.doc_status = 'published' AND d.title_key = l.target_key
       )
       GROUP BY l.target_key
       ORDER BY n DESC, title ASC
-      LIMIT ?1`,
+      LIMIT ?2`,
   )
-    .bind(limit)
+    .bind(CATEGORY_LIKE, limit)
     .all<{ target_key: string; title: string; n: number }>();
 
   return (rows.results ?? []).map((row) => ({

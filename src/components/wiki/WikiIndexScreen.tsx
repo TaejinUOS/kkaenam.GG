@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WikiIndexData } from "@/data/wikiIndex";
 import { prefersReducedMotion } from "@/lib/motion";
 import { buildQuery, matchesName, normalizeQuery } from "@/lib/url";
+import { articleHref } from "@/lib/wikiTitle";
 
 import styles from "./WikiIndexScreen.module.css";
 
@@ -204,16 +205,50 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
                     <p className={`mono ${styles.panelPath}`}>/wiki?분류={activePortal.key}</p>
                   </div>
 
-                  {/*
-                    아직 `[[분류:…]]`가 없으므로 어느 관문도 문서를 갖고 있지 않다.
-                    빈 화면을 막다른 길로 두지 않고 무엇을 하면 여기 문서가 모이는지 적는다.
-                    위키에서 비어 있음은 실패가 아니라 초대다.
-                  */}
-                  <p className={styles.panelEmpty}>
-                    아직 이 분류에 문서가 없습니다. 문서 본문에{" "}
-                    <code className={styles.code}>[[분류:{activePortal.key}]]</code>를 적으면 그
-                    문서가 여기에 모입니다.
-                  </p>
+                  {activePortal.docs.length === 0 && activePortal.subcategories.length === 0 ? (
+                    /*
+                      빈 화면을 막다른 길로 두지 않고 무엇을 하면 여기 문서가 모이는지 적는다.
+                      위키에서 비어 있음은 실패가 아니라 초대다.
+                    */
+                    <p className={styles.panelEmpty}>
+                      아직 이 분류에 문서가 없습니다. 문서 본문에{" "}
+                      <code className={styles.code}>[[분류:{activePortal.key}]]</code>를 적으면 그
+                      문서가 여기에 모입니다.
+                    </p>
+                  ) : (
+                    <>
+                      {activePortal.docs.length > 0 && (
+                        <ul className={styles.rows}>
+                          {activePortal.docs.map((doc) => (
+                            <li key={doc.titleKey}>
+                              <Link href={articleHref(doc.title)} className={styles.row}>
+                                <span className={styles.rowTitle}>{doc.title}</span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {activePortal.subcategories.map((sub) => (
+                        <div key={sub.name} className={styles.branch}>
+                          <p className={styles.branchLabel}>
+                            <Link href={articleHref(`분류:${sub.name}`)} className={styles.branchLink}>
+                              {sub.name}
+                            </Link>
+                          </p>
+                          <ul className={styles.rows}>
+                            {sub.docs.map((doc) => (
+                              <li key={doc.titleKey}>
+                                <Link href={articleHref(doc.title)} className={styles.row}>
+                                  <span className={styles.rowTitle}>{doc.title}</span>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </section>
               )}
             </div>

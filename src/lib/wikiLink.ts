@@ -9,7 +9,7 @@
  */
 
 import { allChampions, positions } from "@/data/champions";
-import { collectWikiLinkTitles } from "@/lib/wikiMarkup";
+import { collectWikiLinkTitles, parseCategoryName } from "@/lib/wikiMarkup";
 import { articleHref, titleKey } from "@/lib/wikiTitle";
 
 /** 문서 이름 -> 주소. 해석되지 않은 이름은 담지 않는다. */
@@ -143,12 +143,17 @@ export function resolveWikiLinks(bodies: string[], articles?: ArticleIndex): Wik
   return map;
 }
 
-/** 본문에 적힌 이름 가운데 매치업 문서로 풀리지 않는 것. 일반 문서 조회의 후보다. */
+/**
+ * 본문에 적힌 이름 가운데 매치업 문서로 풀리지 않는 것. 일반 문서 조회의 후보다.
+ *
+ * 분류(`분류:이름`)는 뺀다 — `linkifyWikiLinks`가 애초에 링크로 그리지 않으므로
+ * `resolveDocLinks`가 존재하지도 않을 문서를 D1에 물어보는 헛수고를 막는다.
+ */
 export function unresolvedWikiTitles(bodies: string[]): string[] {
   const titles = new Set<string>();
   for (const body of bodies) {
     for (const title of collectWikiLinkTitles(body)) {
-      if (!resolveMatchupTitle(title)) titles.add(title);
+      if (!resolveMatchupTitle(title) && !parseCategoryName(title)) titles.add(title);
     }
   }
   return [...titles];

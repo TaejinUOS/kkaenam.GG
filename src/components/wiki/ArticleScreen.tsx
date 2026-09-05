@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
+import type { CategoryView } from "@/lib/wikiStore";
 import type { WikiLinkMap } from "@/lib/wikiLink";
+import { collectWikiLinkTitles, parseCategoryName } from "@/lib/wikiMarkup";
 import { articleHref } from "@/lib/wikiTitle";
 
 import { type DocSection, WikiDocument } from "./WikiDocument";
@@ -22,6 +24,8 @@ type Props = {
   proposed: boolean;
   /** 본문에 적힌 `[[...]]`를 서버가 미리 풀어 둔 결과. */
   wikiLinks: WikiLinkMap;
+  /** 이 문서 자체가 분류(`분류:이름`)일 때만 온다 — 그 분류에 속한 문서들. */
+  categoryMembers?: CategoryView;
   viewer: Viewer;
 };
 
@@ -46,12 +50,26 @@ export function ArticleScreen({
   updatedBy,
   proposed,
   wikiLinks,
+  categoryMembers,
   viewer,
 }: Props) {
   const resolveLink = useCallback((target: string) => wikiLinks[target] ?? null, [wikiLinks]);
 
   const base = articleHref(title);
   const editHref = `${base}/edit`;
+
+  /*
+   * 분류 태그는 본문에 그리지 않는다(`linkifyWikiLinks`가 지운다). 여기서 따로
+   * 뽑아 문서 하단에 태그 줄로 보여준다 — namuwiki가 분류를 다루는 방식과 같다.
+   */
+  const categories = useMemo(() => {
+    const names = new Set<string>();
+    for (const linkTitle of collectWikiLinkTitles(body)) {
+      const name = parseCategoryName(linkTitle);
+      if (name) names.add(name);
+    }
+    return [...names];
+  }, [body]);
 
   const sections = useMemo<DocSection[]>(
     () => [
@@ -106,6 +124,56 @@ export function ArticleScreen({
         <div className={`${styles.paper} on-paper`}>
           <WikiDocument sections={sections} resolveLink={resolveLink} />
         </div>
+
+        {categories.length > 0 && (
+          <p className={styles.categories}>
+            <span className={styles.categoriesLabel}>분류</span>
+            {categories.map((name) => (
+              <Link key={name} href={articleHref(`분류:${name}`)} className={styles.categoryTag}>
+                {name}
+              </Link>
+            ))}
+          </p>
+        )}
+
+        {/*
+          이 문서 자체가 분류(`분류:이름`)일 때만 온다. 손으로 쓴 본문 아래에 그 분류에
+          속한 문서를 자동으로 이어 붙인다 — namuwiki의 분류 문서와 같은 동작이다.
+        */}
+        {categoryMembers && (categoryMembers.docs.length > 0 || categoryMembers.subcategories.length > 0) && (
+          <section className={styles.memberList} aria-label="이 분류의 문서">
+            <p className={styles.memberListTitle}>이 분류의 문서</p>
+            {categoryMembers.docs.length > 0 && (
+              <ul className={styles.memberRows}>
+                {categoryMembers.docs.map((doc) => (
+                  <li key={doc.titleKey}>
+                    <Link href={articleHref(doc.title)} className={styles.memberRow}>
+                      {doc.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {categoryMembers.subcategories.map((sub) => (
+              <div key={sub.name} className={styles.memberSub}>
+                <p className={styles.memberSubLabel}>
+                  <Link href={articleHref(`분류:${sub.name}`)} className={styles.categoryTag}>
+                    {sub.name}
+                  </Link>
+                </p>
+                <ul className={styles.memberRows}>
+                  {sub.docs.map((doc) => (
+                    <li key={doc.titleKey}>
+                      <Link href={articleHref(doc.title)} className={styles.memberRow}>
+                        {doc.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
 
         {!proposed && (
           <p className={`mono ${styles.meta}`}>

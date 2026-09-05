@@ -15,6 +15,19 @@
 /** 각주 참조가 가리키는 href 접두사. `MarkdownBody`가 이 값으로 각주를 알아본다. */
 export const FOOTNOTE_HREF = "#wiki-fn-";
 
+/**
+ * 분류 위키링크의 대상 이름 접두사. `[[분류:정글]]`이 이 접두사로 시작한다
+ * (`docs/WIKI_EXPANSION.md` "분류").
+ */
+export const CATEGORY_PREFIX = "분류:";
+
+/** 제목이 분류 링크(`분류:이름`)면 그 이름을, 아니면 null을 준다. */
+export function parseCategoryName(title: string): string | null {
+  if (!title.startsWith(CATEGORY_PREFIX)) return null;
+  const name = title.slice(CATEGORY_PREFIX.length).trim();
+  return name || null;
+}
+
 /** 가리키는 문서가 없는 위키링크의 href 접두사. 빨간 링크로 그린다. */
 export const MISSING_DOC_HREF = "#wiki-missing";
 
@@ -240,11 +253,17 @@ export function collectWikiLinkTitles(body: string): string[] {
  * 해석되지 않은 링크는 지우지 않고 `MISSING_DOC_HREF`로 남겨 빨간 링크로 그린다.
  * 위키에서 빨간 링크는 실패가 아니라 **아직 쓰이지 않은 문서를 가리키는 예약**이다.
  * 오타도 같은 방식으로 눈에 띈다.
+ *
+ * 분류(`[[분류:정글]]`)는 예외다. 본문에 보이는 링크가 아니라 문서에 붙는 태그라서
+ * 여기서는 지운다 — 화면(`ArticleScreen` 등)이 본문과 별개로 태그 줄을 그린다. 이름
+ * 자체는 `wiki_links`에 그대로 남아 "이 분류의 문서" 조회를 뒷받침한다
+ * (`wikiEditStore.ts`의 `linkStatements`, `wikiStore.ts`의 `getCategoryView`).
  */
 export function linkifyWikiLinks(body: string, resolve: WikiLinkResolver): string {
   return mapOutsideCode(body, (chunk) =>
     chunk.replace(WIKI_LINK, (_whole, rawTitle: string, rawLabel?: string) => {
       const title = rawTitle.trim();
+      if (parseCategoryName(title)) return "";
       const label = (rawLabel ?? title).trim();
       return `[${label}](${resolve(title) ?? missingDocHref(title)})`;
     }),

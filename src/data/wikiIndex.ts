@@ -10,6 +10,7 @@
 
 import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
 import { matchupDocTitle } from "@/lib/wikiLink";
+import type { CategoryMember, CategoryView } from "@/lib/wikiStore";
 import { articleHref } from "@/lib/wikiTitle";
 
 import { getCategoriesFor, positions } from "./champions";
@@ -17,13 +18,17 @@ import { coverPortals, shelfPortals, type Portal } from "./portals";
 
 export type PortalView = Portal & {
   /**
-   * 이 관문에 달린 일반 문서 수.
+   * 이 관문에 달린 일반 문서 수. 바로 속한 문서 + 하위분류에 속한 문서를 중복
+   * 없이 합친 값이다.
    *
-   * `[[분류:…]]`와 `wiki_links`가 4단계에 들어오기 전까지는 셀 것이 없어 0이다.
    * 0인 관문은 숫자 대신 "첫 문서를 기다립니다"로 그린다 — `문서 0`을 큰 커버 아래
    * 붙이면 죽은 사이트로 보이고, 그건 사실도 아니다.
    */
   docCount: number;
+  /** 이 관문에 바로 속한 문서. */
+  docs: CategoryMember[];
+  /** 이 관문 아래의 하위분류와 각각의 문서. */
+  subcategories: { name: string; docs: CategoryMember[] }[];
 };
 
 /** 분류 나무의 한 갈래. 블루프린트 04 구역이 이 목록을 세로줄로 그린다. */
@@ -90,15 +95,29 @@ export function classifiedChampionSlugs(taxonomy: TaxonomySnapshot): string[] {
 
 export function buildWikiIndexData(
   taxonomy: TaxonomySnapshot,
-  /** 관문별 일반 문서 수. 4단계에서 `wiki_links`가 채운다. */
-  articleCounts: Record<string, number> = {},
+  /** 관문별 분류 뷰(직속 문서 + 하위분류). `wikiStore.ts`의 `getCategoryView`가 채운다. */
+  categoryViews: Record<string, CategoryView> = {},
   /** 게시된 일반 문서의 이름. 검색이 이 목록도 함께 훑는다. */
   articles: { title: string; titleKey: string }[] = [],
 ): WikiIndexData {
-  const withCount = (portal: Portal): PortalView => ({
-    ...portal,
-    docCount: articleCounts[portal.key] ?? 0,
-  });
+  /* 직속 + 하위분류 문서를 titleKey로 중복 없이 합친 수. 같은 문서가 관문과 하위분류
+   * 양쪽에 걸려도 두 번 세지 않는다. */
+  const countOf = (view: CategoryView | undefined): number => {
+    if (!view) return 0;
+    const seen = new Set(view.docs.map((d) => d.titleKey));
+    for (const sub of view.subcategories) for (const d of sub.docs) seen.add(d.titleKey);
+    return seen.size;
+  };
+
+  const withCount = (portal: Portal): PortalView => {
+    const view = categoryViews[portal.key];
+    return {
+      ...portal,
+      docCount: countOf(view),
+      docs: view?.docs ?? [],
+      subcategories: view?.subcategories ?? [],
+    };
+  };
 
   /*
    * 챔피언당 한 줄이다. 포지션마다 담으면 럭스가 결과에 세 번 나오는데, 그 셋은
@@ -164,7 +183,7 @@ export function buildWikiIndexData(
       items: [...coverPortals(), ...shelfPortals()].map((portal) => ({
         label: portal.label,
         href: `/wiki?${new URLSearchParams({ 분류: portal.key })}`,
-        pending: (articleCounts[portal.key] ?? 0) === 0,
+        pending: countOf(categoryViews[portal.key]) === 0,
       })),
     },
     {

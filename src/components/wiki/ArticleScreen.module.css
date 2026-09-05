@@ -100,6 +100,78 @@
   word-break: keep-all;
 }
 
+/* ------------------------------------------------------------------ 분류 */
+
+.categories {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0 0;
+  font-size: 12px;
+}
+
+.categoriesLabel {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.categoryTag {
+  padding: 2px 8px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper-shade);
+  color: var(--cobalt-ink);
+}
+
+.categoryTag:hover {
+  background: var(--acid);
+  color: var(--ink);
+}
+
+.memberList {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px clamp(14px, 2vw, 20px);
+  border: var(--line);
+  background: var(--paper-shade);
+}
+
+.memberListTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.memberRows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memberRow {
+  display: block;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--paper-line);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.memberRow:hover {
+  background: var(--acid);
+}
+
+.memberSub {
+  padding-left: 12px;
+  border-left: 1px solid var(--paper-line);
+}
+
+.memberSubLabel {
+  margin: 4px 0;
+}
+
 .meta {
   display: flex;
   align-items: center;

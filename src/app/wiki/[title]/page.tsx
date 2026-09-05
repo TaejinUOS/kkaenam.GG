@@ -3,8 +3,9 @@ import Link from "next/link";
 
 import { ArticleScreen } from "@/components/wiki/ArticleScreen";
 import { getViewer } from "@/lib/authGuard";
+import { parseCategoryName } from "@/lib/wikiMarkup";
 import { titleKey } from "@/lib/wikiTitle";
-import { getArticleView, resolveDocLinks } from "@/lib/wikiStore";
+import { getArticleView, getCategoryView, resolveDocLinks } from "@/lib/wikiStore";
 
 import styles from "./page.module.css";
 
@@ -61,7 +62,11 @@ export default async function WikiArticlePage({ params }: { params: Promise<Rout
 
   if (!article || !visible) return <MissingArticle title={title} />;
 
-  const wikiLinks = await resolveDocLinks([article.body]);
+  const categoryName = parseCategoryName(article.title);
+  const [wikiLinks, categoryMembers] = await Promise.all([
+    resolveDocLinks([article.body]),
+    categoryName ? getCategoryView(categoryName) : Promise.resolve(undefined),
+  ]);
 
   return (
     <ArticleScreen
@@ -72,6 +77,7 @@ export default async function WikiArticlePage({ params }: { params: Promise<Rout
       updatedBy={article.updatedBy}
       proposed={article.status === "proposed"}
       wikiLinks={wikiLinks}
+      categoryMembers={categoryMembers}
       viewer={viewer}
     />
   );

@@ -17,6 +17,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import type { DocStatus, EditPolicy } from "@/data/wiki";
 import { resolveWikiLinks, unresolvedWikiTitles, type WikiLinkMap } from "@/lib/wikiLink";
+import { CATEGORY_PREFIX, parseCategoryName } from "@/lib/wikiMarkup";
 import { titleKey } from "@/lib/wikiTitle";
 
 /**
@@ -245,4 +246,62 @@ export async function resolveDocLinks(bodies: string[]): Promise<WikiLinkMap> {
 
   const articles = new Map((rows.results ?? []).map((row) => [row.title_key, row.title]));
   return resolveWikiLinks(bodies, articles);
+}
+
+/* -------------------------------------------------------------------- 분류 */
+
+export type CategoryMember = { title: string; titleKey: string; updatedAt: string | null };
+
+export type CategoryView = {
+  /** 이 분류에 바로 속한 문서. 하위분류 문서(제목이 `분류:`로 시작하는 것)는 제외한다. */
+  docs: CategoryMember[];
+  /** 이 분류를 상위로 적은(`[[분류:이 이름]]`) 하위분류와, 그 안에 바로 속한 문서. */
+  subcategories: { name: string; docs: CategoryMember[] }[];
+};
+
+/**
+ * 한 분류(`[[분류:이름]]`)에 속한 문서를 읽는다.
+ *
+ * `wiki_links`는 매치업으로 안 풀리는 이름을 전부 담으므로(`wikiEditStore.ts`의
+ * `linkStatements`), 분류도 새 저장소 없이 이 표 하나로 찾는다
+ * (`docs/WIKI_EXPANSION.md` "분류 자체는 새 저장소가 없다").
+ *
+ * 하위분류는 한 단계만 따라간다 — 지금 요구되는 나무 깊이는 관문 → 하위분류 →
+ * 그 안의 문서뿐이다.
+ */
+export async function getCategoryView(name: string): Promise<CategoryView> {
+  const DB = await db();
+  const members = await categoryMembers(DB, name);
+
+  const docs: CategoryMember[] = [];
+  const subNames: string[] = [];
+  for (const member of members) {
+    const subName = parseCategoryName(member.title);
+    if (subName) subNames.push(subName);
+    else docs.push(member);
+  }
+
+  const subcategories = await Promise.all(
+    subNames.map(async (subName) => ({ name: subName, docs: await categoryMembers(DB, subName) })),
+  );
+
+  return { docs, subcategories };
+}
+
+async function categoryMembers(DB: D1Database, name: string): Promise<CategoryMember[]> {
+  const key = titleKey(`${CATEGORY_PREFIX}${name}`);
+  const rows = await DB.prepare(
+    `SELECT d.title, d.title_key, d.updated_at
+       FROM wiki_links l JOIN wiki_docs d ON d.id = l.source_doc
+      WHERE l.target_key = ?1 AND d.kind = 'article' AND d.doc_status = 'published'
+      ORDER BY d.title`,
+  )
+    .bind(key)
+    .all<{ title: string; title_key: string; updated_at: string }>();
+
+  return (rows.results ?? []).map((r) => ({
+    title: r.title,
+    titleKey: r.title_key,
+    updatedAt: r.updated_at,
+  }));
 }

@@ -41,6 +41,13 @@ type Props = {
   nearbyChampions: ChampionOption[];
   allChampions: ChampionOption[];
   viewer: Viewer;
+  /**
+   * 운영자가 내려 둔 챔피언인가 (FR-39).
+   *
+   * 내려가 있어도 **문서는 열린다.** 목록·검색에서만 빠지므로, 여기까지 온 사람에게는
+   * 왜 어디서도 안 보이는지 화면이 직접 말해 줘야 한다.
+   */
+  inactive: boolean;
 };
 
 export function MatchupScreen({
@@ -52,6 +59,7 @@ export function MatchupScreen({
   nearbyChampions,
   allChampions,
   viewer,
+  inactive,
 }: Props) {
   /*
    * 여러 자리에 놓인 챔피언은 그 전부를 보여 준다. 럭스 문서를 열었을 때
@@ -123,6 +131,16 @@ export function MatchupScreen({
           )}
         </nav>
       </div>
+
+      {inactive && (
+        <div className="shell">
+          <p className={styles.inactiveNotice}>
+            <span className="sticker sticker--gum">내려감</span>
+            지금 서비스에서 내려가 있는 챔피언입니다. 선택 화면과 검색에는 나오지 않지만
+            문서는 그대로이고 편집도 계속 받습니다.
+          </p>
+        </div>
+      )}
 
       {/* ------------------------------------------ 좁은 Aside + 넓은 Wiki Main */}
       <div className={`shell ${styles.layout}`}>

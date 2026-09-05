@@ -147,3 +147,22 @@
 .crumbUnplaced {
   color: var(--missing-doc);
 }
+
+/*
+ * 내려간 챔피언 안내 (FR-39). 경로 안내 바로 아래, 문서보다 먼저 읽히는 자리다 —
+ * 여기까지 온 사람은 "왜 목록에 없지"를 이미 겪었다.
+ */
+.inactiveNotice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: var(--line-w) solid rgba(244, 235, 221, 0.34);
+  border-radius: var(--radius-card);
+  background: var(--ink-raised);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}

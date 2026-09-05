@@ -60,7 +60,6 @@ function decorate(raw: RawChampion): Champion {
     iconUrl: championIconUrl(raw.iconFile),
     illustrationUrl: championIllustrationUrl(raw.id),
     focus: FOCUS_OVERRIDES[raw.id] ?? FOCUS_DEFAULT,
-    active: true,
   };
 }
 

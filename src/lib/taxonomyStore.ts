@@ -44,6 +44,10 @@ export type PlacementRow = {
 export type TaxonomySnapshot = {
   /** 포지션·카테고리에 속한 챔피언. `sort_order` 순. */
   championsIn(positionSlug: string, categorySlug: string): Champion[];
+  /** 이 챔피언이 지금 서비스에 서 있는가 (FR-39). 문서 열람과는 무관하다. */
+  isActive(championSlug: string): boolean;
+  /** 내려가 있는 챔피언 슬러그 전부. 관리자 화면이 쓴다. */
+  inactiveSlugs(): string[];
   /** 한 포지션 전체의 챔피언. 이름순. */
   championsInPosition(positionSlug: string): Champion[];
   /** 그 포지션에서 이 챔피언이 속한 카테고리. 없으면 undefined. */
@@ -54,7 +58,16 @@ export type TaxonomySnapshot = {
   classifiedSlugs(): string[];
 };
 
-function buildSnapshot(rows: PlacementRow[]): TaxonomySnapshot {
+/**
+ * @param inactive 내려간 챔피언 (FR-39).
+ * @param includeInactive 내려간 챔피언도 목록에 담을지. **관리자 화면만 켠다** —
+ *   운영자는 자기가 내린 챔피언을 계속 보고 관리할 수 있어야 한다.
+ */
+function buildSnapshot(
+  rows: PlacementRow[],
+  inactive: ReadonlySet<string>,
+  includeInactive: boolean,
+): TaxonomySnapshot {
   /** `${포지션}/${카테고리}` → 슬러그 목록 (sort_order 순) */
   const byCategory = new Map<string, string[]>();
   /** `${포지션}/${챔피언}` → 카테고리 슬러그 */
@@ -75,9 +88,18 @@ function buildSnapshot(rows: PlacementRow[]): TaxonomySnapshot {
    * 목록에서 빠지는 편이 낫다. 운영자는 `/admin/taxonomy`에서 그 자리를 다시 채운다.
    */
   const toChampions = (slugs: string[]): Champion[] =>
-    slugs.map((s) => getChampionBySlug(s)).filter((c): c is Champion => Boolean(c));
+    slugs
+      .filter((s) => includeInactive || !inactive.has(s))
+      .map((s) => getChampionBySlug(s))
+      .filter((c): c is Champion => Boolean(c));
 
   return {
+    isActive(championSlug) {
+      return !inactive.has(championSlug);
+    },
+    inactiveSlugs() {
+      return [...inactive];
+    },
     championsIn(positionSlug, categorySlug) {
       return toChampions(byCategory.get(`${positionSlug}/${categorySlug}`) ?? []);
     },
@@ -91,6 +113,7 @@ function buildSnapshot(rows: PlacementRow[]): TaxonomySnapshot {
       return toChampions([...seen]).sort((a, b) => a.name.localeCompare(b.name, "ko"));
     },
     categoryOf(positionSlug, championSlug) {
+      if (!includeInactive && inactive.has(championSlug)) return undefined;
       const categorySlug = categoryByPair.get(`${positionSlug}/${championSlug}`);
       return categorySlug ? getCategory(positionSlug, categorySlug) : undefined;
     },
@@ -103,7 +126,7 @@ function buildSnapshot(rows: PlacementRow[]): TaxonomySnapshot {
       return result;
     },
     classifiedSlugs() {
-      return [...classified];
+      return [...classified].filter((slug) => includeInactive || !inactive.has(slug));
     },
   };
 }
@@ -113,27 +136,37 @@ function buildSnapshot(rows: PlacementRow[]): TaxonomySnapshot {
  *
  * 캐시하지 않는다. 200행 남짓의 한 번 질의라 값이 싸고, 운영자가 방금 고친 배치가
  * 다음 화면에 바로 보이지 않으면 고친 것인지 아닌지를 알 수 없다.
+ *
+ * 배정과 운영 상태를 `batch`로 함께 읽는 것은 왕복 때문이 아니라 **둘이 같은 시점의
+ * 값이어야** 하기 때문이다. 그 사이에 운영자가 챔피언을 내리면 목록에는 있는데
+ * 걸러지지 않은 한 화면이 나온다.
  */
-export async function getTaxonomy(): Promise<TaxonomySnapshot> {
+export async function getTaxonomy(
+  options: { includeInactive?: boolean } = {},
+): Promise<TaxonomySnapshot> {
   const DB = await db();
-  const rows = await DB.prepare(
-    `SELECT position_slug, category_slug, champion_slug, sort_order
-       FROM champion_placements
-      ORDER BY position_slug, category_slug, sort_order`,
-  ).all<{
-    position_slug: string;
-    category_slug: string;
-    champion_slug: string;
-    sort_order: number;
-  }>();
+  const [placements, ops] = await DB.batch<Record<string, unknown>>([
+    DB.prepare(
+      `SELECT position_slug, category_slug, champion_slug, sort_order
+         FROM champion_placements
+        ORDER BY position_slug, category_slug, sort_order`,
+    ),
+    DB.prepare(`SELECT champion_slug FROM champion_ops WHERE active = 0`),
+  ]);
+
+  const inactive = new Set(
+    (ops.results ?? []).map((row) => row.champion_slug as string),
+  );
 
   return buildSnapshot(
-    (rows.results ?? []).map((r) => ({
-      positionSlug: r.position_slug,
-      categorySlug: r.category_slug,
-      championSlug: r.champion_slug,
-      sortOrder: r.sort_order,
+    (placements.results ?? []).map((r) => ({
+      positionSlug: r.position_slug as string,
+      categorySlug: r.category_slug as string,
+      championSlug: r.champion_slug as string,
+      sortOrder: r.sort_order as number,
     })),
+    inactive,
+    options.includeInactive ?? false,
   );
 }
 
@@ -204,5 +237,120 @@ export async function unplaceChampion(
   )
     .bind(positionSlug, championSlug)
     .run();
+  return { ok: true };
+}
+
+/**
+ * 카테고리 안에서 챔피언을 한 칸 옮긴다 (FR-38).
+ *
+ * 그 카테고리의 순서를 통째로 `1..n`으로 다시 매긴 다음 이웃과 자리를 바꾼다.
+ * 맞바꾸기만 하지 않는 이유는 초기 이관분에 같은 `sort_order`가 여럿 있을 수 있어서다 —
+ * 그때 맞바꾸기는 조용히 아무것도 하지 않는다. 한 카테고리는 스무 명 남짓이라 전부
+ * 다시 쓰는 값이 싸고, 몇 번을 눌러도 같은 결과가 나온다.
+ */
+export async function moveChampion(
+  positionSlug: string,
+  categorySlug: string,
+  championSlug: string,
+  direction: "up" | "down",
+  actorId: string,
+): Promise<PlaceResult> {
+  if (!getCategory(positionSlug, categorySlug)) return { ok: false, error: "validation" };
+
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT champion_slug FROM champion_placements
+      WHERE position_slug = ?1 AND category_slug = ?2
+      ORDER BY sort_order, champion_slug`,
+  )
+    .bind(positionSlug, categorySlug)
+    .all<{ champion_slug: string }>();
+
+  const order = (rows.results ?? []).map((r) => r.champion_slug);
+  const at = order.indexOf(championSlug);
+  if (at < 0) return { ok: false, error: "validation" };
+
+  const to = direction === "up" ? at - 1 : at + 1;
+  /* 끝에서 한 번 더 누른 것은 오류가 아니다. 아무 일도 일어나지 않으면 된다. */
+  if (to < 0 || to >= order.length) return { ok: true };
+  [order[at], order[to]] = [order[to], order[at]];
+
+  const now = new Date().toISOString();
+  await DB.batch(
+    order.map((slug, index) =>
+      DB.prepare(
+        `UPDATE champion_placements
+            SET sort_order = ?1, updated_at = ?2, updated_by = ?3
+          WHERE position_slug = ?4 AND champion_slug = ?5`,
+      ).bind(index + 1, now, actorId, positionSlug, slug),
+    ),
+  );
+
+  return { ok: true };
+}
+
+// ------------------------------------------------------------- 운영 상태 (FR-39)
+
+/** 내려가 있는 챔피언 한 줄. 관리자 화면이 목록으로 보여 준다. */
+export type ChampionOpsRow = {
+  championSlug: string;
+  note: string | null;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export async function listInactiveChampions(): Promise<ChampionOpsRow[]> {
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT o.champion_slug, o.note, o.updated_at, u.name AS updated_by_name
+       FROM champion_ops o
+       LEFT JOIN users u ON u.id = o.updated_by
+      WHERE o.active = 0
+      ORDER BY o.updated_at DESC`,
+  ).all<{
+    champion_slug: string;
+    note: string | null;
+    updated_at: string;
+    updated_by_name: string | null;
+  }>();
+
+  return (rows.results ?? []).map((r) => ({
+    championSlug: r.champion_slug,
+    note: r.note,
+    updatedAt: r.updated_at,
+    updatedByName: r.updated_by_name,
+  }));
+}
+
+/**
+ * 챔피언을 내리거나 올린다 (FR-39).
+ *
+ * 내려도 **문서는 그대로다.** 이 값이 정하는 것은 선택 화면·검색·Me 콤보박스·아직 없는
+ * 문서 집계에 이 챔피언이 나오는가뿐이고, `/matchup/<슬러그>`는 계속 열린다.
+ *
+ * 올릴 때 행을 지우지 않고 `active = 1`로 남기는 것은 사유와 시각을 남겨 두기 위해서다.
+ * 그 기록이 FR-43(분류 변경 이력)의 절반이 된다.
+ */
+export async function setChampionActive(
+  championSlug: string,
+  active: boolean,
+  note: string | null,
+  actorId: string,
+): Promise<PlaceResult> {
+  if (!getChampionBySlug(championSlug)) return { ok: false, error: "validation" };
+
+  const DB = await db();
+  await DB.prepare(
+    `INSERT INTO champion_ops (champion_slug, active, note, updated_at, updated_by)
+       VALUES (?1, ?2, ?3, ?4, ?5)
+     ON CONFLICT (champion_slug) DO UPDATE SET
+       active     = excluded.active,
+       note       = excluded.note,
+       updated_at = excluded.updated_at,
+       updated_by = excluded.updated_by`,
+  )
+    .bind(championSlug, active ? 1 : 0, note, new Date().toISOString(), actorId)
+    .run();
+
   return { ok: true };
 }

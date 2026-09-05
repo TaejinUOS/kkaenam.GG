@@ -101,14 +101,21 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
         wiki={wiki}
         wikiLinks={wikiLinks}
         viewer={viewer}
+        inactive={!taxonomy.isActive(championData.slug)}
         nearbyChampions={[...nearbyChampions.values()].sort((a, b) =>
           a.name.localeCompare(b.name, "ko"),
         )}
-        allChampions={allChampions.map((c) => ({
-          slug: c.slug,
-          name: c.name,
-          iconUrl: c.iconUrl,
-        }))}
+        /*
+         * 내려간 챔피언은 내 챔피언으로 고를 수 없다 (FR-39). 지금 못 쓰는 챔피언으로
+         * 상대법을 쓰기 시작하면 그 섹션은 아무도 읽지 않는다.
+         */
+        allChampions={allChampions
+          .filter((c) => taxonomy.isActive(c.slug))
+          .map((c) => ({
+            slug: c.slug,
+            name: c.name,
+            iconUrl: c.iconUrl,
+          }))}
       />
     </Suspense>
   );

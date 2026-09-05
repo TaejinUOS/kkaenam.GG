@@ -35,7 +35,13 @@ export type ChampionCatalog = {
   champions: RawChampion[];
 };
 
-/** 화면에서 사용하는 챔피언. 원본에 이미지 URL과 운영 상태를 덧붙인다. */
+/**
+ * 화면에서 사용하는 챔피언. 원본에 이미지 URL과 초점 위치를 덧붙인다.
+ *
+ * **운영 상태는 여기 없다.** 그 값은 운영자가 배포 없이 고치는 것이라 D1의
+ * `champion_ops`에 있고(FR-39, 마이그레이션 0007), 읽는 쪽은 분류 스냅숏의
+ * `isActive()`로 묻는다. 카탈로그는 Data Dragon이 원본이고 여기서 고쳐지지 않는다.
+ */
 export type Champion = RawChampion & {
   /** 1:1 아이콘. 챔피언 Contact Sheet와 Me 콤보박스에서 사용한다. */
   iconUrl: string;
@@ -43,8 +49,6 @@ export type Champion = RawChampion & {
   illustrationUrl: string;
   /** 일러스트 크롭 시 유지할 초점 위치 (PRD 5.3.1). */
   focus: string;
-  /** PRD 8 "챔피언 운영 상태". */
-  active: boolean;
 };
 
 export type Position = {

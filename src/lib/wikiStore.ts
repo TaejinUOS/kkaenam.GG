@@ -258,29 +258,82 @@ export async function resolveDocLinks(bodies: string[]): Promise<WikiLinkMap> {
 
 /* -------------------------------------------------------------------- 분류 */
 
+/*
+ * 이 절의 타입은 `wikiIndex.ts`가 값(함수) 없이 타입만 가져다 쓴다 — `wikiIndex.ts`는
+ * 클라이언트 컴포넌트(`WikiIndexScreen.tsx`)가 값으로 import하므로, 이 표를 다루는
+ * 계산 함수(예: 트리를 훑어 문서를 모으는 것)를 여기 두면 그 함수를 부르는 순간
+ * `wikiIndex.ts` 전체가 `server-only`를 끌어들여 클라이언트 빌드가 깨진다. 그런
+ * 순수 계산은 `wikiIndex.ts` 쪽에 둔다(`collectCategoryDocs`).
+ */
 export type CategoryMember = { title: string; titleKey: string; updatedAt: string | null };
 
-export type CategoryView = {
+/** 분류 나무의 한 갈래(하위분류 하나). 재귀적으로 그 아래 하위분류를 전부 담는다. */
+export type CategoryNode = {
+  name: string;
   /** 이 분류에 바로 속한 문서. 하위분류 문서(제목이 `분류:`로 시작하는 것)는 제외한다. */
   docs: CategoryMember[];
-  /** 이 분류를 상위로 적은(`[[분류:이 이름]]`) 하위분류와, 그 안에 바로 속한 문서. */
-  subcategories: { name: string; docs: CategoryMember[] }[];
+  /** 이 분류를 상위로 적은(`[[분류:이 이름]]`) 하위분류. */
+  subcategories: CategoryNode[];
 };
 
+export type CategoryView = {
+  docs: CategoryMember[];
+  subcategories: CategoryNode[];
+};
+
+/** 순환·과도한 깊이를 막는 안전판. 실제로 이 깊이까지 쓸 일은 거의 없다. */
+const MAX_CATEGORY_DEPTH = 12;
+
 /**
- * 한 분류(`[[분류:이름]]`)에 속한 문서를 읽는다.
+ * 한 분류(`[[분류:이름]]`)에 속한 문서를 읽는다. 하위분류는 **끝까지** 재귀적으로
+ * 따라간다 — "분류:라인전" 문서를 열면 라인전 → 라인관리 → 그 아래 하위분류까지
+ * 전부 펼쳐서 보여줘야 한다.
  *
  * `wiki_links`는 매치업으로 안 풀리는 이름을 전부 담으므로(`wikiEditStore.ts`의
  * `linkStatements`), 분류도 새 저장소 없이 이 표 하나로 찾는다
  * (`docs/WIKI_EXPANSION.md` "분류 자체는 새 저장소가 없다").
  *
- * 하위분류는 한 단계만 따라간다 — 지금 요구되는 나무 깊이는 관문 → 하위분류 →
- * 그 안의 문서뿐이다.
+ * 순환(`분류:A`가 `분류:B`를, `분류:B`가 다시 `분류:A`를 상위로 적는 경우)은 **그 경로
+ * 위에서만** 막는다 — 같은 분류가 서로 다른 두 상위 아래 나란히 있는 것(다이아몬드
+ * 모양)은 순환이 아니라 각자 온전히 펼쳐져야 한다. 그래서 "지금까지 온 경로"만 도는
+ * `ancestors` 집합을 재귀 호출마다 새로 만든다 — 형제 가지끼리 공유하지 않는다.
  */
 export async function getCategoryView(name: string): Promise<CategoryView> {
   const DB = await db();
-  const members = await categoryMembers(DB, name);
+  const { docs, subNames } = await splitMembers(DB, name);
 
+  const ancestors = new Set([name]);
+  const subcategories = await Promise.all(
+    subNames.map((subName) => buildCategoryNode(DB, subName, ancestors, 1)),
+  );
+
+  return { docs, subcategories };
+}
+
+async function buildCategoryNode(
+  DB: D1Database,
+  name: string,
+  ancestors: ReadonlySet<string>,
+  depth: number,
+): Promise<CategoryNode> {
+  if (ancestors.has(name) || depth >= MAX_CATEGORY_DEPTH) {
+    return { name, docs: [], subcategories: [] };
+  }
+
+  const { docs, subNames } = await splitMembers(DB, name);
+  const nextAncestors = new Set(ancestors).add(name);
+  const subcategories = await Promise.all(
+    subNames.map((subName) => buildCategoryNode(DB, subName, nextAncestors, depth + 1)),
+  );
+
+  return { name, docs, subcategories };
+}
+
+async function splitMembers(
+  DB: D1Database,
+  name: string,
+): Promise<{ docs: CategoryMember[]; subNames: string[] }> {
+  const members = await categoryMembers(DB, name);
   const docs: CategoryMember[] = [];
   const subNames: string[] = [];
   for (const member of members) {
@@ -288,12 +341,7 @@ export async function getCategoryView(name: string): Promise<CategoryView> {
     if (subName) subNames.push(subName);
     else docs.push(member);
   }
-
-  const subcategories = await Promise.all(
-    subNames.map(async (subName) => ({ name: subName, docs: await categoryMembers(DB, subName) })),
-  );
-
-  return { docs, subcategories };
+  return { docs, subNames };
 }
 
 async function categoryMembers(DB: D1Database, name: string): Promise<CategoryMember[]> {
@@ -305,6 +353,34 @@ async function categoryMembers(DB: D1Database, name: string): Promise<CategoryMe
       ORDER BY d.title`,
   )
     .bind(key)
+    .all<{ title: string; title_key: string; updated_at: string }>();
+
+  return (rows.results ?? []).map((r) => ({
+    title: r.title,
+    titleKey: r.title_key,
+    updatedAt: r.updated_at,
+  }));
+}
+
+/**
+ * 어떤 분류에도 안 걸린, 게시된 일반 문서 (`/wiki` 04 구역의 "분류 없음" 통).
+ *
+ * 분류 문서 자신("분류:라인전" 같은)은 뺀다 — 그 문서가 상위 분류를 안 적었다고 해서
+ * "분류를 안 단 일반 글"과 같은 뜻은 아니다.
+ */
+export async function listUncategorizedArticles(): Promise<CategoryMember[]> {
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT d.title, d.title_key, d.updated_at
+       FROM wiki_docs d
+      WHERE d.kind = 'article' AND d.doc_status = 'published'
+        AND d.title NOT LIKE ?1
+        AND NOT EXISTS (
+          SELECT 1 FROM wiki_links l WHERE l.source_doc = d.id AND l.target_key LIKE ?1
+        )
+      ORDER BY d.title`,
+  )
+    .bind(`${CATEGORY_PREFIX}%`)
     .all<{ title: string; title_key: string; updated_at: string }>();
 
   return (rows.results ?? []).map((r) => ({

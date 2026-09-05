@@ -9,7 +9,7 @@ import { getTaxonomy } from "@/lib/taxonomyStore";
 import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 import { countWantedArticles, getWikiIndexStats, listArticleTitles } from "@/lib/wikiIndexStore";
-import { getCategoryView, type CategoryView } from "@/lib/wikiStore";
+import { getCategoryView, listUncategorizedArticles, type CategoryView } from "@/lib/wikiStore";
 
 export const metadata: Metadata = {
   title: "위키",
@@ -24,23 +24,25 @@ const RECENT_ON_INDEX = 8;
  *
  * 이 화면의 숫자는 전부 실제 값이다. 블루프린트의 `DOCS 128 / 7D 24`는 조판 확인용
  * 예시였고, 여기서는 D1이 실제로 가진 값을 읽는다. 관문별 문서 수는 `wiki_links`로
- * 세지만(`getCategoryView`), 아직 셀 수 없는 것(미분류 문서)은 **가짜 숫자를 두지
- * 않고 비운다** — 블루프린트 6.5의 규칙이다.
+ * 세고(`getCategoryView`), 미분류 문서는 `listUncategorizedArticles`가 세어 04
+ * 구역의 "분류 없음" 통을 채운다.
  */
 export default async function WikiIndexPage() {
   const portalKeys = [...coverPortals(), ...shelfPortals()].map((p) => p.key);
 
-  const [stats, changes, taxonomy, articles, wantedArticleCount, categoryViewEntries] = await Promise.all([
-    getWikiIndexStats(),
-    listRecentChanges(RECENT_ON_INDEX),
-    getTaxonomy(),
-    listArticleTitles(),
-    countWantedArticles(),
-    Promise.all(portalKeys.map(async (key) => [key, await getCategoryView(key)] as const)),
-  ]);
+  const [stats, changes, taxonomy, articles, wantedArticleCount, categoryViewEntries, uncategorized] =
+    await Promise.all([
+      getWikiIndexStats(),
+      listRecentChanges(RECENT_ON_INDEX),
+      getTaxonomy(),
+      listArticleTitles(),
+      countWantedArticles(),
+      Promise.all(portalKeys.map(async (key) => [key, await getCategoryView(key)] as const)),
+      listUncategorizedArticles(),
+    ]);
   const categoryViews: Record<string, CategoryView> = Object.fromEntries(categoryViewEntries);
 
-  const data = buildWikiIndexData(taxonomy, categoryViews, articles);
+  const data = buildWikiIndexData(taxonomy, categoryViews, articles, uncategorized);
 
   /*
    * 상대 시각은 여기서 짓는다. 클라이언트에서 계산하면 수화가 어긋난다.
@@ -81,8 +83,9 @@ export default async function WikiIndexPage() {
   const wantedCount = wantedChampionCount + wantedArticleCount;
 
   /*
-   * 미분류 문서는 아직 셀 것이 없다. 일반 문서와 `[[분류:…]]`가 4단계에 들어와야
-   * 뜻이 생기는 숫자라, 그때까지 이 자리를 비워 둔다.
+   * "손이 필요한 곳"에는 미분류 문서를 올리지 않는다. 여기는 "아직 안 쓰인 것"을
+   * 세는 자리이고, 미분류는 이미 쓰인 문서가 정리만 안 된 상태라 성격이 다르다.
+   * 04 구역 "분류 없음" 통(`data.uncategorized`)이 그 역할을 한다.
    */
   const counters: WorkCounter[] = [
     { key: "wanted", count: wantedCount, label: "아직 없는 문서", href: "/wiki/wanted" },

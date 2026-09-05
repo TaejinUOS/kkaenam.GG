@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
-import type { CategoryView } from "@/lib/wikiStore";
+import type { CategoryMember, CategoryNode, CategoryView } from "@/lib/wikiStore";
 import type { WikiLinkMap } from "@/lib/wikiLink";
 import { collectWikiLinkTitles, parseCategoryName } from "@/lib/wikiMarkup";
 import { articleHref } from "@/lib/wikiTitle";
@@ -139,38 +139,14 @@ export function ArticleScreen({
         {/*
           이 문서 자체가 분류(`분류:이름`)일 때만 온다. 손으로 쓴 본문 아래에 그 분류에
           속한 문서를 자동으로 이어 붙인다 — namuwiki의 분류 문서와 같은 동작이다.
+          하위분류는 끝까지 재귀적으로 펼친다(`getCategoryView`가 그렇게 읽어 온다).
         */}
         {categoryMembers && (categoryMembers.docs.length > 0 || categoryMembers.subcategories.length > 0) && (
           <section className={styles.memberList} aria-label="이 분류의 문서">
             <p className={styles.memberListTitle}>이 분류의 문서</p>
-            {categoryMembers.docs.length > 0 && (
-              <ul className={styles.memberRows}>
-                {categoryMembers.docs.map((doc) => (
-                  <li key={doc.titleKey}>
-                    <Link href={articleHref(doc.title)} className={styles.memberRow}>
-                      {doc.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {categoryMembers.docs.length > 0 && <CategoryMemberDocs docs={categoryMembers.docs} />}
             {categoryMembers.subcategories.map((sub) => (
-              <div key={sub.name} className={styles.memberSub}>
-                <p className={styles.memberSubLabel}>
-                  <Link href={articleHref(`분류:${sub.name}`)} className={styles.categoryTag}>
-                    {sub.name}
-                  </Link>
-                </p>
-                <ul className={styles.memberRows}>
-                  {sub.docs.map((doc) => (
-                    <li key={doc.titleKey}>
-                      <Link href={articleHref(doc.title)} className={styles.memberRow}>
-                        {doc.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <CategoryMemberBranch key={sub.name} node={sub} />
             ))}
           </section>
         )}
@@ -191,6 +167,38 @@ export function ArticleScreen({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 분류에 속한 문서 목록 한 줄. */
+function CategoryMemberDocs({ docs }: { docs: CategoryMember[] }) {
+  return (
+    <ul className={styles.memberRows}>
+      {docs.map((doc) => (
+        <li key={doc.titleKey}>
+          <Link href={articleHref(doc.title)} className={styles.memberRow}>
+            {doc.title}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** 하위분류 한 갈래. 자기 문서를 그리고, 자기 하위분류를 재귀적으로 그린다. */
+function CategoryMemberBranch({ node }: { node: CategoryNode }) {
+  return (
+    <div className={styles.memberSub}>
+      <p className={styles.memberSubLabel}>
+        <Link href={articleHref(`분류:${node.name}`)} className={styles.categoryTag}>
+          {node.name}
+        </Link>
+      </p>
+      {node.docs.length > 0 && <CategoryMemberDocs docs={node.docs} />}
+      {node.subcategories.map((sub) => (
+        <CategoryMemberBranch key={sub.name} node={sub} />
+      ))}
     </div>
   );
 }

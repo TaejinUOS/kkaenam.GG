@@ -9,9 +9,10 @@
  */
 
 import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
+import { UNCATEGORIZED_KEY } from "@/lib/wikiCategoryKey";
 import { matchupDocTitle } from "@/lib/wikiLink";
 import { CATEGORY_PREFIX } from "@/lib/wikiMarkup";
-import type { CategoryMember, CategoryView } from "@/lib/wikiStore";
+import type { CategoryMember, CategoryNode, CategoryView } from "@/lib/wikiStore";
 import { articleHref } from "@/lib/wikiTitle";
 
 import { getCategoriesFor, positions } from "./champions";
@@ -19,8 +20,8 @@ import { coverPortals, shelfPortals, type Portal } from "./portals";
 
 export type PortalView = Portal & {
   /**
-   * 이 관문에 달린 일반 문서 수. 바로 속한 문서 + 하위분류에 속한 문서를 중복
-   * 없이 합친 값이다.
+   * 이 관문에 달린 일반 문서 수. 바로 속한 문서 + 모든 하위분류(끝까지)에 속한
+   * 문서를 중복 없이 합친 값이다.
    *
    * 0인 관문은 숫자 대신 "첫 문서를 기다립니다"로 그린다 — `문서 0`을 큰 커버 아래
    * 붙이면 죽은 사이트로 보이고, 그건 사실도 아니다.
@@ -28,8 +29,8 @@ export type PortalView = Portal & {
   docCount: number;
   /** 이 관문에 바로 속한 문서. */
   docs: CategoryMember[];
-  /** 이 관문 아래의 하위분류와 각각의 문서. */
-  subcategories: { name: string; docs: CategoryMember[] }[];
+  /** 이 관문 바로 아래의 하위분류. 각 노드가 자기 하위분류를 재귀적으로 담는다. */
+  subcategories: CategoryNode[];
 };
 
 /** 분류 나무의 한 갈래. 블루프린트 04 구역이 이 목록을 세로줄로 그린다. */
@@ -83,6 +84,8 @@ export type WikiIndexData = {
   shelf: PortalView[];
   tree: TreeBranch[];
   search: SearchEntry[];
+  /** 어떤 분류에도 안 걸린 게시된 일반 문서. "분류 없음" 통에 쓰인다. */
+  uncategorized: CategoryMember[];
 };
 
 /**
@@ -96,21 +99,35 @@ export function classifiedChampionSlugs(taxonomy: TaxonomySnapshot): string[] {
   return taxonomy.classifiedSlugs();
 }
 
+/**
+ * `docs` + 모든 하위분류(끝까지)의 문서를 재귀적으로 모아 하나로 합친다(titleKey로
+ * 중복 제거). D1을 부르지 않는 순수 계산이라 여기 둔다 — `wikiStore.ts`에 두면
+ * `WikiIndexScreen.tsx`(클라이언트)가 이 파일을 값으로 import할 때 `server-only`를
+ * 함께 끌고 들어와 빌드가 깨진다.
+ */
+function collectCategoryDocs(view: CategoryView | CategoryNode): CategoryMember[] {
+  const seen = new Map<string, CategoryMember>();
+  const walk = (node: CategoryView | CategoryNode) => {
+    for (const doc of node.docs) seen.set(doc.titleKey, doc);
+    for (const sub of node.subcategories) walk(sub);
+  };
+  walk(view);
+  return [...seen.values()];
+}
+
 export function buildWikiIndexData(
   taxonomy: TaxonomySnapshot,
-  /** 관문별 분류 뷰(직속 문서 + 하위분류). `wikiStore.ts`의 `getCategoryView`가 채운다. */
+  /** 관문별 분류 뷰(직속 문서 + 하위분류, 끝까지). `wikiStore.ts`의 `getCategoryView`가 채운다. */
   categoryViews: Record<string, CategoryView> = {},
   /** 게시된 일반 문서의 이름. 검색이 이 목록도 함께 훑는다. */
   articles: { title: string; titleKey: string }[] = [],
+  /** 어떤 분류에도 안 걸린 게시된 일반 문서. `wikiStore.ts`의 `listUncategorizedArticles`가 채운다. */
+  uncategorized: CategoryMember[] = [],
 ): WikiIndexData {
-  /* 직속 + 하위분류 문서를 titleKey로 중복 없이 합친 수. 같은 문서가 관문과 하위분류
-   * 양쪽에 걸려도 두 번 세지 않는다. */
-  const countOf = (view: CategoryView | undefined): number => {
-    if (!view) return 0;
-    const seen = new Set(view.docs.map((d) => d.titleKey));
-    for (const sub of view.subcategories) for (const d of sub.docs) seen.add(d.titleKey);
-    return seen.size;
-  };
+  /* 직속 + 모든 하위분류(끝까지)의 문서를 titleKey로 중복 없이 합친 수. 같은 문서가
+   * 관문과 하위분류 양쪽에 걸려도 두 번 세지 않는다. */
+  const countOf = (view: CategoryView | undefined): number =>
+    view ? collectCategoryDocs(view).length : 0;
 
   const withCount = (portal: Portal): PortalView => {
     const view = categoryViews[portal.key];
@@ -167,11 +184,19 @@ export function buildWikiIndexData(
     });
   }
 
+  /** 하위분류 노드를 그 아래 하위분류까지 재귀적으로 `TreeItem`으로 옮긴다. */
+  const treeItemFromNode = (node: CategoryNode): TreeItem => ({
+    label: node.name,
+    href: articleHref(`${CATEGORY_PREFIX}${node.name}`),
+    pending: collectCategoryDocs(node).length === 0,
+    children: node.subcategories.map(treeItemFromNode),
+  });
+
   /*
    * 나무는 두 갈래를 함께 보여 준다 (`docs/WIKI_EXPANSION.md` "나무").
    * 상대법 갈래는 `taxonomy.ts`에서 자동으로 나오고, 일반 문서 갈래는 관문에서 나온다.
    * 관문 아래의 하위 분류는 편집자가 `[[분류:…]]`로 만드는 것이고, 그 목록이
-   * `TreeItem.children`으로 한 단계 중첩되어 보인다.
+   * `TreeItem.children`으로 끝까지 중첩되어 보인다.
    */
   const tree: TreeBranch[] = [
     {
@@ -190,21 +215,19 @@ export function buildWikiIndexData(
           label: portal.label,
           href: `/wiki?${new URLSearchParams({ 분류: portal.key })}`,
           pending: countOf(view) === 0,
-          /*
-           * 하위분류는 한 단계만 보여준다 — `getCategoryView`가 그 깊이까지만 읽는다
-           * (`docs/WIKI_EXPANSION.md` "분류"). 이름은 "분류:웨이브" 문서의 주소로 간다.
-           */
-          children: (view?.subcategories ?? []).map((sub) => ({
-            label: sub.name,
-            href: articleHref(`${CATEGORY_PREFIX}${sub.name}`),
-            pending: sub.docs.length === 0,
-          })),
+          children: (view?.subcategories ?? []).map(treeItemFromNode),
         };
       }),
     },
     {
       label: "기타",
-      items: [{ label: "분류 없음", pending: true }],
+      items: [
+        {
+          label: "분류 없음",
+          href: `/wiki?${new URLSearchParams({ 분류: UNCATEGORIZED_KEY })}`,
+          pending: uncategorized.length === 0,
+        },
+      ],
       emptyNote: "분류를 안 적은 문서가 모이는 곳",
     },
   ];
@@ -214,6 +237,7 @@ export function buildWikiIndexData(
     shelf: shelfPortals().map(withCount),
     tree,
     search,
+    uncategorized,
   };
 }
 

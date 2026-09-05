@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { WikiIndexData } from "@/data/wikiIndex";
+import type { TreeItem, WikiIndexData } from "@/data/wikiIndex";
 import { prefersReducedMotion } from "@/lib/motion";
 import { buildQuery, matchesName, normalizeQuery } from "@/lib/url";
+import { UNCATEGORIZED_KEY } from "@/lib/wikiCategoryKey";
+import type { CategoryMember, CategoryNode } from "@/lib/wikiStore";
 import { articleHref } from "@/lib/wikiTitle";
 
 import styles from "./WikiIndexScreen.module.css";
@@ -76,6 +78,7 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
     data.cover.find((p) => p.key === portalKey) ??
     data.shelf.find((p) => p.key === portalKey) ??
     null;
+  const showUncategorized = portalKey === UNCATEGORIZED_KEY;
 
   const push = useCallback(
     (patch: Record<string, string | null>) => {
@@ -217,37 +220,25 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
                     </p>
                   ) : (
                     <>
-                      {activePortal.docs.length > 0 && (
-                        <ul className={styles.rows}>
-                          {activePortal.docs.map((doc) => (
-                            <li key={doc.titleKey}>
-                              <Link href={articleHref(doc.title)} className={styles.row}>
-                                <span className={styles.rowTitle}>{doc.title}</span>
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
+                      {activePortal.docs.length > 0 && <CategoryDocs docs={activePortal.docs} />}
                       {activePortal.subcategories.map((sub) => (
-                        <div key={sub.name} className={styles.branch}>
-                          <p className={styles.branchLabel}>
-                            <Link href={articleHref(`분류:${sub.name}`)} className={styles.branchLink}>
-                              {sub.name}
-                            </Link>
-                          </p>
-                          <ul className={styles.rows}>
-                            {sub.docs.map((doc) => (
-                              <li key={doc.titleKey}>
-                                <Link href={articleHref(doc.title)} className={styles.row}>
-                                  <span className={styles.rowTitle}>{doc.title}</span>
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                        <CategoryBranch key={sub.name} node={sub} />
                       ))}
                     </>
+                  )}
+                </section>
+              )}
+
+              {showUncategorized && (
+                <section className={styles.panel} aria-label="분류 없음 문서">
+                  <div className={styles.panelHead}>
+                    <h2 className={`display ${styles.panelTitle}`}>분류 없음</h2>
+                  </div>
+
+                  {data.uncategorized.length === 0 ? (
+                    <p className={styles.panelEmpty}>모든 일반 문서가 분류돼 있습니다.</p>
+                  ) : (
+                    <CategoryDocs docs={data.uncategorized} />
                   )}
                 </section>
               )}
@@ -397,54 +388,7 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
                 </p>
                 <ul className={styles.branchItems}>
                   {branch.items.map((item) => (
-                    <li key={item.label}>
-                      {item.href ? (
-                        <Link
-                          href={item.href}
-                          className={`${styles.branchItem} ${
-                            item.pending ? styles.branchItemPending : ""
-                          }`}
-                        >
-                          {item.label}
-                        </Link>
-                      ) : (
-                        <span
-                          className={`${styles.branchItem} ${
-                            item.pending ? styles.branchItemPending : ""
-                          }`}
-                        >
-                          {item.label}
-                        </span>
-                      )}
-
-                      {/* 하위분류. 관문 밑에 한 단계만 중첩되어 보인다(`getCategoryView`가 그 깊이까지만 읽는다). */}
-                      {item.children && item.children.length > 0 && (
-                        <ul className={styles.branchChildren}>
-                          {item.children.map((child) => (
-                            <li key={child.label}>
-                              {child.href ? (
-                                <Link
-                                  href={child.href}
-                                  className={`${styles.branchChildItem} ${
-                                    child.pending ? styles.branchItemPending : ""
-                                  }`}
-                                >
-                                  {child.label}
-                                </Link>
-                              ) : (
-                                <span
-                                  className={`${styles.branchChildItem} ${
-                                    child.pending ? styles.branchItemPending : ""
-                                  }`}
-                                >
-                                  {child.label}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
+                    <TreeItemRow key={item.label} item={item} />
                   ))}
                 </ul>
                 {branch.emptyNote && <p className={styles.branchNote}>{branch.emptyNote}</p>}
@@ -454,6 +398,68 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
         </section>
       </div>
     </div>
+  );
+}
+
+/** 문서 목록 한 줄짜리 줄. 관문 패널과 "분류 없음" 패널이 함께 쓴다. */
+function CategoryDocs({ docs }: { docs: CategoryMember[] }) {
+  return (
+    <ul className={styles.rows}>
+      {docs.map((doc) => (
+        <li key={doc.titleKey}>
+          <Link href={articleHref(doc.title)} className={styles.row}>
+            <span className={styles.rowTitle}>{doc.title}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** 관문 패널 안의 하위분류 한 갈래. 자기 문서를 그리고, 자기 하위분류를 재귀적으로 그린다. */
+function CategoryBranch({ node }: { node: CategoryNode }) {
+  return (
+    <div className={styles.branch}>
+      <p className={styles.branchLabel}>
+        <Link href={articleHref(`분류:${node.name}`)} className={styles.branchLink}>
+          {node.name}
+        </Link>
+      </p>
+      {node.docs.length > 0 && <CategoryDocs docs={node.docs} />}
+      {node.subcategories.map((sub) => (
+        <CategoryBranch key={sub.name} node={sub} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 04 구역 나무의 한 항목. 하위분류(`item.children`)가 있으면 한 단 들여 자기 자신을
+ * 재귀적으로 그린다 — 관문 → 하위분류 → 그 아래 하위분류까지 끝까지 펼쳐 보인다.
+ * 맨 위 단계만 `.branchItem`(굵은 글씨)을 쓰고, 그 아래는 전부 `.branchChildItem`으로
+ * 눌러서 들여쓰기 자체가 깊이를 말하게 한다.
+ */
+function TreeItemRow({ item, nested = false }: { item: TreeItem; nested?: boolean }) {
+  const itemClass = nested ? styles.branchChildItem : styles.branchItem;
+  const className = `${itemClass} ${item.pending ? styles.branchItemPending : ""}`;
+
+  return (
+    <li>
+      {item.href ? (
+        <Link href={item.href} className={className}>
+          {item.label}
+        </Link>
+      ) : (
+        <span className={className}>{item.label}</span>
+      )}
+      {item.children && item.children.length > 0 && (
+        <ul className={styles.branchChildren}>
+          {item.children.map((child) => (
+            <TreeItemRow key={child.label} item={child} nested />
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 

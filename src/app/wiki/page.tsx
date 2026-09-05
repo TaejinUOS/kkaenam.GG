@@ -7,7 +7,7 @@ import { relativeTime } from "@/lib/relativeTime";
 import { getTaxonomy } from "@/lib/taxonomyStore";
 import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listRecentChanges } from "@/lib/wikiEditStore";
-import { getWikiIndexStats, listArticleTitles } from "@/lib/wikiIndexStore";
+import { countWantedArticles, getWikiIndexStats, listArticleTitles } from "@/lib/wikiIndexStore";
 
 export const metadata: Metadata = {
   title: "위키",
@@ -25,11 +25,12 @@ const RECENT_ON_INDEX = 8;
  * 미분류 문서)은 **가짜 숫자를 두지 않고 비운다** — 블루프린트 6.5의 규칙이다.
  */
 export default async function WikiIndexPage() {
-  const [stats, changes, taxonomy, articles] = await Promise.all([
+  const [stats, changes, taxonomy, articles, wantedArticleCount] = await Promise.all([
     getWikiIndexStats(),
     listRecentChanges(RECENT_ON_INDEX),
     getTaxonomy(),
     listArticleTitles(),
+    countWantedArticles(),
   ]);
 
   const data = buildWikiIndexData(taxonomy, {}, articles);
@@ -64,13 +65,13 @@ export default async function WikiIndexPage() {
   });
 
   /*
-   * "아직 없는 문서" — 분류에 있으나 아무도 쓰지 않은 매치업.
-   *
-   * 4단계에서 `wiki_links`가 들어오면 여기에 일반 문서의 빨간 링크가 더해진다. 뜻은
-   * 지금과 같다: **이미 쓰인 것들이 스스로 "이게 필요하다"고 말해 둔 목록**이다.
+   * "아직 없는 문서" — 분류에 있으나 아무도 쓰지 않은 매치업 + 어딘가에서 링크로
+   * 불렸지만 아직 없는 일반 문서(`wiki_links`, 4단계). `/wiki/wanted`와 같은 조건으로
+   * 세야 두 화면의 숫자가 어긋나지 않는다.
    */
   const written = new Set(stats.writtenChampionSlugs);
-  const wantedCount = classifiedChampionSlugs(taxonomy).filter((slug) => !written.has(slug)).length;
+  const wantedChampionCount = classifiedChampionSlugs(taxonomy).filter((slug) => !written.has(slug)).length;
+  const wantedCount = wantedChampionCount + wantedArticleCount;
 
   /*
    * 미분류 문서는 아직 셀 것이 없다. 일반 문서와 `[[분류:…]]`가 4단계에 들어와야

@@ -28,7 +28,7 @@ import {
   type EditStatus,
 } from "@/data/wiki";
 import { isAdditionOnly } from "@/lib/wikiDiff";
-import { resolveWikiTitle } from "@/lib/wikiLink";
+import { resolveWikiTitle, unresolvedWikiTitles } from "@/lib/wikiLink";
 import { articleHref, checkArticleTitle, titleKey, type TitleProblem } from "@/lib/wikiTitle";
 
 async function db() {
@@ -38,6 +38,37 @@ async function db() {
 
 function newEditId(): string {
   return `edit-${crypto.randomUUID()}`;
+}
+
+/**
+ * 한 섹션이 거는 위키링크를 `wiki_links`에 다시 반영하는 문장들을 만든다. 그 섹션의
+ * 기존 링크를 지우고 다시 넣는다 — 같은 표가 역링크("이 문서를 가리키는 문서")도
+ * 공짜로 준다 (`docs/WIKI_EXPANSION.md` "아직 없는 문서 목록").
+ *
+ * 매치업 문서를 가리키는 링크(`[[아리 상대법]]`)는 담지 않는다. 챔피언 카탈로그에
+ * 있으면 문서가 비어 있어도 주소가 항상 열려 있어 "아직 없는 문서"가 아니다 — 그
+ * 목록은 이미 분류 기반으로 따로 있다. `unresolvedWikiTitles`가 그 갈래를 걸러 준다.
+ */
+function linkStatements(
+  DB: D1Database,
+  docId: string,
+  sectionKey: string | null,
+  body: string,
+): D1PreparedStatement[] {
+  const byKey = new Map<string, string>();
+  for (const title of unresolvedWikiTitles([body])) byKey.set(titleKey(title), title);
+
+  const statements = [
+    DB.prepare(`DELETE FROM wiki_links WHERE source_doc = ?1 AND source_key IS ?2`).bind(docId, sectionKey),
+  ];
+  for (const [key, title] of byKey) {
+    statements.push(
+      DB.prepare(
+        `INSERT INTO wiki_links (source_doc, source_key, target_key, target_title) VALUES (?1, ?2, ?3, ?4)`,
+      ).bind(docId, sectionKey, key, title),
+    );
+  }
+  return statements;
 }
 
 /**
@@ -282,7 +313,7 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'accepted', ?7, ?8, ?9, ?10)`,
     ).bind(editId, id, input.meSlug, state.revision, body, summary, input.authorId, now, acceptedVia, newRevision);
 
-    await DB.batch([applyStmt, recordStmt]);
+    await DB.batch([applyStmt, recordStmt, ...linkStatements(DB, id, input.meSlug, body)]);
     return { ok: true, status: "accepted" };
   }
 
@@ -412,7 +443,10 @@ export async function proposeArticle(input: ProposeArticleInput): Promise<Propos
            VALUES (?1, ?2, NULL, 0, ?3, ?4, 'pending', ?5, ?6)`,
       ).bind(editId, docId, body, summary, input.authorId, now);
 
-  await DB.batch([docStmt, editStmt]);
+  const statements = [docStmt, editStmt];
+  if (publish) statements.push(...linkStatements(DB, docId, null, body));
+
+  await DB.batch(statements);
 
   return { ok: true, status: publish ? "accepted" : "pending", href: articleHref(title) };
 }
@@ -678,7 +712,7 @@ export async function approveEdit(
   ).bind(finalBody, now, input.reviewerId, input.reviewNote, newRevision, editId);
 
   /* 문서를 만드는 제안이면 여기서 게시된다. 이름은 제안 시점에 이미 잡혀 있다. */
-  const statements = [applyStmt, bumpStmt, recordStmt];
+  const statements = [applyStmt, bumpStmt, recordStmt, ...linkStatements(DB, edit.doc_id, edit.me_slug, finalBody)];
   if (edit.doc_status === "proposed") {
     statements.push(
       DB.prepare(`UPDATE wiki_docs SET doc_status = 'published' WHERE id = ?1`).bind(edit.doc_id),
@@ -879,6 +913,7 @@ export async function revertDoc(
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'accepted', ?7, ?8, 'admin', ?9)`,
       ).bind(newEditId(), doc.id, section.meSlug, doc.revision, targetBody, summary, adminId, now, revision),
     );
+    statements.push(...linkStatements(DB, doc.id, section.meSlug, targetBody));
   }
 
   if (statements.length === 0) return { ok: true, changedSections: 0 };

@@ -83,3 +83,60 @@ export async function listArticleTitles(limit = 500): Promise<{ title: string; t
 
   return (rows.results ?? []).map((row) => ({ title: row.title, titleKey: row.title_key }));
 }
+
+/**
+ * 아직 없는 일반 문서의 수 (이름 기준, 링크 개수 아님). 첫 화면의 "손이 필요한 곳"
+ * 숫자가 목록 화면(`/wiki/wanted`)의 개수와 어긋나지 않도록 같은 조건으로 센다.
+ */
+export async function countWantedArticles(): Promise<number> {
+  const DB = await db();
+  const row = await DB.prepare(
+    `SELECT COUNT(*) AS n FROM (
+       SELECT l.target_key FROM wiki_links l
+        WHERE NOT EXISTS (
+          SELECT 1 FROM wiki_docs d
+           WHERE d.kind = 'article' AND d.doc_status = 'published' AND d.title_key = l.target_key
+        )
+        GROUP BY l.target_key
+     )`,
+  ).first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export type WantedArticle = {
+  title: string;
+  titleKey: string;
+  /** 이 이름을 가리키는 문서 수. 많이 걸린 이름부터 보여 주는 우선순위의 근거다. */
+  linkCount: number;
+};
+
+/**
+ * 위키링크로 걸렸지만 아직 없는 일반 문서 (4단계, `docs/WIKI_EXPANSION.md` "아직 없는
+ * 문서 목록"). `wiki_links`는 매치업으로 풀리는 이름을 담지 않으므로 여기 남는 것은
+ * 전부 일반 문서의 후보다 (`wikiEditStore.ts`의 `linkStatements`).
+ *
+ * 이미 게시된 문서는 뺀다 — 링크가 걸린 시점과 문서가 게시된 시점 사이에는 그 문서를
+ * 가리키는 링크가 있어도 더 이상 "아직 없는" 것이 아니다.
+ */
+export async function getWantedArticles(limit = 30): Promise<WantedArticle[]> {
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT l.target_key, MAX(l.target_title) AS title, COUNT(DISTINCT l.source_doc) AS n
+       FROM wiki_links l
+      WHERE NOT EXISTS (
+        SELECT 1 FROM wiki_docs d
+         WHERE d.kind = 'article' AND d.doc_status = 'published' AND d.title_key = l.target_key
+      )
+      GROUP BY l.target_key
+      ORDER BY n DESC, title ASC
+      LIMIT ?1`,
+  )
+    .bind(limit)
+    .all<{ target_key: string; title: string; n: number }>();
+
+  return (rows.results ?? []).map((row) => ({
+    title: row.title,
+    titleKey: row.target_key,
+    linkCount: row.n,
+  }));
+}

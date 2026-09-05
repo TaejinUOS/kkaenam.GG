@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { MergeEditScreen } from "@/components/matchup/MergeEditScreen";
+import { MergeEditScreen } from "@/components/wiki/MergeEditScreen";
 import { getChampionBySlug } from "@/data/champions";
 import { PATCH } from "@/data/champions";
+import { encodeDocRef } from "@/data/wiki";
+import { submitEditAction } from "@/lib/actions/wikiEditActions";
 import { getViewer } from "@/lib/authGuard";
 import { ro } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
@@ -87,10 +89,13 @@ export default async function EditSectionPage({
 
   return (
     <MergeEditScreen
-      championSlug={championData.slug}
-      championName={championData.name}
-      patch={PATCH}
-      meSlug={meSlug}
+      action={submitEditAction}
+      hidden={{
+        doc: encodeDocRef({ kind: "matchup", championSlug: championData.slug }),
+        patch: PATCH,
+        ...(meSlug ? { meSlug } : {}),
+      }}
+      kicker={`${championData.name} 상대법 편집`}
       sectionTitle={sectionTitle}
       currentBody={currentBody}
       isAdmin={viewer.role === "admin"}

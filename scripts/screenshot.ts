@@ -42,6 +42,8 @@ const PAGES = [
   { name: "11-wiki-portal", path: `/wiki?${new URLSearchParams({ 분류: "라인전" })}` },
   { name: "12-wiki-recent", path: "/wiki/recent" },
   { name: "13-wiki-wanted", path: "/wiki/wanted" },
+  /* 빨간 링크가 데려가는 자리. 문서가 없어도 늘 같은 화면이라 캡처가 안정적이다. */
+  { name: "14-wiki-missing", path: `/wiki/${encodeURIComponent("룬")}` },
 ] as const;
 
 async function capture(browser: Browser, viewport: (typeof VIEWPORTS)[number]) {

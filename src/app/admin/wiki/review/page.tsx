@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug } from "@/data/champions";
 import { requirePageAdmin } from "@/lib/authGuard";
+import { docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { getPendingQueue } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -36,22 +36,30 @@ export default async function ReviewQueuePage({
       ) : (
         <ul className={styles.list}>
           {queue.map((item) => {
-            const champion = getChampionBySlug(item.championSlug);
-            const sectionLabel = item.meSlug ? (getChampionBySlug(item.meSlug)?.name ?? item.meSlug) : "공통";
             const stale = item.baseRevision !== item.currentRevision;
 
             return (
               <li key={item.id} className={styles.row}>
                 <Link href={`/admin/wiki/review/${item.id}`} className={styles.rowLink}>
                   <div className={styles.rowHead}>
-                    <span className="sticker sticker--gum">대기</span>
+                    {/*
+                      새 문서 제안은 내용보다 **이름을 판단하는 일**이라 성격이 다르다.
+                      대기열에 두 종류가 섞이므로 여기서 구분해 준다
+                      (`docs/WIKI_EXPANSION.md` "대가").
+                    */}
+                    <span className={`sticker ${item.isCreation ? "sticker--cobalt" : "sticker--gum"}`}>
+                      {item.isCreation ? "새 문서" : "대기"}
+                    </span>
                     {stale && <span className="sticker">뒤처짐</span>}
                     <span className={styles.target}>
-                      {champion?.name ?? item.championSlug} 상대법 · {sectionLabel}
+                      {docTitle(item.target)}
+                      {!item.isCreation && ` · ${docSectionLabel(item.target, item.meSlug)}`}
                     </span>
                   </div>
                   {item.summary && <p className={styles.summary}>{item.summary}</p>}
-                  <p className="mono">{item.authorName ?? "탈퇴 계정"} · {formatDate(item.createdAt)}</p>
+                  <p className="mono">
+                    {item.authorName ?? "탈퇴 계정"} · {formatDate(item.createdAt)}
+                  </p>
                 </Link>
               </li>
             );

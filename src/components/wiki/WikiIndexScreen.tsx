@@ -119,13 +119,22 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
             선택 화면의 바코드 티켓과 같은 자리. 여기 담기는 것은 포지션·패치가 아니라
             "이 위키가 지금 얼마나 크고, 지난 이레 동안 얼마나 움직였는가"다.
           */}
-          <p className={`mono ${styles.ticket}`}>
-            <span className="sr-only">문서 </span>DOCS {docCount}
-            <span className={styles.ticketSlash} aria-hidden="true">
-              /
-            </span>
-            <span className="sr-only">최근 7일 편집 </span>7D {weekEditCount}
-          </p>
+          <div className={styles.mastheadSide}>
+            <p className={`mono ${styles.ticket}`}>
+              <span className="sr-only">문서 </span>DOCS {docCount}
+              <span className={styles.ticketSlash} aria-hidden="true">
+                /
+              </span>
+              <span className="sr-only">최근 7일 편집 </span>7D {weekEditCount}
+            </p>
+            {/*
+              찾다가 없으면 그 자리에서 쓰기 시작할 수 있어야 한다. 목차의 일은 있는
+              것을 보여 주는 것이지만, 없는 것을 만드는 문도 여기 있는 편이 낫다.
+            */}
+            <Link href="/wiki/new" className={`btn ${styles.newDoc}`} prefetch={false}>
+              새 문서 제안
+            </Link>
+          </div>
         </section>
 
         <div className={styles.columns}>
@@ -248,7 +257,18 @@ export function WikiIndexScreen({ data, docCount, weekEditCount, recent, counter
                   {results.length === 0 ? (
                     <p className={styles.railEmpty}>
                       그런 이름의 문서가 없습니다. 매치업 문서는{" "}
-                      <code className={styles.code}>미드/아리</code>처럼 적습니다.
+                      <code className={styles.code}>아리 상대법</code>처럼 적습니다.{" "}
+                      {/*
+                        찾았는데 없다는 것은 그 문서가 필요하다는 말이기도 하다.
+                        친 이름을 그대로 들고 제안 화면으로 보낸다.
+                      */}
+                      <Link
+                        href={`/wiki/new?title=${encodeURIComponent(query.trim())}`}
+                        className={styles.railCreate}
+                        prefetch={false}
+                      >
+                        「{query.trim()}」 문서를 새로 쓰기 →
+                      </Link>
                     </p>
                   ) : (
                     <ul className={styles.rows}>

@@ -39,8 +39,12 @@ export async function getWikiIndexStats(): Promise<WikiIndexStats> {
   /* 7일 경계는 서버 시각으로 자른다. 화면이 "7D"라고만 적으므로 시간대는 문제되지 않는다. */
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+  /*
+   * 게시된 문서만 센다. 승인 전 제안과 거절된 껍데기는 아직(또는 영영) 문서가 아니고,
+   * 그것까지 세면 목록에서 찾을 수 없는 문서가 숫자에만 있게 된다.
+   */
   const [docs, edits, written] = await DB.batch<Record<string, unknown>>([
-    DB.prepare(`SELECT COUNT(*) AS n FROM wiki_docs`),
+    DB.prepare(`SELECT COUNT(*) AS n FROM wiki_docs WHERE doc_status = 'published'`),
     DB.prepare(
       `SELECT COUNT(*) AS n FROM wiki_edits WHERE status = 'accepted' AND created_at >= ?1`,
     ).bind(since),
@@ -55,4 +59,27 @@ export async function getWikiIndexStats(): Promise<WikiIndexStats> {
     weekEditCount: first(edits),
     writtenChampionSlugs: (written.results ?? []).map((row) => row.champion_slug as string),
   };
+}
+
+/**
+ * 게시된 일반 문서의 이름 전부. 첫 화면 검색이 이 목록을 훑는다.
+ *
+ * 이름만 읽는다. 본문 검색은 5단계의 일이고, 그때까지도 **있는 문서가 검색에서
+ * 안 나오는 것은 안 된다** — 그러면 사람이 이미 있는 문서를 다시 제안하게 된다.
+ *
+ * 문서가 수백을 넘어가면 이 목록을 첫 응답에 싣는 방식 자체를 바꿔야 한다
+ * (`selection.ts`와 같은 한계다). 한도는 그 시점을 알아차리기 위한 것이다.
+ */
+export async function listArticleTitles(limit = 500): Promise<{ title: string; titleKey: string }[]> {
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT title, title_key FROM wiki_docs
+      WHERE kind = 'article' AND doc_status = 'published'
+      ORDER BY title
+      LIMIT ?1`,
+  )
+    .bind(limit)
+    .all<{ title: string; title_key: string }>();
+
+  return (rows.results ?? []).map((row) => ({ title: row.title, titleKey: row.title_key }));
 }

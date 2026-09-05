@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug } from "@/data/champions";
 import { relativeTime } from "@/lib/relativeTime";
-import { matchupDocTitle } from "@/lib/wikiLink";
+import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listRecentChanges } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -45,20 +44,13 @@ export default async function WikiRecentPage() {
         ) : (
           <ul className={styles.list}>
             {changes.map((change) => {
-              const champion = getChampionBySlug(change.championSlug);
-              const title = matchupDocTitle(champion?.name ?? change.championSlug);
-              const section = change.meSlug
-                ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
-                : null;
+              const title = docTitle(change.target);
+              /* 본문(공통) 변경은 섹션 이름을 적지 않는다. 문서 이름만으로 충분하다. */
+              const section = change.meSlug ? docSectionLabel(change.target, change.meSlug) : null;
 
               return (
                 <li key={change.id}>
-                  <Link
-                    href={`/matchup/${change.championSlug}${
-                      change.meSlug ? `?me=${change.meSlug}` : ""
-                    }`}
-                    className={styles.row}
-                  >
+                  <Link href={docHref(change.target, change.meSlug)} className={styles.row}>
                     <time className={`mono ${styles.when}`} dateTime={change.createdAt}>
                       {relativeTime(change.createdAt, now)}
                     </time>

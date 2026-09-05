@@ -1,7 +1,7 @@
 # 위키 확장 — 일반 문서와 `위키` 메뉴 (제안)
 
-> 상태: **0단계 구현됨** (2026-09-04). 아래 "결정된 것" 여섯 가지는 확정이고,
-> `단계` 표의 0단계가 들어갔다. 1단계부터는 아직 제안이다.
+> 상태: **0~2단계 구현됨** (2026-09-05). 아래 "결정된 것" 여섯 가지는 확정이고,
+> `단계` 표의 0·1·2단계가 들어갔다. 3단계부터는 아직 제안이다.
 > `docs/WIKI_MODEL.md`의 후속이며, 그 문서의 결정을 뒤집지 않고 넓히기만 한다.
 > 승인되면 `docs/PRD.md`에 FR을 추가하고, 이 문서가 그 부속 설계가 된다.
 
@@ -86,8 +86,9 @@ doc_status  TEXT NOT NULL DEFAULT 'published',
 -- champion_slug는 마이그레이션 0003에서 이미 NULL 허용이고 유일 인덱스도 붙어 있다.
 -- 1단계에서는 표를 다시 만들 필요 없이 아래 열들을 ALTER로 더하기만 하면 된다.
 -- 승인 전 제안도 같은 이름을 잡는다. 아래 "제목이 겹치면" 참고.
+-- 거절된 제안은 title_key를 비워 이름을 놓아준다. NULL은 서로 다른 값으로 취급된다.
 CREATE UNIQUE INDEX idx_docs_article ON wiki_docs (title_key)
-  WHERE kind = 'article';
+  WHERE kind = 'article' AND title_key IS NOT NULL;
 
 -- wiki_sections에 더한다. 일반 문서의 섹션 이름.
 -- 매치업 문서는 NULL이다 — 이름을 챔피언 카탈로그가 갖고 있다.
@@ -107,7 +108,9 @@ NULL 허용으로 열어 두었으므로 1단계는 `ALTER TABLE ADD COLUMN`만 
 
 `doc_id`는 지금 `doc-<포지션>-<챔피언>`이다. **기존 값을 건드리지 않는다** —
 `wiki_edits`·`wiki_sections`가 전부 이 값을 참조하고 있다. 일반 문서는
-`doc-a-<title_key>`로 짓는다.
+`doc-a-<uuid>`로 짓는다. 이름에서 짓지 않는 것은 거절된 제안이 이름만 놓아주고 행은
+남기 때문이다 (아래 "승인되기까지") — 같은 이름이 다시 제안되면 이름에서 지은 id가
+부딪힌다.
 
 ### 이름이 곧 주소다
 
@@ -255,7 +258,7 @@ Me는 나중에 덧칠한 형광펜 메모다"가 화면 전체 규모로 한 �
 | `아직 없는 문서` | 분류에 있으나 아직 안 쓰인 매치업 (지금 194) | 4단계에 빨간 링크가 더해진다 |
 | `미분류 문서` | **자리를 비웠다.** 일반 문서가 없어 셀 것이 없다 | 4단계 |
 | 관문별 문서 수 | 0이므로 숫자 대신 `아직 없음` | 4단계 |
-| 검색 | 매치업 문서와 관문 이름 | 5단계에 일반 문서 |
+| 검색 | 매치업 문서 · 일반 문서 · 관문 이름 (1·2단계에서 일반 문서 이름을 더했다 — 있는 문서가 검색에 안 나오면 같은 문서가 다시 제안된다) | 5단계에 본문 |
 
 `wiki_portals` 표는 아직 만들지 않았다. 관문 다섯은 `src/data/portals.ts`에 있고,
 이는 `taxonomy.ts`가 운영 분류의 단일 원본인 것과 같은 자리다. 4단계에서 표와 관리
@@ -483,8 +486,16 @@ CREATE TABLE wiki_portals (
 모두 `doc_status = 'published'`만 본다. 주소를 직접 아는 사람(제안자와 운영자)만
 볼 수 있다.
 
-운영자가 첫 편집을 승인하면 문서가 `published`가 된다. 거절하면 문서 행을 지운다 —
-이름을 풀어 줘야 다음 사람이 쓸 수 있다.
+운영자가 첫 편집을 승인하면 문서가 `published`가 된다.
+
+거절하면 **`title_key`만 비우고 행은 남긴다** (`doc_status = 'rejected'`). 이름은 그
+순간 풀려 다음 사람이 쓸 수 있다. 행까지 지우지 않는 것은 `wiki_edits`가 `ON DELETE
+CASCADE`로 매달려 있어, 행을 지우면 그 제안 자체가 사라지고 제안자가 「내 편집」에서
+거절 사유를 볼 수 없게 되기 때문이다 (FR-33). 이름 없는 껍데기는 어느 목록·검색·링크
+해석에도 나오지 않는다.
+
+**관리자가 낸 새 문서는 대기열을 거치지 않는다.** 자기 제안을 자기가 검토하는 줄은
+뜻이 없고, 이 코드베이스는 이미 관리자 편집을 즉시 반영한다 (`submitEdit`).
 
 ### 진입점
 
@@ -506,8 +517,8 @@ CREATE TABLE wiki_portals (
 | 단계 | 내용 | 스키마 |
 | --- | --- | --- |
 | **0. 메뉴와 목차** ✅ | `위키` 메뉴, `/wiki` 첫 화면(관문 포스터 포함), 분류 나무(매치업만), `/wiki/recent`·`/wiki/wanted` 공개 | 없음 |
-| **1. 일반 문서 읽기** | `wiki_docs` 일반화, `/wiki/<이름>`, `resolveWikiTitle`에 갈래 추가 → 빨간 링크가 살아난다 | 표 재작성 |
-| **2. 새 문서 제안·승인** | `/wiki/new`, 겹침 판정, `proposed` → `published` | 없음 |
+| **1. 일반 문서 읽기** ✅ | `wiki_docs` 일반화, `/wiki/<이름>`, `resolveWikiTitle`에 갈래 추가 → 빨간 링크가 살아난다 | 열 추가 (0006) |
+| **2. 새 문서 제안·승인** ✅ | `/wiki/new`, 겹침 판정, `proposed` → `published` | 없음 |
 | **3. 일반 문서의 섹션** | 섹션 추가·이름 붙이기. `wiki_sections.title` | 열 추가 |
 | **4. 링크와 분류** | `wiki_links`, 역링크, `아직 없는 문서`, `[[분류:…]]`, 관문 포스터 | 표 추가 (`wiki_links` · `wiki_portals`) |
 | **5. 검색** | 이름 검색. PRD "남은 결정"의 검색 범위를 여기서 닫는다 | 없음 |
@@ -533,6 +544,21 @@ CREATE TABLE wiki_portals (
 | `src/app/admin/wiki/review/**` | 문서 생성 제안을 검토 대상에 포함 |
 | `src/components/SiteHeader.tsx` | `NAV`에 한 줄 |
 | `src/components/selection/` | 포스터 조판(`POSTER_WEIGHTS`·라벨·hover 확장)을 관문에서 재사용하려면 카테고리 전용 가정을 걷어내야 한다. **0단계에서는 뽑지 않고 `WikiIndexScreen.module.css`에 같은 규칙을 한 벌 더 두었다** — 세 번째 화면이 같은 문법을 요구할 때 뽑는다 |
+
+1·2단계에서 실제로 만든 것과 바뀐 것은 아래가 전부다.
+
+| 파일 | 무엇을 |
+| --- | --- |
+| `migrations/0006_wiki_articles.sql` | `kind` · `title` · `title_key` · `doc_status` 열과 이름 유일 인덱스 |
+| `src/lib/wikiTitle.ts` | 이름 규칙 한 벌. 정규화 · 주소 · 금지 글자 · `…상대법` 금지 |
+| `src/data/wiki.ts` | `DocRef` · `DocTarget` · `encodeDocRef`/`parseDocRef` — 문서를 가리키는 법 |
+| `src/lib/wikiDocTarget.ts` | 한 문서를 부르는 이름 · 주소 · 섹션 이름을 한 곳에서 짓는다 |
+| `src/lib/wikiStore.ts` | `getArticleView` · `resolveDocLinks` (매치업 + 일반 문서 링크 해석) |
+| `src/lib/wikiEditStore.ts` | `submitEdit`이 문서 참조를 받는다. `proposeArticle` · 승인 시 게시 · 거절 시 이름 놓기 |
+| `src/components/wiki/MergeEditScreen.tsx` | `matchup/`에서 옮겨 왔다. 액션과 숨은 필드를 받고, 새 문서일 때 제목 칸이 붙는다 |
+| `src/components/wiki/{ArticleScreen,DocHistoryView}.tsx` | 일반 문서 한 장. 역사 화면은 두 문서 종류가 함께 쓴다 |
+| `src/app/wiki/{[title],[title]/edit,[title]/history,new}` | 네 화면 |
+| `src/lib/wikiMarkup.ts` · `MarkdownBody.tsx` | 빨간 링크가 이름을 싣고 `/wiki/<이름>`으로 데려간다 |
 
 0단계에서 실제로 만든 것은 아래가 전부다.
 

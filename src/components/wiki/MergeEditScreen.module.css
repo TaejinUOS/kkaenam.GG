@@ -195,6 +195,26 @@
   font-weight: 700;
 }
 
+/* 제목 칸 아래 한 줄. 이름이 곧 주소라는 것을 고르기 전에 알려 준다. */
+.hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--smoke);
+  word-break: keep-all;
+}
+
+.hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--acid);
+}
+
+/* 이름이 겹쳤을 때 그 문서로 보내는 링크. 막다른 오류보다 목적지가 낫다. */
+.errorLink {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .done {
   display: grid;
   gap: 14px;

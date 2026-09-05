@@ -37,3 +37,19 @@
   font-size: 13px;
   text-decoration: underline;
 }
+
+/* 새 문서 제안. 판단할 것이 내용이 아니라 이름이라는 사실을 먼저 알린다. */
+.creation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}

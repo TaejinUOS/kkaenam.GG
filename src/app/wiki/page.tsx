@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { WikiIndexScreen, type RecentRow, type WorkCounter } from "@/components/wiki/WikiIndexScreen";
-import { getChampionBySlug } from "@/data/champions";
 import { buildWikiIndexData, classifiedChampionSlugs } from "@/data/wikiIndex";
 import { relativeTime } from "@/lib/relativeTime";
 import { getTaxonomy } from "@/lib/taxonomyStore";
-import { matchupDocTitle } from "@/lib/wikiLink";
+import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listRecentChanges } from "@/lib/wikiEditStore";
-import { getWikiIndexStats } from "@/lib/wikiIndexStore";
+import { getWikiIndexStats, listArticleTitles } from "@/lib/wikiIndexStore";
 
 export const metadata: Metadata = {
   title: "위키",
@@ -26,13 +25,14 @@ const RECENT_ON_INDEX = 8;
  * 미분류 문서)은 **가짜 숫자를 두지 않고 비운다** — 블루프린트 6.5의 규칙이다.
  */
 export default async function WikiIndexPage() {
-  const [stats, changes, taxonomy] = await Promise.all([
+  const [stats, changes, taxonomy, articles] = await Promise.all([
     getWikiIndexStats(),
     listRecentChanges(RECENT_ON_INDEX),
     getTaxonomy(),
+    listArticleTitles(),
   ]);
 
-  const data = buildWikiIndexData(taxonomy);
+  const data = buildWikiIndexData(taxonomy, {}, articles);
 
   /*
    * 상대 시각은 여기서 짓는다. 클라이언트에서 계산하면 수화가 어긋난다.
@@ -40,29 +40,25 @@ export default async function WikiIndexPage() {
    */
   const now = Date.now();
   const recent: RecentRow[] = changes.map((change) => {
-    const champion = getChampionBySlug(change.championSlug);
     /*
-     * 문서 이름은 `matchupDocTitle`이 짓는 하나뿐이다. 챔피언당 문서가 하나이므로
-     * 포지션이 이름에 들어가지 않는다 (마이그레이션 0003).
+     * 오른쪽 칸에는 그 문서가 어느 갈래에 있는지를 적는다. 매치업 문서는 그 챔피언이
+     * 지금 놓인 자리이고, 일반 문서는 아직 갈래가 하나뿐이다 — 분류는 4단계에 붙는다.
      */
-    const title = matchupDocTitle(champion?.name ?? change.championSlug);
-    /* 오른쪽 칸에는 그 챔피언이 지금 놓인 자리를 적는다. 이름이 아니라 분류다. */
     const branch =
-      taxonomy
-        .placementsOf(change.championSlug)
-        .map((p) => p.position.name)
-        .join(" · ") || "분류 없음";
-    const section = change.meSlug
-      ? (getChampionBySlug(change.meSlug)?.name ?? change.meSlug)
-      : null;
+      change.target.kind === "matchup"
+        ? taxonomy
+            .placementsOf(change.target.championSlug)
+            .map((p) => p.position.name)
+            .join(" · ") || "분류 없음"
+        : "일반 문서";
 
     return {
       id: change.id,
       when: relativeTime(change.createdAt, now),
       at: change.createdAt,
-      title,
-      section,
-      href: `/matchup/${change.championSlug}${change.meSlug ? `?me=${change.meSlug}` : ""}`,
+      title: docTitle(change.target),
+      section: change.meSlug ? docSectionLabel(change.target, change.meSlug) : null,
+      href: docHref(change.target, change.meSlug),
       branch,
     };
   });

@@ -8,17 +8,24 @@ import { useFormStatus } from "react-dom";
 import { DiffText } from "@/components/wiki/DiffText";
 import { HighlightedEditor } from "@/components/wiki/HighlightedEditor";
 import { MAX_BODY_LENGTH, MAX_SUMMARY_LENGTH } from "@/data/wiki";
-import { submitEditAction, type ActionState } from "@/lib/actions/wikiEditActions";
+import type { ActionState } from "@/lib/actions/wikiEditActions";
 import { diffStats, diffWords, hasRemoval } from "@/lib/wikiDiff";
+import { MAX_TITLE_LENGTH } from "@/lib/wikiTitle";
 
 import styles from "./MergeEditScreen.module.css";
 
+type EditAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
+
 type Props = {
-  championSlug: string;
-  championName: string;
-  patch: string;
-  /** null이면 공통 섹션. */
-  meSlug: string | null;
+  /**
+   * 저장을 맡을 서버 액션. 섹션 편집과 새 문서 제안이 이 화면을 함께 쓴다 —
+   * 빈 본문에서 시작하는 편집이 곧 "새 문서 쓰기"라, 화면을 하나 더 지을 이유가 없다.
+   */
+  action: EditAction;
+  /** 폼에 함께 실어 보낼 값. 문서 참조(`doc`)·섹션(`meSlug`)·패치가 여기로 온다. */
+  hidden?: Record<string, string>;
+  /** 머리말 윗줄. 예: `아리 상대법 편집`. */
+  kicker: string;
   /** 고치고 있는 섹션의 제목. 예: `제드로 상대할 때`. */
   sectionTitle: string;
   /** 편집기를 여는 시점의 실제 서버 상태. 왼쪽 화면이자 차이의 기준이다. */
@@ -26,14 +33,19 @@ type Props = {
   isAdmin: boolean;
   /** 저장하거나 취소했을 때 돌아갈 곳. 고친 섹션 제목으로 바로 간다. */
   returnHref: string;
+  /**
+   * 새 문서를 만드는 중이면 준다. 제목 칸이 하나 더 붙고 안내가 고정된다 —
+   * 초록뿐이어도 문서 생성은 언제나 운영자 승인을 거치기 때문이다.
+   */
+  create?: { defaultTitle: string };
 };
 
 /**
  * 문서 편집 화면 — 왼쪽에 지금 문서, 오른쪽에 내가 쓰는 글을 나란히 놓는다.
  *
  * 문서 아래 붙는 작은 상자가 아니라 **화면 하나를 통째로 쓰는 별도 주소**다
- * (`/matchup/…/edit?section=…`). 상대법 본문은 몇 문단씩 되는 글이라, 좁은 상자
- * 안에서는 무엇을 고쳤는지 보이지 않는다.
+ * (`/matchup/…/edit?section=…`, `/wiki/<이름>/edit`, `/wiki/new`). 위키 본문은 몇
+ * 문단씩 되는 글이라, 좁은 상자 안에서는 무엇을 고쳤는지 보이지 않는다.
  *
  * 색이 이 화면의 요점이다. 초록은 더한 것, 빨강은 지운 것이고, **빨강이 하나라도
  * 있으면 운영자 검토를 거친다**. 타이핑할 때마다 다시 칠하므로, 저장 버튼을 누르기
@@ -44,17 +56,17 @@ type Props = {
  * (`docs/WIKI_MODEL.md` "판정은 서버가 한다").
  */
 export function MergeEditScreen({
-  championSlug,
-  championName,
-  patch,
-  meSlug,
+  action,
+  hidden = {},
+  kicker,
   sectionTitle,
   currentBody,
   isAdmin,
   returnHref,
+  create,
 }: Props) {
   const router = useRouter();
-  const [state, formAction] = useActionState<ActionState, FormData>(submitEditAction, null);
+  const [state, formAction] = useActionState<ActionState, FormData>(action, null);
 
   /*
    * textarea를 제어 컴포넌트로 만들지 않는다. 한글은 조합 중인 글자가 확정되기 전에도
@@ -62,11 +74,14 @@ export function MergeEditScreen({
    * 여기 상태는 형광펜과 안내 문구를 그리는 데만 쓰고, 실제 값은 textarea가 갖는다.
    */
   const [body, setBody] = useState(currentBody);
+  const [title, setTitle] = useState(create?.defaultTitle ?? "");
 
   const ops = useMemo(() => diffWords(currentBody, body), [currentBody, body]);
   const removing = hasRemoval(ops);
   const stats = diffStats(ops);
   const changed = body !== currentBody;
+  /* 새 문서는 이름과 본문이 둘 다 있어야 낼 수 있다. 이름 없는 문서는 만들 수 없다. */
+  const ready = create ? title.trim().length > 0 && body.trim().length > 0 : changed;
 
   useEffect(() => {
     // 저장이 반영됐으면 문서 화면의 캐시를 버린다. 돌아갔을 때 옛 글이 보이지 않도록.
@@ -78,25 +93,47 @@ export function MergeEditScreen({
       {/* ------------------------------------------------------------ 머리말 */}
       <header className={styles.head}>
         <div>
-          <p className="section-index">
-            {championName} 상대법 편집
-          </p>
+          <p className="section-index">{kicker}</p>
           <h1 className={`display ${styles.title}`}>{sectionTitle}</h1>
         </div>
         <Link href={returnHref} className={styles.back}>
-          문서로 돌아가기
+          {create ? "위키로 돌아가기" : "문서로 돌아가기"}
         </Link>
       </header>
 
-      <PolicyNotice isAdmin={isAdmin} changed={changed} removing={removing} />
+      <PolicyNotice isAdmin={isAdmin} changed={changed} removing={removing} creating={!!create} />
 
       {state?.ok ? (
-        <SaveResult message={state.message} returnHref={returnHref} />
+        <SaveResult message={state.message} returnHref={state.href ?? returnHref} />
       ) : (
         <form action={formAction} className={styles.form}>
-          <input type="hidden" name="championSlug" value={championSlug} />
-          <input type="hidden" name="patch" value={patch} />
-          {meSlug && <input type="hidden" name="meSlug" value={meSlug} />}
+          {Object.entries(hidden).map(([name, value]) => (
+            <input key={name} type="hidden" name={name} value={value} />
+          ))}
+
+          {create && (
+            <label className={styles.field}>
+              <span className={styles.label}>문서 이름 (최대 {MAX_TITLE_LENGTH}자)</span>
+              <input
+                type="text"
+                name="title"
+                className={styles.summaryInput}
+                maxLength={MAX_TITLE_LENGTH}
+                placeholder="예: 정글 동선"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                required
+              />
+              {/*
+                이름은 곧 주소이고 한 번 정하면 바꿀 수 없다 (넘겨주기가 없다).
+                고르기 전에 그 사실을 알려 준다.
+              */}
+              <span className={styles.hint}>
+                이름이 곧 주소이자 <code>[[{title.trim() || "정글 동선"}]]</code> 링크가 닿을
+                이름입니다. 나중에 바꿀 수 없습니다.
+              </span>
+            </label>
+          )}
 
           {/* ------------------------------------------------------ 좌우 화면 */}
           <div className={styles.panes}>
@@ -111,7 +148,9 @@ export function MergeEditScreen({
                 ops={ops}
                 side="before"
                 className={styles.paneBody}
-                placeholder="아직 아무도 쓰지 않은 부분입니다."
+                placeholder={
+                  create ? "아직 없는 문서입니다." : "아직 아무도 쓰지 않은 부분입니다."
+                }
               />
             </section>
 
@@ -151,14 +190,31 @@ export function MergeEditScreen({
               name="summary"
               className={styles.summaryInput}
               maxLength={MAX_SUMMARY_LENGTH}
-              placeholder="예: Q 쿨타임 수정"
+              placeholder={create ? "예: 정글 동선 문서 첫 작성" : "예: Q 쿨타임 수정"}
             />
           </label>
 
-          {state && !state.ok && <p className={styles.error}>{state.message}</p>}
+          {state && !state.ok && (
+            <p className={styles.error}>
+              {state.message}
+              {state.href && (
+                <>
+                  {" "}
+                  <Link href={state.href} className={styles.errorLink}>
+                    그 문서로 가기
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
 
           <div className={styles.actions}>
-            <SubmitButton removing={removing} isAdmin={isAdmin} disabled={!changed} />
+            <SubmitButton
+              removing={removing}
+              isAdmin={isAdmin}
+              creating={!!create}
+              disabled={!ready}
+            />
             <Link href={returnHref} className="btn">
               취소
             </Link>
@@ -177,16 +233,35 @@ export function MergeEditScreen({
  * 예전에는 편집기를 여는 순간 한 번만 알렸다. 판정 기준이 "섹션이 비었는가"에서
  * "지운 것이 있는가"로 바뀌면서, 그 답이 무엇을 쓰느냐에 따라 달라졌다. 저장을
  * 누르고 나서야 대기열로 갔다는 것을 알게 되면 그 사람은 두 번 다시 쓰지 않는다.
+ *
+ * **새 문서만은 무엇을 쓰든 답이 하나다.** 지운 것이 없어도 승인을 거친다 — 새 문서는
+ * 내용이 아니라 이름을 차지하는 일이라, "더하기만 하는 편집은 잃을 것이 없다"는 근거가
+ * 닿지 않는다 (`docs/WIKI_EXPANSION.md` "새 문서 만들기").
  */
 function PolicyNotice({
   isAdmin,
   changed,
   removing,
+  creating,
 }: {
   isAdmin: boolean;
   changed: boolean;
   removing: boolean;
+  creating: boolean;
 }) {
+  if (creating) {
+    return isAdmin ? (
+      <p className={`${styles.notice} ${styles.noticeInstant}`}>
+        관리자 권한입니다. 저장하면 문서가 바로 만들어집니다.
+      </p>
+    ) : (
+      <p className={`${styles.notice} ${styles.noticePending}`}>
+        새 문서는 이름을 차지하는 일이라, 지운 것이 없어도{" "}
+        <strong>운영자 승인 후 문서가 만들어집니다.</strong> 승인 전에는 이 이름을 다른
+        사람이 쓸 수 없습니다.
+      </p>
+    );
+  }
   if (isAdmin) {
     return (
       <p className={`${styles.notice} ${styles.noticeInstant}`}>
@@ -218,7 +293,7 @@ function SaveResult({ message, returnHref }: { message: string; returnHref: stri
     <div className={styles.done}>
       <p className={styles.doneMessage}>{message}</p>
       <Link href={returnHref} className="btn btn--acid">
-        문서로 돌아가기
+        문서로 가기
       </Link>
     </div>
   );
@@ -227,14 +302,24 @@ function SaveResult({ message, returnHref }: { message: string; returnHref: stri
 function SubmitButton({
   removing,
   isAdmin,
+  creating,
   disabled,
 }: {
   removing: boolean;
   isAdmin: boolean;
+  creating: boolean;
   disabled: boolean;
 }) {
   const { pending } = useFormStatus();
-  const label = isAdmin ? "저장하고 반영" : removing ? "검토 요청으로 저장" : "저장하고 바로 반영";
+  const label = creating
+    ? isAdmin
+      ? "문서 만들기"
+      : "새 문서 제안하기"
+    : isAdmin
+      ? "저장하고 반영"
+      : removing
+        ? "검토 요청으로 저장"
+        : "저장하고 바로 반영";
   return (
     <button type="submit" className="btn btn--acid" disabled={pending || disabled}>
       {pending ? "저장 중..." : label}
@@ -267,11 +352,12 @@ function SyntaxHelp() {
         </dd>
 
         <dt>
-          <code>[[미드/아리]]</code> · <code>[[미드/아리 | 아리 상대법]]</code>
+          <code>[[아리 상대법]]</code> · <code>[[정글 동선]]</code> ·{" "}
+          <code>[[정글 동선 | 동선]]</code>
         </dt>
         <dd>
-          다른 문서로 가는 링크. 상대법 문서의 이름은 <code>포지션/챔피언</code>이다. 아직
-          없는 문서는 빨갛게 보이니 오타를 바로 알 수 있다.
+          다른 문서로 가는 링크. 매치업 문서는 <code>챔피언 상대법</code>, 일반 문서는 그
+          문서의 이름 그대로 적는다. 아직 없는 문서는 빨갛게 보이니 오타를 바로 알 수 있다.
         </dd>
 
         <dt>

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ReviewMergeForm } from "@/components/admin/ReviewMergeForm";
-import { getChampionBySlug } from "@/data/champions";
+import { encodeDocRef } from "@/data/wiki";
 import { requirePageAdmin } from "@/lib/authGuard";
 import { approveEditAction, rejectEditAction } from "@/lib/actions/wikiEditActions";
+import { docRefOf, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { getEditForReview } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -35,28 +36,48 @@ export default async function ReviewDetailPage({
   const detail = await getEditForReview(editId);
   if (!detail) notFound();
 
-  const champion = getChampionBySlug(detail.championSlug);
-  const sectionLabel = detail.meSlug ? (getChampionBySlug(detail.meSlug)?.name ?? detail.meSlug) : "공통";
+  const title = docTitle(detail.target);
+  const sectionLabel = docSectionLabel(detail.target, detail.meSlug);
   const stale = detail.baseRevision !== detail.currentRevision;
 
-  const boundApprove = approveEditAction.bind(null, detail.id, detail.championSlug);
+  const boundApprove = approveEditAction.bind(
+    null,
+    detail.id,
+    encodeDocRef(docRefOf(detail.target)),
+  );
   const boundReject = rejectEditAction.bind(null, detail.id);
 
   return (
     <div className={`shell ${styles.screen}`}>
       <p className="section-index">관리자</p>
       <h1 className={`display ${styles.title}`}>
-        {champion?.name ?? detail.championSlug} 상대법 · {sectionLabel}
+        {title}
+        {!detail.isCreation && ` · ${sectionLabel}`}
       </h1>
-      <p className="mono">{detail.authorName ?? "탈퇴 계정"} · r{detail.baseRevision} 기준 제출</p>
+      <p className="mono">
+        {detail.authorName ?? "탈퇴 계정"} · r{detail.baseRevision} 기준 제출
+      </p>
 
       {error && <p className={styles.error}>{ERROR_LABEL[error] ?? "처리할 수 없습니다."}</p>}
+
+      {/*
+        새 문서 제안은 판단할 것이 다르다. 내용이 아니라 **이 이름을 이 위키가 가져도
+        되는가**이고, 거절하면 이름이 풀려 다음 사람이 쓸 수 있게 된다.
+      */}
+      {detail.isCreation && (
+        <p className={styles.creation}>
+          <span className="sticker sticker--cobalt">새 문서</span> 승인하면{" "}
+          <strong>{title}</strong>이라는 이름으로 문서가 만들어집니다. 거절하면 문서는
+          만들어지지 않고 그 이름이 다시 풀립니다.
+        </p>
+      )}
 
       {stale && (
         <details className={styles.stale} open>
           <summary>
-            이 제안은 r{detail.baseRevision}를 기준으로 작성되었습니다. 현재 문서는 r{detail.currentRevision}입니다.
-            그 사이 이 섹션이 {detail.staleChanges.length}번 바뀌었습니다.
+            이 제안은 r{detail.baseRevision}를 기준으로 작성되었습니다. 현재 문서는 r
+            {detail.currentRevision}입니다. 그 사이 이 섹션이 {detail.staleChanges.length}번
+            바뀌었습니다.
           </summary>
           <ul className={styles.staleList}>
             {detail.staleChanges.map((c) => (

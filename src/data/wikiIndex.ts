@@ -10,6 +10,7 @@
 
 import type { TaxonomySnapshot } from "@/lib/taxonomyStore";
 import { matchupDocTitle } from "@/lib/wikiLink";
+import { articleHref } from "@/lib/wikiTitle";
 
 import { getCategoriesFor, positions } from "./champions";
 import { coverPortals, shelfPortals, type Portal } from "./portals";
@@ -41,7 +42,12 @@ export type TreeItem = {
   pending?: boolean;
 };
 
-/** 이름 검색 대상. 지금은 매치업 문서와 관문뿐이고, 일반 문서는 5단계에 더해진다. */
+/**
+ * 이름 검색 대상. 매치업 문서 · 일반 문서 · 관문.
+ *
+ * 일반 문서는 **이름만** 실린다. 본문까지 훑는 검색은 5단계의 일이지만, 있는 문서가
+ * 검색에 안 나오면 사람이 이미 있는 문서를 다시 제안하게 되므로 이름은 지금 싣는다.
+ */
 export type SearchEntry = {
   /**
    * 목록에 보이는 이름.
@@ -52,7 +58,7 @@ export type SearchEntry = {
    */
   title: string;
   href: string;
-  kind: "matchup" | "portal";
+  kind: "matchup" | "article" | "portal";
   /** 어느 갈래의 문서인지. 매치업은 포지션, 일반 문서는 분류다. 결과 줄 오른쪽에 붙는다. */
   branch: string;
   /**
@@ -86,6 +92,8 @@ export function buildWikiIndexData(
   taxonomy: TaxonomySnapshot,
   /** 관문별 일반 문서 수. 4단계에서 `wiki_links`가 채운다. */
   articleCounts: Record<string, number> = {},
+  /** 게시된 일반 문서의 이름. 검색이 이 목록도 함께 훑는다. */
+  articles: { title: string; titleKey: string }[] = [],
 ): WikiIndexData {
   const withCount = (portal: Portal): PortalView => ({
     ...portal,
@@ -115,6 +123,16 @@ export function buildWikiIndexData(
       kind: "matchup",
       branch: where.join(" · "),
       match: `${title} ${where.join(" ")} ${where.map((w) => `${w}/${name}`).join(" ")}`,
+    });
+  }
+  for (const article of articles) {
+    search.push({
+      title: article.title,
+      href: articleHref(article.title),
+      kind: "article",
+      /* 분류는 4단계에 붙는다. 그때까지 일반 문서의 갈래는 하나뿐이다. */
+      branch: "일반 문서",
+      match: `${article.title} ${article.titleKey}`,
     });
   }
   for (const portal of [...coverPortals(), ...shelfPortals()]) {

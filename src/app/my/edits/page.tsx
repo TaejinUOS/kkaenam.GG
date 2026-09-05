@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getChampionBySlug } from "@/data/champions";
 import { requirePageUser } from "@/lib/authGuard";
+import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { listMyEdits } from "@/lib/wikiEditStore";
 
 import styles from "./page.module.css";
@@ -31,10 +31,12 @@ export default async function MyEditsPage() {
       ) : (
         <ul className={styles.list}>
           {edits.map((edit) => {
-            const champion = getChampionBySlug(edit.championSlug);
-            const sectionLabel = edit.meSlug
-              ? (getChampionBySlug(edit.meSlug)?.name ?? edit.meSlug)
-              : "공통";
+            /*
+             * 거절된 새 문서 제안은 이름을 놓아준 껍데기라 갈 곳이 없다. 링크를 걸면
+             * "아직 없는 문서" 화면으로 데려가 제안이 살아 있는 것처럼 보인다.
+             */
+            const gone = edit.target.kind === "article" && edit.target.status === "rejected";
+            const label = `${docTitle(edit.target)} · ${docSectionLabel(edit.target, edit.meSlug)}`;
 
             return (
               <li key={edit.id} className={styles.row}>
@@ -44,14 +46,12 @@ export default async function MyEditsPage() {
                   >
                     {STATUS_LABEL[edit.status] ?? edit.status}
                   </span>
-                  {champion ? (
-                    <Link href={`/matchup/${champion.slug}`} className={styles.target}>
-                      {champion.name} 상대법 · {sectionLabel}
-                    </Link>
+                  {gone ? (
+                    <span className={styles.target}>{label}</span>
                   ) : (
-                    <span className={styles.target}>
-                      {edit.championSlug} 상대법 · {sectionLabel}
-                    </span>
+                    <Link href={docHref(edit.target)} className={styles.target}>
+                      {label}
+                    </Link>
                   )}
                 </div>
                 {edit.summary && <p className={styles.summary}>{edit.summary}</p>}

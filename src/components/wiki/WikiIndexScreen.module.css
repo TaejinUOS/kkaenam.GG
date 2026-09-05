@@ -66,6 +66,19 @@
   color: var(--ink-soft);
 }
 
+/* 티켓과 새 문서 버튼은 한 덩어리로 오른쪽 끝에 선다. */
+.mastheadSide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.newDoc {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
 /* ------------------------------------------------------------------ 두 열 */
 
 /*
@@ -436,6 +449,20 @@
   line-height: 1.7;
   color: var(--ink-soft);
   word-break: keep-all;
+}
+
+/* 찾았는데 없을 때, 친 이름 그대로 쓰러 가는 줄. */
+.railCreate {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--cobalt-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.railCreate:hover {
+  color: var(--ink);
 }
 
 /* 얇은 가로 줄. 카드가 아니라 인쇄된 목차 줄이다 (블루프린트 6.3의 Tip 문법). */

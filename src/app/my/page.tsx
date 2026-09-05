@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { signOut } from "@/auth";
 import { NicknameForm } from "@/components/my/NicknameForm";
-import { getChampionBySlug } from "@/data/champions";
 import { requirePageUser } from "@/lib/authGuard";
 import { deleteAccountAction } from "@/lib/actions/profileActions";
 import { relativeTime } from "@/lib/relativeTime";
@@ -14,8 +13,8 @@ import {
   getProfile,
   nextNameChangeAt,
 } from "@/lib/userStore";
+import { docHref, docSectionLabel, docTitle } from "@/lib/wikiDocTarget";
 import { getMyContribution, listMyEdits } from "@/lib/wikiEditStore";
-import { matchupDocTitle } from "@/lib/wikiLink";
 
 import styles from "./page.module.css";
 
@@ -123,13 +122,10 @@ export default async function MyPage({
           <>
             <ul className={styles.rows}>
               {edits.slice(0, RECENT_EDITS).map((edit) => {
-                const champion = getChampionBySlug(edit.championSlug);
-                const section = edit.meSlug
-                  ? (getChampionBySlug(edit.meSlug)?.name ?? edit.meSlug)
-                  : "공통";
+                const section = docSectionLabel(edit.target, edit.meSlug);
                 return (
                   <li key={edit.id}>
-                    <Link href={`/matchup/${edit.championSlug}`} className={styles.row}>
+                    <Link href={docHref(edit.target)} className={styles.row}>
                       <span
                         className={`sticker ${
                           edit.status === "accepted"
@@ -142,7 +138,7 @@ export default async function MyPage({
                         {STATUS_LABEL[edit.status] ?? edit.status}
                       </span>
                       <span className={styles.rowTitle}>
-                        {matchupDocTitle(champion?.name ?? edit.championSlug)}
+                        {docTitle(edit.target)}
                         <span className={styles.rowSection}> › {section}</span>
                       </span>
                       <time className={`mono ${styles.rowWhen}`} dateTime={edit.createdAt}>

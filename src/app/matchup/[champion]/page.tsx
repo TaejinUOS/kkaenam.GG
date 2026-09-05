@@ -8,8 +8,8 @@ import { getViewer } from "@/lib/authGuard";
 import { eulReul } from "@/lib/josa";
 import { type MatchupRouteParams, resolveMatchup } from "@/lib/matchupRoute";
 import { getTaxonomy } from "@/lib/taxonomyStore";
-import { matchupDocTitle, resolveWikiLinks } from "@/lib/wikiLink";
-import { getWikiView } from "@/lib/wikiStore";
+import { matchupDocTitle } from "@/lib/wikiLink";
+import { getWikiView, resolveDocLinks } from "@/lib/wikiStore";
 
 type RouteParams = MatchupRouteParams;
 
@@ -64,10 +64,13 @@ export default async function MatchupPage({ params }: { params: Promise<RoutePar
   const [wiki, viewer] = await Promise.all([getWikiView(championData.slug), getViewer()]);
 
   /*
-   * 본문에 적힌 `[[아리 상대법]]`을 여기서 미리 풀어 둔다. 해석에 필요한 챔피언
-   * 카탈로그와 운영 분류를 클라이언트로 내려보내지 않기 위해서다.
+   * 본문에 적힌 `[[아리 상대법]]`·`[[정글 동선]]`을 여기서 미리 풀어 둔다. 해석에
+   * 필요한 챔피언 카탈로그와 일반 문서 조회를 클라이언트로 내려보내지 않기 위해서다.
    */
-  const wikiLinks = resolveWikiLinks([wiki.general, ...wiki.meSections.map((s) => s.body)]);
+  const wikiLinks = await resolveDocLinks([
+    wiki.general,
+    ...wiki.meSections.map((s) => s.body),
+  ]);
 
   return (
     <Suspense fallback={<div style={{ minHeight: "70vh" }} />}>

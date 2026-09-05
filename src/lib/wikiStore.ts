@@ -4,15 +4,20 @@
  * `server-only`를 import해 이 모듈이 클라이언트 번들에 섞이면 빌드가 실패하게 한다.
  * D1 바인딩은 서버에만 있으므로, 실수로 클라이언트에서 부르면 런타임에야 알게 된다.
  *
- * 설계는 `docs/WIKI_MODEL.md`, 스키마는 `migrations/0001_init.sql`.
- * 쓰기(편집 제안·검토)는 아직 없다. 4단계에서 추가한다.
+ * 설계는 `docs/WIKI_MODEL.md`, 스키마는 `migrations/`. 쓰기(편집 제안·검토·문서 생성)는
+ * `wikiEditStore.ts`에 있고, 위키 전체를 훑는 집계는 `wikiIndexStore.ts`에 있다.
+ *
+ * 문서는 두 종류다 — 매치업 문서와 일반 문서 (`docs/WIKI_EXPANSION.md`). 여기에는
+ * **문서 하나를 읽는** 조회만 둔다.
  */
 
 import "server-only";
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-import type { EditPolicy } from "@/data/wiki";
+import type { DocStatus, EditPolicy } from "@/data/wiki";
+import { resolveWikiLinks, unresolvedWikiTitles, type WikiLinkMap } from "@/lib/wikiLink";
+import { titleKey } from "@/lib/wikiTitle";
 
 /**
  * 한 매치업 문서 전체.
@@ -136,4 +141,108 @@ export async function getWikiView(championSlug: string): Promise<WikiView> {
       updatedBy: row.updated_by_name,
     })),
   };
+}
+
+/* ------------------------------------------------------------------ 일반 문서 */
+
+/**
+ * 일반 문서 한 장. 룬·정글 동선처럼 매치업에 매이지 않은 문서다.
+ *
+ * 지금은 본문 하나뿐이다. 이름 붙은 섹션은 3단계에서 들어오고, 그때 이 타입에
+ * 섹션 목록이 붙는다 — `wiki_sections`는 이미 `doc_id` 기준이라 표는 그대로다.
+ */
+export type ArticleView = {
+  id: string;
+  title: string;
+  titleKey: string;
+  status: DocStatus;
+  body: string;
+  revision: number;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  /** 승인 전 문서를 누가 냈는지. 그 사람과 운영자만 볼 수 있다. */
+  proposedBy: string | null;
+};
+
+type ArticleRow = {
+  id: string;
+  title: string;
+  title_key: string;
+  doc_status: string;
+  general: string;
+  revision: number;
+  updated_at: string;
+  updated_by_name: string | null;
+  proposer_id: string | null;
+};
+
+/**
+ * 이름으로 일반 문서를 읽는다. 없으면 null — 그때 화면은 "아직 없는 문서"로 초대한다.
+ *
+ * `proposed` 문서도 함께 돌려준다. 목록·검색·링크에는 나오지 않지만 **주소를 아는
+ * 제안자와 운영자는 볼 수 있어야** 하기 때문이다. 누구에게 보일지는 화면이 정한다.
+ * 거절된 문서는 `title_key`가 비워져 있어 애초에 여기 걸리지 않는다.
+ */
+export async function getArticleView(key: string): Promise<ArticleView | null> {
+  const DB = await db();
+
+  const row = await DB.prepare(
+    `SELECT d.id, d.title, d.title_key, d.doc_status, d.general, d.revision, d.updated_at,
+            u.name AS updated_by_name,
+            (SELECT e.author FROM wiki_edits e
+               WHERE e.doc_id = d.id AND e.status = 'pending' AND e.me_slug IS NULL
+               ORDER BY e.created_at ASC LIMIT 1) AS proposer_id
+       FROM wiki_docs d
+       LEFT JOIN users u ON u.id = d.updated_by
+      WHERE d.kind = 'article' AND d.title_key = ?1`,
+  )
+    .bind(key)
+    .first<ArticleRow>();
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    title: row.title,
+    titleKey: row.title_key,
+    status: row.doc_status as DocStatus,
+    body: row.general,
+    revision: row.revision,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by_name,
+    proposedBy: row.proposer_id,
+  };
+}
+
+/**
+ * 한 번에 물어볼 수 있는 이름 수.
+ *
+ * 본문 하나에 적히는 링크는 보통 몇 개뿐이라 이 한도에 닿을 일이 없다. 도배로
+ * `[[...]]`를 수백 개 적은 본문이 조회 하나를 부풀리지 못하게 막는 자리다.
+ */
+const LINK_LOOKUP_LIMIT = 100;
+
+/**
+ * 본문에 적힌 `[[...]]`를 주소로 푼다 — 매치업 문서와 일반 문서 둘 다.
+ *
+ * 매치업 갈래는 카탈로그만으로 풀리므로 D1에 묻지 않는다. 남은 이름만 모아 한 번
+ * 조회한다. 승인 전(`proposed`) 문서는 걸리지 않는다 — 아직 없는 문서와 같이 취급해야
+ * 승인 전 이름이 링크를 통해 새어 나가지 않는다.
+ */
+export async function resolveDocLinks(bodies: string[]): Promise<WikiLinkMap> {
+  const unresolved = unresolvedWikiTitles(bodies).slice(0, LINK_LOOKUP_LIMIT);
+  if (unresolved.length === 0) return resolveWikiLinks(bodies);
+
+  const keys = [...new Set(unresolved.map(titleKey))];
+  const DB = await db();
+  const rows = await DB.prepare(
+    `SELECT title, title_key FROM wiki_docs
+      WHERE kind = 'article' AND doc_status = 'published'
+        AND title_key IN (${keys.map((_, i) => `?${i + 1}`).join(", ")})`,
+  )
+    .bind(...keys)
+    .all<{ title: string; title_key: string }>();
+
+  const articles = new Map((rows.results ?? []).map((row) => [row.title_key, row.title]));
+  return resolveWikiLinks(bodies, articles);
 }

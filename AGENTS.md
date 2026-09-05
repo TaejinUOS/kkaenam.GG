@@ -86,9 +86,18 @@ npm run shots                             # 주요 화면 캡처 (dev 서버가 
 
 상대법은 Cloudflare D1에 있다. 스키마는 `migrations/`, 설계는 `docs/WIKI_MODEL.md`.
 
-- `wiki_docs` — 매치업당 하나. `(position_slug, champion_slug)`가 유일하다
+- `wiki_docs` — 문서 하나당 한 행. `kind`가 둘이다: `matchup`은 `champion_slug`로, `article`(룬·정글 동선 같은 일반 문서)은 `title_key`로 식별한다
 - `wiki_sections` — 내 챔피언별 섹션. 화면이 늘 "공통 + 섹션 하나"만 필요로 해서 문서 안 JSON이 아니라 별도 표다
 - `wiki_edits` — 편집 제안이자 문서의 역사. 승인된 행이 곧 리비전이다
+
+**문서를 가리킬 때는 `DocRef`를 쓴다** (`src/data/wiki.ts`). 편집·검토·역사·되돌리기는
+챔피언 슬러그가 아니라 이 값을 받으며, 화면에 보이는 이름·주소·섹션 이름은
+`src/lib/wikiDocTarget.ts`가 한 곳에서 짓는다. 새 화면에서 문서 이름을 직접 조립하지 않는다.
+
+**일반 문서 생성은 언제나 운영자 승인을 거친다** (관리자 본인 제외). 새 문서는 내용이
+아니라 **이름을 차지하는 일**이라 즉시 반영의 근거가 닿지 않는다. 승인 전 문서
+(`doc_status = 'proposed'`)는 목록·검색·링크 어디에도 나오지 않고, 거절하면 `title_key`만
+비워 이름을 놓아준다. 배경은 `docs/WIKI_EXPANSION.md` "새 문서 만들기".
 
 `src/lib/wikiStore.ts`가 유일한 D1 접근 지점이고 `server-only`를 import한다. 클라이언트 번들에 섞이면 빌드가 실패한다.
 

@@ -10,14 +10,22 @@
 
 import { allChampions, positions } from "@/data/champions";
 import { collectWikiLinkTitles } from "@/lib/wikiMarkup";
+import { articleHref, titleKey } from "@/lib/wikiTitle";
 
 /** 문서 이름 -> 주소. 해석되지 않은 이름은 담지 않는다. */
 export type WikiLinkMap = Record<string, string>;
 
+/**
+ * 지금 있는 일반 문서. `title_key` -> 표시 이름.
+ *
+ * 이 갈래만 D1을 필요로 하므로 **부르는 쪽이 미리 읽어 넘긴다**. 이 모듈이 저장소를
+ * 알게 되면 챔피언 카탈로그를 담은 채로 서버 전용이 되어, 지금 이 함수를 부르고 있는
+ * 자리들이 전부 비동기가 된다. 서버 쪽 편의 함수는 `wikiStore.ts`의 `resolveDocLinks`.
+ */
+export type ArticleIndex = ReadonlyMap<string, string>;
+
 /** 이름·슬러그를 너그럽게 맞춘다. `미드`, `MID`, `mid` 모두 같은 것으로 본다. */
-function normalize(text: string): string {
-  return text.trim().toLowerCase().replace(/\s+/g, "");
-}
+const normalize = titleKey;
 
 const positionIndex = new Map<string, string>();
 for (const position of positions) {
@@ -35,13 +43,22 @@ for (const champion of allChampions) {
 /**
  * 문서 이름 하나를 주소로 바꾼다. 그런 문서가 없으면 null.
  *
- * 지금 존재하는 문서는 매치업뿐이다. 룬·정글 동선 같은 **일반 문서는 아직 없으므로
- * 전부 null**이 되어 빨간 링크로 그려진다. 위키에서 빨간 링크는 실패가 아니라 아직
- * 쓰이지 않은 문서를 가리키는 예약이고, 일반 문서 저장소가 생기면 이 함수에 갈래를
- * 하나 더 두는 것으로 살아난다.
+ * 갈래가 둘이다. 매치업 문서는 챔피언 카탈로그에서 바로 풀리고, 일반 문서는
+ * `articles`에 있는 것만 풀린다 — 매치업 문서는 챔피언이 있으면 언제나 열리지만
+ * 일반 문서는 누군가 쓰기 전까지 존재하지 않기 때문이다.
+ *
+ * 매치업을 먼저 본다. `아리 상대법`은 언제나 매치업 문서이고, 같은 이름의 일반 문서는
+ * 애초에 만들어지지 않는다 (`checkArticleTitle`).
+ *
+ * 어느 갈래에도 없으면 빨간 링크가 된다. 위키에서 빨간 링크는 실패가 아니라 **아직
+ * 쓰이지 않은 문서를 가리키는 예약**이다.
  */
-export function resolveWikiTitle(title: string): string | null {
-  return resolveMatchupTitle(title);
+export function resolveWikiTitle(title: string, articles?: ArticleIndex): string | null {
+  const matchup = resolveMatchupTitle(title);
+  if (matchup) return matchup;
+
+  const article = articles?.get(normalize(title));
+  return article ? articleHref(article) : null;
 }
 
 /**
@@ -114,14 +131,25 @@ function finish(championSlug: string | undefined): string | null {
 }
 
 /** 본문 여러 개에 적힌 위키링크를 한 번에 해석한다. 해석되지 않은 이름은 담지 않는다. */
-export function resolveWikiLinks(bodies: string[]): WikiLinkMap {
+export function resolveWikiLinks(bodies: string[], articles?: ArticleIndex): WikiLinkMap {
   const map: WikiLinkMap = {};
   for (const body of bodies) {
     for (const title of collectWikiLinkTitles(body)) {
       if (title in map) continue;
-      const href = resolveWikiTitle(title);
+      const href = resolveWikiTitle(title, articles);
       if (href) map[title] = href;
     }
   }
   return map;
+}
+
+/** 본문에 적힌 이름 가운데 매치업 문서로 풀리지 않는 것. 일반 문서 조회의 후보다. */
+export function unresolvedWikiTitles(bodies: string[]): string[] {
+  const titles = new Set<string>();
+  for (const body of bodies) {
+    for (const title of collectWikiLinkTitles(body)) {
+      if (!resolveMatchupTitle(title)) titles.add(title);
+    }
+  }
+  return [...titles];
 }

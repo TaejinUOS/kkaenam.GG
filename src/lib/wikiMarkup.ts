@@ -15,8 +15,29 @@
 /** 각주 참조가 가리키는 href 접두사. `MarkdownBody`가 이 값으로 각주를 알아본다. */
 export const FOOTNOTE_HREF = "#wiki-fn-";
 
-/** 가리키는 문서가 없는 위키링크의 href. 빨간 링크로 그린다. */
+/** 가리키는 문서가 없는 위키링크의 href 접두사. 빨간 링크로 그린다. */
 export const MISSING_DOC_HREF = "#wiki-missing";
+
+/**
+ * 아직 없는 문서의 href. 접두사 뒤에 **이름을 실어 보낸다.**
+ *
+ * 이름을 함께 보내는 것은 빨간 링크가 이제 막다른 표시가 아니라 **초대**이기
+ * 때문이다 — 누르면 그 이름의 빈 문서로 가고, 거기서 바로 쓰기 시작할 수 있다
+ * (`docs/WIKI_EXPANSION.md` "진입점"). 마크다운 링크 안에 들어가므로 인코딩한다.
+ */
+export function missingDocHref(title: string): string {
+  return `${MISSING_DOC_HREF}:${encodeURIComponent(title)}`;
+}
+
+/** `missingDocHref`가 지은 href에서 문서 이름을 되찾는다. 그 꼴이 아니면 null. */
+export function missingDocTitle(href: string): string | null {
+  if (!href.startsWith(`${MISSING_DOC_HREF}:`)) return null;
+  try {
+    return decodeURIComponent(href.slice(MISSING_DOC_HREF.length + 1));
+  } catch {
+    return null;
+  }
+}
 
 export type Footnote = {
   /** 1부터. 나온 순서대로 붙는 화면에 보이는 번호다. */
@@ -225,7 +246,7 @@ export function linkifyWikiLinks(body: string, resolve: WikiLinkResolver): strin
     chunk.replace(WIKI_LINK, (_whole, rawTitle: string, rawLabel?: string) => {
       const title = rawTitle.trim();
       const label = (rawLabel ?? title).trim();
-      return `[${label}](${resolve(title) ?? MISSING_DOC_HREF})`;
+      return `[${label}](${resolve(title) ?? missingDocHref(title)})`;
     }),
   );
 }

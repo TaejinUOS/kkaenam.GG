@@ -9,7 +9,9 @@ import {
   type WikiLinkResolver,
   extractFootnotes,
   linkifyWikiLinks,
+  missingDocTitle,
 } from "@/lib/wikiMarkup";
+import { articleHref, checkArticleTitle } from "@/lib/wikiTitle";
 
 import styles from "./MarkdownBody.module.css";
 
@@ -55,6 +57,15 @@ export function MarkdownBody({ text, footnotes, resolveLink = NO_LINK }: Props) 
       options={{
         disableParsingRawHTML: true,
         forceWrapper: true,
+        /*
+         * 문단이 하나뿐인 본문도 `<p>`로 감싼다.
+         *
+         * 이것이 없으면 markdown-to-jsx가 그런 본문을 인라인으로 보고 글자와 링크를
+         * wrapper의 직계 자식으로 뱉는다. `.prose`가 grid라 그 조각들이 **각각 한 줄을
+         * 차지해**, 링크가 있는 짧은 문단이 세 줄로 쪼개진다. 대부분의 섹션이 여러
+         * 문단이라 오래 눈에 띄지 않았다.
+         */
+        forceBlock: true,
         wrapper: Prose,
         overrides: {
           a: { component: makeLink(source.notes, resolveLink) },
@@ -90,12 +101,34 @@ function makeLink(notes: Footnote[], resolveLink: WikiLinkResolver) {
       if (note) return <Annotation note={note} resolveLink={resolveLink} />;
     }
 
-    // 2. 아직 없는 문서 — 이동할 곳이 없으므로 링크로 만들지 않는다.
-    if (href === MISSING_DOC_HREF) {
+    /*
+     * 2. 아직 없는 문서 — 빈 자리로 데려간다.
+     *
+     * 위키에서 빨간 링크는 막다른 길이 아니라 **초대**다. 누르면 그 이름의 빈 문서
+     * 화면이 열리고 거기서 바로 쓰기 시작할 수 있다 (`docs/WIKI_EXPANSION.md`).
+     *
+     * 다만 문서 이름이 될 수 없는 꼴(`미드/아리` 같은 옛 링크나 오타)은 데려갈 곳이
+     * 없다. 그때는 예전처럼 빨간 글자로만 남긴다 — 만들 수 없는 이름의 생성 화면으로
+     * 보내면 그 사람은 거기서 막힌다.
+     */
+    if (typeof href === "string" && href.startsWith(MISSING_DOC_HREF)) {
+      const title = missingDocTitle(href);
+      if (!title || checkArticleTitle(title)) {
+        return (
+          <span className={styles.missing} title="아직 없는 문서입니다">
+            {children}
+          </span>
+        );
+      }
       return (
-        <span className={styles.missing} title="아직 없는 문서입니다">
+        <Link
+          {...rest}
+          href={articleHref(title)}
+          className={styles.missing}
+          title="아직 없는 문서입니다. 첫 번째로 써 보세요"
+        >
           {children}
-        </span>
+        </Link>
       );
     }
 

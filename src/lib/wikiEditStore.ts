@@ -7,6 +7,9 @@
  *
  * 승인·즉시반영·되돌리기는 "섹션 본문 쓰기 + wiki_docs.revision 증가 + wiki_edits
  * 기록"을 `DB.batch()`로 한 번에 묶는다 — 이 파일에서 이 코드베이스 최초로 쓴다.
+ *
+ * 문서 종류(매치업·일반)는 **문서를 찾는 자리에서만** 갈린다 (`resolveDoc`). 그 아래
+ * 편집 판정·검토·역사·되돌리기는 종류를 묻지 않는다 — 전부 `doc_id` 기준이기 때문이다.
  */
 
 import "server-only";
@@ -19,9 +22,14 @@ import {
   RATE_LIMIT_PER_HOUR,
   isEmptyBody,
   type AcceptedVia,
+  type DocRef,
+  type DocStatus,
+  type DocTarget,
   type EditStatus,
 } from "@/data/wiki";
 import { isAdditionOnly } from "@/lib/wikiDiff";
+import { resolveWikiTitle } from "@/lib/wikiLink";
+import { articleHref, checkArticleTitle, titleKey, type TitleProblem } from "@/lib/wikiTitle";
 
 async function db() {
   const { env } = await getCloudflareContext({ async: true });
@@ -43,11 +51,103 @@ function newDocId(championSlug: string): string {
   return `doc-c-${championSlug}`;
 }
 
+/**
+ * 새 일반 문서의 id.
+ *
+ * 이름에서 짓지 않는다. 거절된 제안은 이름만 놓아주고 행은 남으므로(아래
+ * `rejectEdit`), 같은 이름이 다시 제안되면 이름에서 지은 id가 부딪힌다. 식별자는
+ * 불투명한 값이고 문서를 찾는 것은 `title_key`가 한다.
+ */
+function newArticleId(): string {
+  return `doc-a-${crypto.randomUUID()}`;
+}
+
+/* --------------------------------------------------------------- 문서 가리키기 */
+
+/** 문서의 정체를 함께 읽어 오는 열. 목록 질의가 전부 이 조각을 쓴다. */
+const DOC_COLUMNS = `d.kind, d.champion_slug, d.title, d.title_key, d.doc_status`;
+
+type DocColumns = {
+  kind: string;
+  champion_slug: string | null;
+  title: string | null;
+  title_key: string | null;
+  doc_status: string;
+};
+
+/**
+ * D1의 한 행에서 문서의 정체를 뽑는다.
+ *
+ * 매치업 문서는 이름을 저장하지 않으므로(챔피언 카탈로그가 갖고 있다) 여기서는
+ * 슬러그만 넘기고, 부르는 이름은 화면 쪽 `wikiDocTarget.ts`가 짓는다.
+ */
+function targetOf(row: DocColumns): DocTarget {
+  if (row.kind === "article") {
+    return {
+      kind: "article",
+      title: row.title ?? "",
+      titleKey: row.title_key ?? "",
+      status: row.doc_status as DocStatus,
+    };
+  }
+  return { kind: "matchup", championSlug: row.champion_slug ?? "" };
+}
+
+type ResolvedDoc = { id: string; target: DocTarget; status: DocStatus };
+
+/**
+ * 문서 참조로 문서를 찾는다. 없으면 null.
+ *
+ * 매치업 문서는 챔피언이 카탈로그에 있으면 언제나 열리므로 없으면 만든다 — 첫 편집이
+ * 곧 문서 생성이다. 일반 문서는 그럴 수 없다. **이름을 차지하는 일**이라 운영자
+ * 승인을 거쳐야 하고, 그 경로는 `proposeArticle` 하나뿐이다.
+ */
+async function resolveDoc(
+  DB: D1Database,
+  ref: DocRef,
+  options: { createMatchup?: { patch: string; now: string } } = {},
+): Promise<ResolvedDoc | null> {
+  if (ref.kind === "matchup" && options.createMatchup) {
+    // 문서가 없으면 만든다. 이미 있으면 손대지 않는다.
+    await DB.prepare(
+      `INSERT INTO wiki_docs (id, kind, champion_slug, general, revision, patch, edit_policy, doc_status, created_at, updated_at, updated_by)
+         VALUES (?1, 'matchup', ?2, '', 0, ?3, 'guarded', 'published', ?4, ?4, NULL)
+       ON CONFLICT (champion_slug) DO NOTHING`,
+    )
+      .bind(
+        newDocId(ref.championSlug),
+        ref.championSlug,
+        options.createMatchup.patch,
+        options.createMatchup.now,
+      )
+      .run();
+  }
+
+  /*
+   * id를 계산해 쓰지 않고 다시 읽는다. 통일 이전에 만들어진 문서는 id가 `doc-mid-ahri`
+   * 꼴이라, 계산한 `doc-c-ahri`로 찾으면 없는 문서가 되고 새로 만들려다 유일 인덱스에 걸린다.
+   */
+  const row =
+    ref.kind === "matchup"
+      ? await DB.prepare(`SELECT d.id, ${DOC_COLUMNS} FROM wiki_docs d WHERE d.champion_slug = ?1`)
+          .bind(ref.championSlug)
+          .first<DocColumns & { id: string }>()
+      : await DB.prepare(
+          `SELECT d.id, ${DOC_COLUMNS} FROM wiki_docs d WHERE d.kind = 'article' AND d.title_key = ?1`,
+        )
+          .bind(ref.titleKey)
+          .first<DocColumns & { id: string }>();
+
+  if (!row) return null;
+  return { id: row.id, target: targetOf(row), status: row.doc_status as DocStatus };
+}
+
 // ---------------------------------------------------------------- 제출 (FR-24~27, 32)
 
 export type SubmitEditInput = {
-  championSlug: string;
-  /** null이면 공통 섹션. */
+  /** 고칠 문서. 매치업이든 일반 문서든 아래 판정은 똑같이 돈다. */
+  doc: DocRef;
+  /** null이면 공통 섹션(일반 문서에서는 본문). */
   meSlug: string | null;
   body: string;
   summary: string;
@@ -58,7 +158,7 @@ export type SubmitEditInput = {
 
 export type SubmitEditResult =
   | { ok: true; status: EditStatus }
-  | { ok: false; error: "validation" | "rate_limited" };
+  | { ok: false; error: "validation" | "rate_limited" | "not_found" };
 
 /**
  * 편집 제안을 제출한다. 즉시반영/검토대기 판정은 저장 시점에 서버가 실제 값으로
@@ -97,24 +197,15 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
     return { ok: false, error: "rate_limited" };
   }
 
-  // 문서가 없으면 만든다. 이미 있으면 손대지 않는다.
-  await DB.prepare(
-    `INSERT INTO wiki_docs (id, champion_slug, general, revision, patch, edit_policy, created_at, updated_at, updated_by)
-       VALUES (?1, ?2, '', 0, ?3, 'guarded', ?4, ?4, NULL)
-     ON CONFLICT (champion_slug) DO NOTHING`,
-  )
-    .bind(newDocId(input.championSlug), input.championSlug, input.patch, now)
-    .run();
-
+  const doc = await resolveDoc(DB, input.doc, { createMatchup: { patch: input.patch, now } });
+  if (!doc) return { ok: false, error: "not_found" };
   /*
-   * id를 계산해 쓰지 않고 다시 읽는다. 통일 이전에 만들어진 문서는 id가 `doc-mid-ahri`
-   * 꼴이라, 계산한 `doc-c-ahri`로 찾으면 없는 문서가 되고 새로 만들려다 유일 인덱스에 걸린다.
+   * 승인 전 문서는 첫 본문 말고는 받지 않는다. 그 본문은 제안과 함께 이미 대기열에
+   * 있고(`proposeArticle`), 아직 이름조차 확정되지 않은 문서에 편집이 겹쳐 쌓이면
+   * 운영자가 무엇을 승인하는 것인지 알 수 없게 된다.
    */
-  const created = await DB.prepare(`SELECT id FROM wiki_docs WHERE champion_slug = ?1`)
-    .bind(input.championSlug)
-    .first<{ id: string }>();
-  if (!created) return { ok: false, error: "validation" };
-  const id = created.id;
+  if (doc.status !== "published") return { ok: false, error: "not_found" };
+  const id = doc.id;
 
   const editId = newEditId();
   const isDelete = isEmptyBody(body);
@@ -131,10 +222,10 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
    */
   for (let attempt = 0; attempt < 3; attempt++) {
     // 저장 시점의 실제 값을 다시 읽는다 — 편집기를 연 시점의 상태는 신뢰하지 않는다.
-    const doc = await DB.prepare(`SELECT id, revision, general FROM wiki_docs WHERE id = ?1`)
+    const state = await DB.prepare(`SELECT id, revision, general FROM wiki_docs WHERE id = ?1`)
       .bind(id)
       .first<{ id: string; revision: number; general: string }>();
-    if (!doc) return { ok: false, error: "validation" };
+    if (!state) return { ok: false, error: "validation" };
 
     const currentBody = input.meSlug
       ? ((
@@ -142,7 +233,7 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
             .bind(id, input.meSlug)
             .first<{ body: string }>()
         )?.body ?? "")
-      : doc.general;
+      : state.general;
 
     const wasEmpty = isEmptyBody(currentBody);
     const accept = input.isAdmin || (!isDelete && isAdditionOnly(currentBody, body));
@@ -152,7 +243,7 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
         `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?8)`,
       )
-        .bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now)
+        .bind(editId, id, input.meSlug, state.revision, body, summary, input.authorId, now)
         .run();
       return { ok: true, status: "pending" };
     }
@@ -162,12 +253,12 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
       : wasEmpty
         ? "empty_section"
         : "addition_only";
-    const newRevision = doc.revision + 1;
+    const newRevision = state.revision + 1;
 
     const claimed = await DB.prepare(
       `UPDATE wiki_docs SET revision = ?1 WHERE id = ?2 AND revision = ?3`,
     )
-      .bind(newRevision, id, doc.revision)
+      .bind(newRevision, id, state.revision)
       .run();
     if ((claimed.meta.changes ?? 0) === 0) continue;
 
@@ -189,30 +280,148 @@ export async function submitEdit(input: SubmitEditInput): Promise<SubmitEditResu
     const recordStmt = DB.prepare(
       `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at, accepted_via, revision)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'accepted', ?7, ?8, ?9, ?10)`,
-    ).bind(editId, id, input.meSlug, doc.revision, body, summary, input.authorId, now, acceptedVia, newRevision);
+    ).bind(editId, id, input.meSlug, state.revision, body, summary, input.authorId, now, acceptedVia, newRevision);
 
     await DB.batch([applyStmt, recordStmt]);
     return { ok: true, status: "accepted" };
   }
 
   // 세 번 다 다른 편집에 밀렸다. 사람이 한 번 보게 한다.
-  const doc = await DB.prepare(`SELECT revision FROM wiki_docs WHERE id = ?1`)
+  const latest = await DB.prepare(`SELECT revision FROM wiki_docs WHERE id = ?1`)
     .bind(id)
     .first<{ revision: number }>();
   await DB.prepare(
     `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, ?8)`,
   )
-    .bind(editId, id, input.meSlug, doc?.revision ?? 0, body, summary, input.authorId, now)
+    .bind(editId, id, input.meSlug, latest?.revision ?? 0, body, summary, input.authorId, now)
     .run();
   return { ok: true, status: "pending" };
+}
+
+// ------------------------------------------------------------ 새 문서 제안 (2단계)
+
+export type ProposeArticleInput = {
+  title: string;
+  body: string;
+  summary: string;
+  authorId: string;
+  isAdmin: boolean;
+  patch: string;
+};
+
+export type ProposeArticleResult =
+  | { ok: true; status: EditStatus; href: string }
+  /** 이름이 이미 임자가 있다. 막다른 오류가 아니라 **그 문서로 데려간다**. */
+  | { ok: false; error: "taken"; takenBy: "article" | "matchup" | "proposal"; href: string }
+  | { ok: false; error: "validation" | "rate_limited"; problem?: TitleProblem };
+
+/**
+ * 새 일반 문서를 제안한다 (`docs/WIKI_EXPANSION.md` "새 문서 만들기").
+ *
+ * **문서 생성은 언제나 운영자 승인을 거친다.** 즉시 반영의 근거는 "더하기만 하는
+ * 편집은 잃을 것이 없다"였는데, 문서 생성은 내용이 아니라 **이름을 차지하는 일**이라
+ * 그 논리가 닿지 않는다. 나쁜 이름은 목록·검색·분류를 계속 오염시키고, 이름은
+ * 유일해서 나중에 제대로 쓰려는 사람의 자리를 막는다.
+ *
+ * 관리자는 예외다. 자기 제안을 자기가 검토하는 대기열은 뜻이 없고, 이 코드베이스는
+ * 이미 관리자 편집을 즉시 반영한다 (`submitEdit`).
+ *
+ * 겹침은 세 가지를 모두 본다. 하나라도 걸리면 만들지 않고 그 문서의 주소를 함께
+ * 돌려준다. 이 판정도 **저장 시점에 서버가** 한다 — 제목 칸의 미리 알림은 편의일 뿐이다.
+ */
+export async function proposeArticle(input: ProposeArticleInput): Promise<ProposeArticleResult> {
+  const title = input.title.trim();
+  const body = input.body;
+  const summary = input.summary.trim();
+
+  const problem = checkArticleTitle(title);
+  if (problem) return { ok: false, error: "validation", problem };
+  if (isEmptyBody(body)) return { ok: false, error: "validation" };
+  if (body.length > MAX_BODY_LENGTH) return { ok: false, error: "validation" };
+  if (summary.length > MAX_SUMMARY_LENGTH) return { ok: false, error: "validation" };
+
+  const DB = await db();
+  const now = new Date().toISOString();
+  const key = titleKey(title);
+
+  // 매치업 문서와 겹치는가. 카탈로그만으로 판정되므로 D1보다 먼저 본다.
+  const matchupHref = resolveWikiTitle(title);
+  if (matchupHref) return { ok: false, error: "taken", takenBy: "matchup", href: matchupHref };
+
+  /*
+   * 제출 제한 (FR-32)은 편집과 같은 지갑을 쓴다. 문서 생성은 편집보다 무거운 일이라
+   * 여기에만 헐거운 상한을 두면 그쪽으로 도배가 흐른다.
+   */
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const recent = await DB.prepare(
+    `SELECT COUNT(*) AS n FROM wiki_edits WHERE author = ?1 AND created_at > ?2`,
+  )
+    .bind(input.authorId, hourAgo)
+    .first<{ n: number }>();
+  if ((recent?.n ?? 0) >= RATE_LIMIT_PER_HOUR) return { ok: false, error: "rate_limited" };
+
+  // 이미 있는 일반 문서, 그리고 **검토 중인 제안**과도 겹치는가.
+  const existing = await DB.prepare(
+    `SELECT title, doc_status FROM wiki_docs WHERE kind = 'article' AND title_key = ?1`,
+  )
+    .bind(key)
+    .first<{ title: string; doc_status: string }>();
+  if (existing) {
+    return {
+      ok: false,
+      error: "taken",
+      takenBy: existing.doc_status === "proposed" ? "proposal" : "article",
+      href: articleHref(existing.title),
+    };
+  }
+
+  const docId = newArticleId();
+  const editId = newEditId();
+  const publish = input.isAdmin;
+
+  /*
+   * 문서 행과 첫 본문을 한 번에 쓴다. 문서 행이 먼저 있어야 이름이 잡히고, 첫 본문이
+   * 평범한 편집으로 그 문서에 달려야 검토 화면·문서 역사·「내 편집」이 지금 그대로 돈다.
+   *
+   * 이름이 그 사이 다른 제안에 잡히면 유일 인덱스가 batch 전체를 되돌린다 — 반쯤
+   * 만들어진 문서가 남지 않는다.
+   */
+  const docStmt = DB.prepare(
+    `INSERT INTO wiki_docs (id, kind, champion_slug, title, title_key, doc_status, general, revision, patch, edit_policy, created_at, updated_at, updated_by)
+       VALUES (?1, 'article', NULL, ?2, ?3, ?4, ?5, ?6, ?7, 'guarded', ?8, ?8, ?9)`,
+  ).bind(
+    docId,
+    title,
+    key,
+    publish ? "published" : "proposed",
+    publish ? body : "",
+    publish ? 1 : 0,
+    input.patch,
+    now,
+    publish ? input.authorId : null,
+  );
+
+  const editStmt = publish
+    ? DB.prepare(
+        `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at, accepted_via, revision)
+           VALUES (?1, ?2, NULL, 0, ?3, ?4, 'accepted', ?5, ?6, 'admin', 1)`,
+      ).bind(editId, docId, body, summary, input.authorId, now)
+    : DB.prepare(
+        `INSERT INTO wiki_edits (id, doc_id, me_slug, base_revision, body, summary, status, author, created_at)
+           VALUES (?1, ?2, NULL, 0, ?3, ?4, 'pending', ?5, ?6)`,
+      ).bind(editId, docId, body, summary, input.authorId, now);
+
+  await DB.batch([docStmt, editStmt]);
+
+  return { ok: true, status: publish ? "accepted" : "pending", href: articleHref(title) };
 }
 
 // ---------------------------------------------------------------- 내 편집 (FR-33)
 
 export type MyEditRow = {
   id: string;
-  championSlug: string;
+  target: DocTarget;
   meSlug: string | null;
   summary: string;
   status: EditStatus;
@@ -224,27 +433,28 @@ export type MyEditRow = {
 export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, e.status,
+    `SELECT e.id, ${DOC_COLUMNS}, e.me_slug, e.summary, e.status,
             e.created_at, e.reviewed_at, e.review_note
        FROM wiki_edits e JOIN wiki_docs d ON d.id = e.doc_id
       WHERE e.author = ?1
       ORDER BY e.created_at DESC`,
   )
     .bind(authorId)
-    .all<{
-      id: string;
-      champion_slug: string;
-      me_slug: string | null;
-      summary: string;
-      status: EditStatus;
-      created_at: string;
-      reviewed_at: string | null;
-      review_note: string | null;
-    }>();
+    .all<
+      DocColumns & {
+        id: string;
+        me_slug: string | null;
+        summary: string;
+        status: EditStatus;
+        created_at: string;
+        reviewed_at: string | null;
+        review_note: string | null;
+      }
+    >();
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    championSlug: r.champion_slug,
+    target: targetOf(r),
     meSlug: r.me_slug,
     summary: r.summary,
     status: r.status,
@@ -258,45 +468,54 @@ export async function listMyEdits(authorId: string): Promise<MyEditRow[]> {
 
 export type PendingEditRow = {
   id: string;
-  championSlug: string;
+  target: DocTarget;
   meSlug: string | null;
   summary: string;
   authorName: string | null;
   createdAt: string;
   baseRevision: number;
   currentRevision: number;
+  /**
+   * 이 제안이 문서를 만드는 제안인가.
+   *
+   * 새 문서 검토는 내용보다 **이름을 판단하는 일**이라 성격이 다르다. 대기열에 두
+   * 종류가 섞이므로 화면이 구분해 보여 줘야 한다 (`docs/WIKI_EXPANSION.md` "대가").
+   */
+  isCreation: boolean;
 };
 
 export async function getPendingQueue(): Promise<PendingEditRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, e.created_at,
+    `SELECT e.id, ${DOC_COLUMNS}, e.me_slug, e.summary, e.created_at,
             e.base_revision, d.revision AS current_revision, u.name AS author_name
        FROM wiki_edits e
        JOIN wiki_docs d ON d.id = e.doc_id
        LEFT JOIN users u ON u.id = e.author
       WHERE e.status = 'pending'
       ORDER BY e.created_at ASC`,
-  ).all<{
-    id: string;
-    champion_slug: string;
-    me_slug: string | null;
-    summary: string;
-    created_at: string;
-    base_revision: number;
-    current_revision: number;
-    author_name: string | null;
-  }>();
+  ).all<
+    DocColumns & {
+      id: string;
+      me_slug: string | null;
+      summary: string;
+      created_at: string;
+      base_revision: number;
+      current_revision: number;
+      author_name: string | null;
+    }
+  >();
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    championSlug: r.champion_slug,
+    target: targetOf(r),
     meSlug: r.me_slug,
     summary: r.summary,
     authorName: r.author_name,
     createdAt: r.created_at,
     baseRevision: r.base_revision,
     currentRevision: r.current_revision,
+    isCreation: r.doc_status === "proposed" && r.me_slug === null,
   }));
 }
 
@@ -310,7 +529,7 @@ export type StaleChange = {
 
 export type EditReviewDetail = {
   id: string;
-  championSlug: string;
+  target: DocTarget;
   meSlug: string | null;
   body: string;
   summary: string;
@@ -319,6 +538,8 @@ export type EditReviewDetail = {
   baseRevision: number;
   currentRevision: number;
   currentBody: string;
+  /** 문서를 만드는 제안. 승인하면 문서가 게시되고, 거절하면 이름이 풀린다. */
+  isCreation: boolean;
   /** base_revision 이후 같은 섹션에 반영된 변경들. 뒤처짐을 보여주는 용도 (FR-28). */
   staleChanges: StaleChange[];
 };
@@ -326,7 +547,7 @@ export type EditReviewDetail = {
 export async function getEditForReview(editId: string): Promise<EditReviewDetail | null> {
   const DB = await db();
   const row = await DB.prepare(
-    `SELECT e.id, d.id AS doc_id, d.champion_slug, e.me_slug, e.body, e.summary,
+    `SELECT e.id, d.id AS doc_id, ${DOC_COLUMNS}, e.me_slug, e.body, e.summary,
             e.created_at, e.base_revision, d.revision AS current_revision, d.general,
             u.name AS author_name
        FROM wiki_edits e
@@ -335,19 +556,20 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
       WHERE e.id = ?1 AND e.status = 'pending'`,
   )
     .bind(editId)
-    .first<{
-      id: string;
-      doc_id: string;
-      champion_slug: string;
-      me_slug: string | null;
-      body: string;
-      summary: string;
-      created_at: string;
-      base_revision: number;
-      current_revision: number;
-      general: string;
-      author_name: string | null;
-    }>();
+    .first<
+      DocColumns & {
+        id: string;
+        doc_id: string;
+        me_slug: string | null;
+        body: string;
+        summary: string;
+        created_at: string;
+        base_revision: number;
+        current_revision: number;
+        general: string;
+        author_name: string | null;
+      }
+    >();
   if (!row) return null;
 
   const currentBody = row.me_slug
@@ -370,7 +592,7 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
 
   return {
     id: row.id,
-    championSlug: row.champion_slug,
+    target: targetOf(row),
     meSlug: row.me_slug,
     body: row.body,
     summary: row.summary,
@@ -379,6 +601,7 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
     baseRevision: row.base_revision,
     currentRevision: row.current_revision,
     currentBody,
+    isCreation: row.doc_status === "proposed" && row.me_slug === null,
     staleChanges: (staleRows.results ?? []).map((r) => ({
       id: r.id,
       summary: r.summary,
@@ -391,7 +614,13 @@ export async function getEditForReview(editId: string): Promise<EditReviewDetail
 
 export type ReviewActionResult = { ok: true } | { ok: false; error: "not_found" | "validation" };
 
-/** 승인. 관리자가 저장 전에 본문을 고칠 수 있다 — 그 경우 반영되는 것은 고친 버전이다. */
+/**
+ * 승인. 관리자가 저장 전에 본문을 고칠 수 있다 — 그 경우 반영되는 것은 고친 버전이다.
+ *
+ * 승인 대상이 문서를 만드는 제안이면 문서가 함께 게시된다. 같은 batch에 넣는 이유는
+ * 본문만 반영되고 문서가 승인 전에 머무는 상태를 만들지 않기 위해서다 — 그 상태의
+ * 문서는 아무 목록에도 나오지 않아 아무도 발견하지 못한다.
+ */
 export async function approveEdit(
   editId: string,
   input: { reviewerId: string; body?: string; reviewNote: string | null },
@@ -400,12 +629,20 @@ export async function approveEdit(
   const now = new Date().toISOString();
 
   const edit = await DB.prepare(
-    `SELECT e.id, e.doc_id, e.me_slug, e.body, e.author, d.revision
+    `SELECT e.id, e.doc_id, e.me_slug, e.body, e.author, d.revision, d.doc_status
        FROM wiki_edits e JOIN wiki_docs d ON d.id = e.doc_id
       WHERE e.id = ?1 AND e.status = 'pending'`,
   )
     .bind(editId)
-    .first<{ id: string; doc_id: string; me_slug: string | null; body: string; author: string; revision: number }>();
+    .first<{
+      id: string;
+      doc_id: string;
+      me_slug: string | null;
+      body: string;
+      author: string;
+      revision: number;
+      doc_status: string;
+    }>();
   if (!edit) return { ok: false, error: "not_found" };
 
   const finalBody = input.body ?? edit.body;
@@ -440,7 +677,15 @@ export async function approveEdit(
       WHERE id = ?6`,
   ).bind(finalBody, now, input.reviewerId, input.reviewNote, newRevision, editId);
 
-  const [, bumpResult] = await DB.batch([applyStmt, bumpStmt, recordStmt]);
+  /* 문서를 만드는 제안이면 여기서 게시된다. 이름은 제안 시점에 이미 잡혀 있다. */
+  const statements = [applyStmt, bumpStmt, recordStmt];
+  if (edit.doc_status === "proposed") {
+    statements.push(
+      DB.prepare(`UPDATE wiki_docs SET doc_status = 'published' WHERE id = ?1`).bind(edit.doc_id),
+    );
+  }
+
+  const [, bumpResult] = await DB.batch(statements);
   if ((bumpResult.meta.changes ?? 0) === 0) {
     // 문서가 그 사이 다른 승인으로 또 바뀐 경우. 아주 드물지만 승인 자체를 실패로 알린다 —
     // 검토자가 최신 상태를 다시 보고 승인해야 한다.
@@ -449,6 +694,15 @@ export async function approveEdit(
   return { ok: true };
 }
 
+/**
+ * 거절.
+ *
+ * 문서를 만드는 제안을 거절하면 **이름을 풀어 줘야** 다음 사람이 그 이름을 쓸 수 있다.
+ * 그렇다고 문서 행을 지우지는 않는다 — `wiki_edits`가 `ON DELETE CASCADE`로 매달려
+ * 있어 행을 지우면 그 제안 자체가 사라지고, 제안자는 「내 편집」에서 거절 사유를 볼 수
+ * 없게 된다 (FR-33). 그래서 `title_key`만 비우고 상태를 `rejected`로 둔다. 이름이
+ * 풀린 껍데기는 어느 목록에도 나오지 않는다.
+ */
 export async function rejectEdit(
   editId: string,
   input: { reviewerId: string; reviewNote: string },
@@ -457,13 +711,33 @@ export async function rejectEdit(
 
   const DB = await db();
   const now = new Date().toISOString();
-  const result = await DB.prepare(
+
+  const edit = await DB.prepare(
+    `SELECT e.doc_id, e.me_slug, d.doc_status
+       FROM wiki_edits e JOIN wiki_docs d ON d.id = e.doc_id
+      WHERE e.id = ?1 AND e.status = 'pending'`,
+  )
+    .bind(editId)
+    .first<{ doc_id: string; me_slug: string | null; doc_status: string }>();
+  if (!edit) return { ok: false, error: "not_found" };
+
+  const rejectStmt = DB.prepare(
     `UPDATE wiki_edits SET status = 'rejected', reviewed_at = ?1, reviewer = ?2, review_note = ?3
       WHERE id = ?4 AND status = 'pending'`,
-  )
-    .bind(now, input.reviewerId, input.reviewNote.trim(), editId)
-    .run();
+  ).bind(now, input.reviewerId, input.reviewNote.trim(), editId);
 
+  if (edit.doc_status !== "proposed") {
+    const result = await rejectStmt.run();
+    if ((result.meta.changes ?? 0) === 0) return { ok: false, error: "not_found" };
+    return { ok: true };
+  }
+
+  const [result] = await DB.batch([
+    rejectStmt,
+    DB.prepare(
+      `UPDATE wiki_docs SET doc_status = 'rejected', title_key = NULL WHERE id = ?1`,
+    ).bind(edit.doc_id),
+  ]);
   if ((result.meta.changes ?? 0) === 0) return { ok: false, error: "not_found" };
   return { ok: true };
 }
@@ -481,18 +755,20 @@ export type HistoryRow = {
   reviewedAt: string | null;
 };
 
-export async function listDocHistory(championSlug: string): Promise<HistoryRow[]> {
+export async function listDocHistory(ref: DocRef): Promise<HistoryRow[]> {
   const DB = await db();
+  const doc = await resolveDoc(DB, ref);
+  if (!doc) return [];
+
   const rows = await DB.prepare(
     `SELECT e.id, e.me_slug, e.summary, u.name AS author_name, e.revision, e.accepted_via,
             e.created_at, e.reviewed_at
        FROM wiki_edits e
-       JOIN wiki_docs d ON d.id = e.doc_id
        LEFT JOIN users u ON u.id = e.author
-      WHERE d.champion_slug = ?1 AND e.status = 'accepted'
+      WHERE e.doc_id = ?1 AND e.status = 'accepted'
       ORDER BY e.revision DESC`,
   )
-    .bind(championSlug)
+    .bind(doc.id)
     .all<{
       id: string;
       me_slug: string | null;
@@ -536,17 +812,18 @@ export type RevertResult = { ok: true; changedSections: number } | { ok: false; 
  * 되돌리기 한 번이 여러 개의 새 리비전 번호를 만들 수 있다 — 의도된 동작이다.
  */
 export async function revertDoc(
-  championSlug: string,
+  ref: DocRef,
   targetRevision: number,
   adminId: string,
 ): Promise<RevertResult> {
   const DB = await db();
   const now = new Date().toISOString();
 
-  const doc = await DB.prepare(
-    `SELECT id, revision, general FROM wiki_docs WHERE champion_slug = ?1`,
-  )
-    .bind(championSlug)
+  const resolved = await resolveDoc(DB, ref);
+  if (!resolved) return { ok: false, error: "not_found" };
+
+  const doc = await DB.prepare(`SELECT id, revision, general FROM wiki_docs WHERE id = ?1`)
+    .bind(resolved.id)
     .first<{ id: string; revision: number; general: string }>();
   if (!doc) return { ok: false, error: "not_found" };
 
@@ -616,7 +893,7 @@ export async function revertDoc(
 
 export type RecentChangeRow = {
   id: string;
-  championSlug: string;
+  target: DocTarget;
   meSlug: string | null;
   summary: string;
   authorName: string | null;
@@ -625,33 +902,40 @@ export type RecentChangeRow = {
   createdAt: string;
 };
 
+/**
+ * 반영된 편집을 시간순으로. 매치업 문서와 일반 문서가 한 목록에 섞인다.
+ *
+ * 게시된 문서만 담는다. 승인 전 문서의 편집은 아직 반영된 것이 아니고, 거절되어
+ * 이름을 놓아준 껍데기는 갈 곳이 없다.
+ */
 export async function listRecentChanges(limit = 50): Promise<RecentChangeRow[]> {
   const DB = await db();
   const rows = await DB.prepare(
-    `SELECT e.id, d.champion_slug, e.me_slug, e.summary, u.name AS author_name,
+    `SELECT e.id, ${DOC_COLUMNS}, e.me_slug, e.summary, u.name AS author_name,
             e.accepted_via, e.revision, e.created_at
        FROM wiki_edits e
        JOIN wiki_docs d ON d.id = e.doc_id
        LEFT JOIN users u ON u.id = e.author
-      WHERE e.status = 'accepted'
+      WHERE e.status = 'accepted' AND d.doc_status = 'published'
       ORDER BY e.created_at DESC
       LIMIT ?1`,
   )
     .bind(limit)
-    .all<{
-      id: string;
-      champion_slug: string;
-      me_slug: string | null;
-      summary: string;
-      author_name: string | null;
-      accepted_via: AcceptedVia;
-      revision: number;
-      created_at: string;
-    }>();
+    .all<
+      DocColumns & {
+        id: string;
+        me_slug: string | null;
+        summary: string;
+        author_name: string | null;
+        accepted_via: AcceptedVia;
+        revision: number;
+        created_at: string;
+      }
+    >();
 
   return (rows.results ?? []).map((r) => ({
     id: r.id,
-    championSlug: r.champion_slug,
+    target: targetOf(r),
     meSlug: r.me_slug,
     summary: r.summary,
     authorName: r.author_name,

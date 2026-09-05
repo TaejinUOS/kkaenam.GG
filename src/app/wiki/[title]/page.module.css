@@ -1,0 +1,46 @@
+/* 아직 없는 문서 화면. 빈 문서는 막다른 길이 아니라 초대다. */
+
+.screen {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(20px, 3vw, 40px) clamp(40px, 6vw, 80px);
+  min-height: 60vh;
+}
+
+.screen :focus-visible {
+  outline-color: var(--cobalt);
+}
+
+.crumbs {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.crumbLink:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.title {
+  font-size: clamp(36px, 5.6vw, 72px);
+  line-height: 1.05;
+  margin-top: 4px;
+}
+
+.lead {
+  margin-top: 12px;
+  max-width: 52ch;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}

@@ -229,9 +229,17 @@ const LINK_LOOKUP_LIMIT = 100;
  * 매치업 갈래는 카탈로그만으로 풀리므로 D1에 묻지 않는다. 남은 이름만 모아 한 번
  * 조회한다. 승인 전(`proposed`) 문서는 걸리지 않는다 — 아직 없는 문서와 같이 취급해야
  * 승인 전 이름이 링크를 통해 새어 나가지 않는다.
+ *
+ * 분류(`분류:이름`)는 조회 후보에서 뺀다 — `linkifyWikiLinks`가 애초에 그 갈래를
+ * `resolve()`로 넘기지 않고 지우므로, 여기서 결과를 만들어도 아무도 읽지 않는다.
+ * `unresolvedWikiTitles` 자체에서 빼면 안 된다 — 그 함수는 `wiki_links` 저장
+ * 후보이기도 해서, 거기서 빼면 분류가 저장되지 않는다(`wikiEditStore.ts`의
+ * `linkStatements`가 겪었던 문제).
  */
 export async function resolveDocLinks(bodies: string[]): Promise<WikiLinkMap> {
-  const unresolved = unresolvedWikiTitles(bodies).slice(0, LINK_LOOKUP_LIMIT);
+  const unresolved = unresolvedWikiTitles(bodies)
+    .filter((title) => !parseCategoryName(title))
+    .slice(0, LINK_LOOKUP_LIMIT);
   if (unresolved.length === 0) return resolveWikiLinks(bodies);
 
   const keys = [...new Set(unresolved.map(titleKey))];

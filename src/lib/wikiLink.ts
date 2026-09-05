@@ -9,7 +9,7 @@
  */
 
 import { allChampions, positions } from "@/data/champions";
-import { collectWikiLinkTitles, parseCategoryName } from "@/lib/wikiMarkup";
+import { collectWikiLinkTitles } from "@/lib/wikiMarkup";
 import { articleHref, titleKey } from "@/lib/wikiTitle";
 
 /** 문서 이름 -> 주소. 해석되지 않은 이름은 담지 않는다. */
@@ -144,16 +144,20 @@ export function resolveWikiLinks(bodies: string[], articles?: ArticleIndex): Wik
 }
 
 /**
- * 본문에 적힌 이름 가운데 매치업 문서로 풀리지 않는 것. 일반 문서 조회의 후보다.
+ * 본문에 적힌 이름 가운데 매치업 문서로 풀리지 않는 것.
  *
- * 분류(`분류:이름`)는 뺀다 — `linkifyWikiLinks`가 애초에 링크로 그리지 않으므로
- * `resolveDocLinks`가 존재하지도 않을 문서를 D1에 물어보는 헛수고를 막는다.
+ * 일반 문서 조회(`resolveDocLinks`)의 후보이자, `wiki_links`에 저장할 이름의
+ * 후보이기도 하다(`wikiEditStore.ts`의 `linkStatements`) — **분류(`분류:이름`)를
+ * 여기서 빼면 안 된다.** `wiki_links`가 분류 태그를 저장하는 유일한 통로라서,
+ * 빼는 순간 분류 기능 자체가 조용히 멈춘다(2026-09-05, 실제로 이 자리에서 한 번
+ * 그렇게 만들었다가 고쳤다). 존재하지 않을 분류 이름을 문서 조회에서 거르는 일은
+ * `resolveDocLinks` 쪽에서 따로 한다.
  */
 export function unresolvedWikiTitles(bodies: string[]): string[] {
   const titles = new Set<string>();
   for (const body of bodies) {
     for (const title of collectWikiLinkTitles(body)) {
-      if (!resolveMatchupTitle(title) && !parseCategoryName(title)) titles.add(title);
+      if (!resolveMatchupTitle(title)) titles.add(title);
     }
   }
   return [...titles];

@@ -101,16 +101,24 @@
 /*
  * 내용은 `opacity`로만 가린다. `display: none`이면 화면 낭독기가 각주를 아예
  * 읽지 못한다. 보이지 않는 동안 눌리지 않도록 `pointer-events`만 끈다.
+ *
+ * 각주 표식을 기준으로 가운데 정렬(`left: 50%` + `translateX(-50%)`)하지 않는다.
+ * 노트북처럼 화면은 넓지만 본문 단이 좁아 표식이 단 오른쪽 절반에 자주 오는 폭에서는,
+ * 가운데 정렬 팝업의 오른쪽 절반이 뷰포트 밖으로 밀려 잘린 채 안 보이는 일이 잦았다
+ * (전엔 480px 이하에서만 왼쪽 정렬로 고쳤는데, 그보다 넓은 노트북 폭은 못 잡았다).
+ * 자바스크립트로 표식의 실제 위치를 재지 않으므로(이 컴포넌트가 서버에서 그려지는
+ * 이유이기도 하다), 폭에 상관없이 **표식의 왼쪽 끝에 맞춰 오른쪽으로 펼치는 쪽을
+ * 기본값으로 삼는다** — 문장 안 표식은 대개 단의 왼쪽·가운데 어딘가에 있어, 오른쪽으로
+ * 펼치는 쪽이 뷰포트 오른쪽 끝을 넘길 위험이 왼쪽 끝을 넘길 위험보다 작다.
  */
 .footnotePopup {
   position: absolute;
   bottom: calc(100% + 6px);
-  left: 50%;
+  left: 0;
   z-index: 20;
   width: max-content;
-  max-width: min(320px, 74vw);
+  max-width: min(320px, 82vw);
   padding: 8px 10px;
-  transform: translateX(-50%);
   border: var(--line);
   border-radius: var(--radius-card);
   background: var(--paper);
@@ -136,17 +144,5 @@
 @media (prefers-reduced-motion: reduce) {
   .footnotePopup {
     transition: none;
-  }
-}
-
-/*
- * 좁은 화면에서는 글자 폭이 좁아 가운데 정렬한 팝업이 화면 밖으로 밀린다.
- * 본문 폭에 맞춰 왼쪽으로 붙인다.
- */
-@media (max-width: 480px) {
-  .footnotePopup {
-    left: 0;
-    transform: none;
-    max-width: min(280px, 82vw);
   }
 }
